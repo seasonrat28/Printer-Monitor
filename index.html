@@ -1,0 +1,3915 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printer Monitor PLK - FUJIFILM Apeos 4620 SZ</title>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --primary-light: #e0f2fe;
+            --bg-main: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-bg: #ecfdf5;
+            --warning: #f59e0b;
+            --warning-bg: #fffbeb;
+            --danger: #ef4444;
+            --danger-bg: #fef2f2;
+            --offline: #64748b;
+            --offline-bg: #f1f5f9;
+
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md:
+                0 4px 6px -1px rgb(0 0 0 / 0.1),
+                0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg:
+                0 10px 15px -3px rgb(0 0 0 / 0.1),
+                0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Sarabun',
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding-bottom: 60px;
+        }
+
+        /* =========================
+           TOP ACTION BAR
+        ========================= */
+
+        .header-icons {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+            flex-wrap: wrap;
+        }
+
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            padding: 9px 14px;
+            border-radius: 30px;
+            font-size: 13.5px;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .icon-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            background: #ffffff;
+        }
+
+        .alert-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--danger);
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            border: 2px solid white;
+        }
+
+        /* =========================
+           CONTAINER / HEADER
+        ========================= */
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            padding: 22px;
+            background:
+                linear-gradient(
+                    135deg,
+                    #0284c7 0%,
+                    #0f766e 100%
+                );
+            color: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            opacity: 0.92;
+            font-size: 0.95rem;
+        }
+
+        .developed-by {
+            margin-top: 8px;
+            font-size: 0.82rem;
+            background: rgba(255, 255, 255, 0.18);
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 20px;
+        }
+
+        .auto-refresh-indicator {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 0.8rem;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+
+        /* =========================
+           NAVIGATION
+        ========================= */
+
+        .main-nav {
+            display: flex;
+            background: white;
+            padding: 6px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            gap: 6px;
+            overflow-x: auto;
+        }
+
+        .nav-item {
+            flex: 1;
+            min-width: 140px;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-main);
+            color: var(--primary);
+        }
+
+        .nav-item.active {
+            background: var(--primary-light);
+            color: var(--primary-hover);
+            font-weight: 700;
+        }
+
+        .page-view {
+            display: none;
+            animation: fadeIn 0.25s ease-in-out;
+        }
+
+        .page-view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* =========================
+           SEARCH / CONTROLS
+        ========================= */
+
+        .controls-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 22px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+        }
+
+        .sub-tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 20px;
+            padding-bottom: 2px;
+        }
+
+        .sub-tab {
+            padding: 10px 18px;
+            border: none;
+            background: transparent;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -3px;
+            transition: all 0.2s;
+            font-size: 0.92rem;
+        }
+
+        .sub-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .sub-content {
+            display: none;
+        }
+
+        .sub-content.active {
+            display: block;
+        }
+
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .form-group.small {
+            flex: 0.5;
+            min-width: 100px;
+        }
+
+        .form-group label {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .form-group input,
+        .search-input,
+        .filter-select {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            outline: none;
+            font-size: 0.95rem;
+            transition: border 0.2s;
+            background-color: #fff;
+        }
+
+        .form-group input:focus,
+        .search-input:focus,
+        .filter-select:focus {
+            border-color: var(--primary);
+            box-shadow:
+                0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-clear {
+            background: #cbd5e1;
+            color: #334155;
+        }
+
+        .btn-clear:hover {
+            background: #94a3b8;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .recent-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .chip {
+            background: var(--primary-light);
+            color: var(--primary-hover);
+            padding: 5px 14px;
+            border-radius: 16px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            transition: background 0.15s;
+        }
+
+        .chip:hover {
+            background: #bae6fd;
+        }
+
+        .chip-remove {
+            color: #ef4444;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* =========================
+           SECTION HEADER
+        ========================= */
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+            gap: 10px;
+        }
+
+        .section-header h3 {
+            font-size: 1.25rem;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .section-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* =========================
+           STATS
+        ========================= */
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 14px 20px;
+            border-radius: var(--radius);
+            flex: 1;
+            min-width: 140px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .stat-item:hover,
+        .stat-item.active {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-sm);
+            transform: translateY(-2px);
+        }
+
+        .stat-number {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .stat-label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .search-filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            background: white;
+            padding: 12px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .search-input {
+            flex: 2;
+            min-width: 220px;
+        }
+
+        .btn-clear-filters {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .btn-clear-filters:hover {
+            background: #e2e8f0;
+            color: var(--text-main);
+        }
+
+        /* =========================
+           PRINTER CARDS
+        ========================= */
+
+        .printer-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .printer-card {
+            background: white;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.25s ease;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .printer-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-3px);
+            border-color: #cbd5e1;
+        }
+
+        .printer-card.offline {
+            opacity: 0.85;
+            background: #f8fafc;
+        }
+
+        .printer-card-main {
+            padding: 16px;
+            cursor: pointer;
+        }
+
+        .printer-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.88rem;
+            gap: 10px;
+        }
+
+        .printer-name {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge {
+            font-size: 0.72rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-online {
+            background: var(--success-bg);
+            color: #047857;
+        }
+
+        .status-offline {
+            background: var(--offline-bg);
+            color: var(--offline);
+        }
+
+        .favorite-btn-inline {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #f59e0b;
+            padding: 0 4px;
+            transition: transform 0.15s;
+        }
+
+        .favorite-btn-inline:hover {
+            transform: scale(1.25);
+        }
+
+        .info-label {
+            color: var(--text-muted);
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: var(--text-main);
+            text-align: right;
+            word-break: break-word;
+        }
+
+        .device-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f1f5f9;
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 0.82rem;
+        }
+
+        .device-status-ready {
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .device-status-warning {
+            background: #fffbeb;
+            color: #92400e;
+        }
+
+        .device-status-error {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .supplies {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .supply-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .supply-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.4s ease;
+        }
+
+        .progress-high {
+            background: #10b981;
+        }
+
+        .progress-medium {
+            background: #f59e0b;
+        }
+
+        .progress-low {
+            background: #ef4444;
+        }
+
+        .last-updated {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 12px;
+            text-align: right;
+        }
+
+        .log-toggle-area {
+            border-top: 1px solid var(--border);
+            background: #f8fafc;
+            text-align: center;
+        }
+
+        .log-toggle-btn {
+            width: 100%;
+            background: transparent;
+            border: none;
+            padding: 8px;
+            font-size: 0.8rem;
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .log-toggle-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .log-section {
+            padding: 10px 14px;
+            background: #fafafa;
+            border-top: 1px dashed var(--border);
+            font-size: 0.78rem;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 4px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        /* =========================
+           ALERT PANEL
+        ========================= */
+
+        .alert-panel-container {
+            position: fixed;
+            top: 0;
+            right: -360px;
+            width: 350px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 15px rgb(0 0 0 / 0.15);
+            z-index: 2000;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .alert-panel-container.open {
+            right: 0;
+        }
+
+        .alert-panel-header {
+            padding: 18px;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert-panel-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .alert-panel-body {
+            padding: 15px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .alert-card {
+            background: #fef2f2;
+            border-left: 4px solid var(--danger);
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .alert-card.warning {
+            background: #fffbeb;
+            border-left-color: var(--warning);
+        }
+
+        .alert-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        /* =========================
+           MODAL
+        ========================= */
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 3000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 500px;
+            padding: 24px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* =========================
+           TOAST
+        ========================= */
+
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 4000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: #1e293b;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-md);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* =========================
+           LOADING
+        ========================= */
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-muted);
+            background: white;
+            border: 1px dashed var(--border);
+            border-radius: var(--radius);
+        }
+
+        @media (max-width: 900px) {
+            .header-icons {
+                position: static;
+                justify-content: center;
+                margin: 15px 10px 0;
+            }
+
+            .header {
+                margin-top: 10px;
+            }
+
+            .auto-refresh-indicator {
+                position: static;
+                margin-top: 10px;
+                display: inline-block !important;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .printer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .alert-panel-container {
+                width: 100%;
+                right: -100%;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Toast -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Top Buttons -->
+    <div class="header-icons">
+
+        <button
+            class="icon-btn"
+            onclick="printerMonitor.toggleAlertPanel()"
+            title="Alerts"
+            style="position: relative;"
+        >
+            🔔
+            <span
+                id="alertBadge"
+                class="alert-badge"
+                style="display:none;"
+            >0</span>
+        </button>
+
+        <button
+            class="icon-btn"
+            onclick="printerMonitor.openSettingsModal()"
+        >
+            ⚙️ ตั้งค่า
+        </button>
+
+        <button
+            class="icon-btn"
+            onclick="printerMonitor.refreshAllData()"
+        >
+            🔄 รีเฟรช
+        </button>
+
+        <button
+            class="icon-btn"
+            onclick="printerMonitor.toggleAutoRefresh()"
+        >
+            ⏰
+            <span id="autoRefreshBtnText">
+                ออโต้ (30s)
+            </span>
+        </button>
+
+        <button
+            id="expandAllBtn"
+            class="icon-btn"
+            onclick="printerMonitor.logManager.toggleExpandAll()"
+        >
+            📋 ขยายประวัติ
+        </button>
+
+    </div>
+
+    <div class="container">
+
+        <!-- Header -->
+        <div class="header">
+
+            <h1>🖨️ FUJIFILM Printer Monitor</h1>
+
+            <p>
+                ระบบตรวจสอบสถานะ Toner และ Drum Unit -
+                Apeos 4620 SZ
+            </p>
+
+            <div class="developed-by">
+                พัฒนา By
+                <strong>----------</strong>
+                (IT Support PLK)
+                Version 3.0
+            </div>
+
+            <div
+                id="autoRefreshIndicator"
+                class="auto-refresh-indicator"
+                style="display:none;"
+            >
+                ⏱️ อัปเดตอัตโนมัติใน:
+                <span id="countdownText">30</span>s
+            </div>
+
+        </div>
+
+        <!-- Navigation -->
+        <nav class="main-nav">
+
+            <button
+                class="nav-item active"
+                id="navDatabase"
+                onclick="switchMainView('database')"
+            >
+                📊 เครื่องพิมพ์ทั้งหมด
+                (<span id="navTotalCount">0</span>)
+            </button>
+
+            <button
+                class="nav-item"
+                id="navSearch"
+                onclick="switchMainView('search')"
+            >
+                🔍 ค้นหา & สแกน IP
+            </button>
+
+            <button
+                class="nav-item"
+                id="navFavorites"
+                onclick="switchMainView('favorites')"
+            >
+                ⭐ รายการโปรด
+                (<span id="navFavCount">0</span>)
+            </button>
+
+            <button
+                class="nav-item"
+                id="navAlerts"
+                onclick="switchMainView('alerts')"
+            >
+                🔔 การแจ้งเตือน
+                (<span id="navAlertCount">0</span>)
+            </button>
+
+        </nav>
+
+        <!-- =========================
+             DATABASE VIEW
+        ========================= -->
+
+        <div
+            id="databaseView"
+            class="page-view active"
+        >
+
+            <div
+                id="databaseStats"
+                class="stats"
+            >
+
+                <div
+                    class="stat-item active"
+                    id="statAll"
+                    onclick="printerMonitor.databaseSection.filterByStatus('all')"
+                >
+                    <div
+                        class="stat-number"
+                        id="countAll"
+                    >0</div>
+
+                    <div class="stat-label">
+                        เครื่องทั้งหมด
+                    </div>
+                </div>
+
+                <div
+                    class="stat-item"
+                    id="statOnline"
+                    onclick="printerMonitor.databaseSection.filterByStatus('online')"
+                >
+                    <div
+                        class="stat-number"
+                        style="color:#10b981;"
+                        id="countOnline"
+                    >0</div>
+
+                    <div class="stat-label">
+                        ออนไลน์
+                    </div>
+                </div>
+
+                <div
+                    class="stat-item"
+                    id="statOffline"
+                    onclick="printerMonitor.databaseSection.filterByStatus('offline')"
+                >
+                    <div
+                        class="stat-number"
+                        style="color:#64748b;"
+                        id="countOffline"
+                    >0</div>
+
+                    <div class="stat-label">
+                        ออฟไลน์
+                    </div>
+                </div>
+
+                <div
+                    class="stat-item"
+                    id="statWarning"
+                    onclick="printerMonitor.databaseSection.filterByStatus('warning')"
+                >
+                    <div
+                        class="stat-number"
+                        style="color:#f59e0b;"
+                        id="countWarning"
+                    >0</div>
+
+                    <div class="stat-label">
+                        เตือน / หมึกต่ำ
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="section-header">
+
+                <h3>
+                    📊 รายการเครื่องพิมพ์ในระบบ
+                </h3>
+
+                <div class="section-controls">
+
+                    <select
+                        id="databaseFilterSelect"
+                        class="filter-select"
+                        onchange="printerMonitor.databaseSection.applySort()"
+                    >
+                        <option value="ip-asc">
+                            IP (น้อย → มาก)
+                        </option>
+
+                        <option value="ip-desc">
+                            IP (มาก → น้อย)
+                        </option>
+
+                        <option value="toner-asc">
+                            Toner (น้อย → มาก)
+                        </option>
+
+                        <option value="toner-desc">
+                            Toner (มาก → น้อย)
+                        </option>
+
+                        <option value="drum-asc">
+                            Drum (น้อย → มาก)
+                        </option>
+
+                        <option value="drum-desc">
+                            Drum (มาก → น้อย)
+                        </option>
+                    </select>
+
+                    <button
+                        class="btn btn-clear"
+                        onclick="printerMonitor.exportDatabaseData()"
+                    >
+                        📥 Export CSV
+                    </button>
+
+                </div>
+            </div>
+
+            <div class="search-filter-bar">
+
+                <input
+                    type="text"
+                    id="databaseSearch"
+                    class="search-input"
+                    placeholder="🔍 ค้นหา IP, ชื่อเครื่อง, Location, Serial..."
+                    oninput="printerMonitor.databaseSection.filterData()"
+                >
+
+                <select
+                    id="databaseSupplyFilter"
+                    class="filter-select"
+                    onchange="printerMonitor.databaseSection.filterData()"
+                >
+                    <option value="none">
+                        ระดับหมึก/ดรัมทั้งหมด
+                    </option>
+
+                    <option value="toner-10">
+                        Toner ≤ 10%
+                    </option>
+
+                    <option value="toner-20">
+                        Toner ≤ 20%
+                    </option>
+
+                    <option value="toner-30">
+                        Toner ≤ 30%
+                    </option>
+
+                    <option value="drum-10">
+                        Drum ≤ 10%
+                    </option>
+
+                    <option value="drum-20">
+                        Drum ≤ 20%
+                    </option>
+
+                    <option value="drum-30">
+                        Drum ≤ 30%
+                    </option>
+                </select>
+
+                <button
+                    class="btn-clear-filters"
+                    onclick="printerMonitor.databaseSection.clearAllFilters()"
+                >
+                    🗑️ ล้างตัวกรอง
+                </button>
+
+            </div>
+
+            <div
+                id="databaseGrid"
+                class="printer-grid"
+            ></div>
+
+        </div>
+
+        <!-- =========================
+             SEARCH VIEW
+        ========================= -->
+
+        <div
+            id="searchView"
+            class="page-view"
+        >
+
+            <div class="controls-card">
+
+                <div class="sub-tabs">
+
+                    <button
+                        class="sub-tab active"
+                        data-tab="single"
+                        onclick="switchSearchSubTab('single', this)"
+                    >
+                        🔍 ค้นหา IP เดียว
+                    </button>
+
+                    <button
+                        class="sub-tab"
+                        data-tab="range"
+                        onclick="switchSearchSubTab('range', this)"
+                    >
+                        📡 ค้นหาช่วง IP
+                    </button>
+
+                </div>
+
+                <!-- Single -->
+                <div
+                    id="singleSearchContent"
+                    class="sub-content active"
+                >
+
+                    <div class="control-row">
+
+                        <div class="form-group">
+
+                            <label for="singleIp">
+                                🔍 กรอก IP Address:
+                            </label>
+
+                            <input
+                                type="text"
+                                id="singleIp"
+                                placeholder="เช่น 10.119.34.20"
+                                onkeyup="if(event.key === 'Enter') checkSingle()"
+                            >
+
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            onclick="checkSingle()"
+                        >
+                            🔍 ค้นหา
+                        </button>
+
+                        <button
+                            class="btn btn-clear"
+                            onclick="clearResults('single')"
+                        >
+                            🗑️ ล้างผลค้นหา
+                        </button>
+
+                    </div>
+
+                    <div style="margin-top:15px;">
+
+                        <span
+                            style="
+                                font-size:.85rem;
+                                font-weight:600;
+                                color:var(--text-muted);
+                            "
+                        >
+                            ประวัติค้นหาล่าสุด:
+                        </span>
+
+                        <div
+                            id="recentIPsList"
+                            class="recent-chips"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+                <!-- Range -->
+                <div
+                    id="rangeSearchContent"
+                    class="sub-content"
+                >
+
+                    <div class="control-row">
+
+                        <div class="form-group">
+
+                            <label for="baseIp">
+                                📡 Base IP (xxx.xxx.xxx):
+                            </label>
+
+                            <input
+                                type="text"
+                                id="baseIp"
+                                value="10.119.34"
+                                placeholder="เช่น 10.119.34"
+                            >
+
+                        </div>
+
+                        <div class="form-group small">
+
+                            <label for="startRange">
+                                เริ่มต้น:
+                            </label>
+
+                            <input
+                                type="number"
+                                id="startRange"
+                                min="1"
+                                max="254"
+                                value="20"
+                            >
+
+                        </div>
+
+                        <div class="form-group small">
+
+                            <label for="endRange">
+                                สิ้นสุด:
+                            </label>
+
+                            <input
+                                type="number"
+                                id="endRange"
+                                min="1"
+                                max="254"
+                                value="56"
+                            >
+
+                        </div>
+
+                        <button
+                            id="scanRangeBtn"
+                            class="btn btn-primary"
+                            onclick="checkRange()"
+                        >
+                            🔍 สแกนช่วง IP
+                        </button>
+
+                        <button
+                            class="btn btn-clear"
+                            onclick="clearResults('range')"
+                        >
+                            🗑️ ล้างผลค้นหา
+                        </button>
+
+                    </div>
+
+                    <div
+                        id="rangeProgress"
+                        style="
+                            margin-top:15px;
+                            display:none;
+                            font-size:.9rem;
+                            color:var(--primary);
+                        "
+                    >
+                        <span class="loading-spinner"></span>
+
+                        กำลังสแกนช่วง IP...
+
+                        <span
+                            id="rangeProgressText"
+                            style="font-weight:bold;"
+                        >
+                            0%
+                        </span>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Search Results -->
+            <div
+                id="searchResultsContainer"
+                style="display:none;"
+            >
+
+                <div class="section-header">
+
+                    <h3>
+                        🔍 ผลการค้นหาเครื่องพิมพ์
+                    </h3>
+
+                    <div class="section-controls">
+
+                        <select
+                            id="searchFilterSelect"
+                            class="filter-select"
+                            onchange="printerMonitor.searchSection.applySort()"
+                        >
+                            <option value="ip-asc">
+                                IP (น้อย → มาก)
+                            </option>
+
+                            <option value="ip-desc">
+                                IP (มาก → น้อย)
+                            </option>
+
+                            <option value="toner-asc">
+                                Toner (น้อย → มาก)
+                            </option>
+
+                            <option value="toner-desc">
+                                Toner (มาก → น้อย)
+                            </option>
+
+                            <option value="drum-asc">
+                                Drum (น้อย → มาก)
+                            </option>
+
+                            <option value="drum-desc">
+                                Drum (มาก → น้อย)
+                            </option>
+                        </select>
+
+                        <button
+                            class="btn btn-clear"
+                            onclick="printerMonitor.exportSearchData()"
+                        >
+                            📥 Export CSV
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div
+                    id="searchGrid"
+                    class="printer-grid"
+                ></div>
+
+            </div>
+
+        </div>
+
+        <!-- =========================
+             FAVORITES
+        ========================= -->
+
+        <div
+            id="favoritesView"
+            class="page-view"
+        >
+
+            <div class="section-header">
+
+                <h3>
+                    ⭐ รายการโปรดของคุณ
+                </h3>
+
+                <button
+                    class="btn btn-clear"
+                    onclick="printerMonitor.exportFavoritesData()"
+                >
+                    📥 Export CSV
+                </button>
+
+            </div>
+
+            <div
+                id="favoritesGrid"
+                class="printer-grid"
+            ></div>
+
+        </div>
+
+        <!-- =========================
+             ALERTS
+        ========================= -->
+
+        <div
+            id="alertsView"
+            class="page-view"
+        >
+
+            <div class="section-header">
+
+                <h3>
+                    🔔 สรุปการแจ้งเตือน
+                </h3>
+
+            </div>
+
+            <div id="alertsFullViewBody"></div>
+
+        </div>
+
+    </div>
+
+    <!-- Alert Drawer -->
+
+    <div
+        id="alertPanelContainer"
+        class="alert-panel-container"
+    >
+
+        <div class="alert-panel-header">
+
+            <h3>
+                🔔 การแจ้งเตือน
+            </h3>
+
+            <button
+                class="alert-panel-close"
+                onclick="printerMonitor.toggleAlertPanel()"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <div
+            class="alert-panel-body"
+            id="alertPanelBody"
+        >
+            <div
+                style="
+                    text-align:center;
+                    color:var(--text-muted);
+                    padding:20px;
+                "
+            >
+                ยังไม่มีข้อมูล
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Settings -->
+
+    <div
+        id="settingsModal"
+        class="modal-overlay"
+    >
+
+        <div class="modal">
+
+            <div class="modal-header">
+
+                <h3>
+                    ⚙️ ตั้งค่าระบบ
+                </h3>
+
+                <button
+                    style="
+                        background:none;
+                        border:none;
+                        font-size:1.2rem;
+                        cursor:pointer;
+                    "
+                    onclick="printerMonitor.closeSettingsModal()"
+                >
+                    ✕
+                </button>
+
+            </div>
+
+            <div
+                style="
+                    display:flex;
+                    flex-direction:column;
+                    gap:15px;
+                "
+            >
+
+                <div class="form-group">
+
+                    <label>
+                        ⚠️ Toner Low (%):
+                    </label>
+
+                    <input
+                        type="number"
+                        id="settingTonerThreshold"
+                        value="20"
+                        min="5"
+                        max="50"
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label>
+                        🔧 Drum Low (%):
+                    </label>
+
+                    <input
+                        type="number"
+                        id="settingDrumThreshold"
+                        value="20"
+                        min="5"
+                        max="50"
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label>
+                        ⏱️ Auto Refresh (วินาที):
+                    </label>
+
+                    <input
+                        type="number"
+                        id="settingRefreshInterval"
+                        value="30"
+                        min="10"
+                        max="300"
+                    >
+
+                </div>
+
+                <button
+                    class="btn btn-primary"
+                    onclick="printerMonitor.saveSettings()"
+                >
+                    💾 บันทึกการตั้งค่า
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        /*
+         * ============================================================
+         * PRINTER MONITOR
+         * ============================================================
+         *
+         * ไม่มี INITIAL_PRINTERS
+         *
+         * ข้อมูลเริ่มต้น = []
+         *
+         * การสแกนจริงจะเรียก:
+         *
+         * POST /api/scan
+         *
+         * Body:
+         *
+         * {
+         *   "base": "10.119.34",
+         *   "start": 20,
+         *   "end": 56
+         * }
+         *
+         * Backend Flask ต้องคืน:
+         *
+         * {
+         *   "printers": [...]
+         * }
+         *
+         * ============================================================
+         */
+
+        class PrinterMonitorApp {
+
+            constructor() {
+
+                /*
+                 * ไม่มี INITIAL_PRINTERS แล้ว
+                 */
+                this.printers =
+                    JSON.parse(
+                        localStorage.getItem('plk_printers')
+                    ) || [];
+
+                this.favorites =
+                    new Set(
+                        JSON.parse(
+                            localStorage.getItem('plk_favorites')
+                        ) || []
+                    );
+
+                this.recentIPs =
+                    JSON.parse(
+                        localStorage.getItem('plk_recent_ips')
+                    ) || [];
+
+                this.settings =
+                    JSON.parse(
+                        localStorage.getItem('plk_settings')
+                    ) || {
+                        tonerThreshold: 20,
+                        drumThreshold: 20,
+                        interval: 30
+                    };
+
+                this.currentStatusFilter = 'all';
+
+                this.autoRefreshActive = false;
+                this.autoRefreshTimer = null;
+
+                this.countdownVal =
+                    this.settings.interval;
+
+                this.allExpanded = false;
+
+                this.lastSearchResults = [];
+
+                this.databaseSection = {
+
+                    filterData:
+                        () => this.renderDatabaseGrid(),
+
+                    clearAllFilters: () => {
+
+                        document
+                            .getElementById('databaseSearch')
+                            .value = '';
+
+                        document
+                            .getElementById('databaseSupplyFilter')
+                            .value = 'none';
+
+                        this.currentStatusFilter = 'all';
+
+                        this.updateStatTabs();
+
+                        this.renderDatabaseGrid();
+                    },
+
+                    filterByStatus: (status) => {
+
+                        this.currentStatusFilter = status;
+
+                        this.updateStatTabs();
+
+                        this.renderDatabaseGrid();
+                    },
+
+                    applySort:
+                        () => this.renderDatabaseGrid()
+                };
+
+                this.searchSection = {
+
+                    applySort:
+                        () => this.renderSearchGrid()
+
+                };
+
+                this.logManager = {
+
+                    toggleCard: (ip) => {
+
+                        const id =
+                            `log-${ip.replace(/\./g, '_')}`;
+
+                        const el =
+                            document.getElementById(id);
+
+                        if (!el) return;
+
+                        el.style.display =
+                            el.style.display === 'none'
+                                ? 'block'
+                                : 'none';
+                    },
+
+                    toggleExpandAll: () => {
+
+                        this.allExpanded =
+                            !this.allExpanded;
+
+                        document
+                            .querySelectorAll('.log-section')
+                            .forEach(log => {
+
+                                log.style.display =
+                                    this.allExpanded
+                                        ? 'block'
+                                        : 'none';
+                            });
+
+                        const btn =
+                            document.getElementById(
+                                'expandAllBtn'
+                            );
+
+                        btn.innerHTML =
+                            this.allExpanded
+                                ? '📋 ย่อประวัติ'
+                                : '📋 ขยายประวัติ';
+                    }
+                };
+
+                this.init();
+            }
+
+            init() {
+
+                this.renderRecentIPs();
+
+                this.renderDatabaseGrid();
+
+                this.renderFavoritesGrid();
+
+                this.updateAlerts();
+            }
+
+            showToast(
+                msg,
+                icon = 'ℹ️'
+            ) {
+
+                const container =
+                    document.getElementById(
+                        'toastContainer'
+                    );
+
+                const toast =
+                    document.createElement('div');
+
+                toast.className = 'toast';
+
+                toast.innerHTML =
+                    `<span>${icon}</span>
+                     <span>${msg}</span>`;
+
+                container.appendChild(toast);
+
+                setTimeout(
+                    () => toast.remove(),
+                    3500
+                );
+            }
+
+            getSupplyLevelClass(percent) {
+
+                percent = Number(percent) || 0;
+
+                if (
+                    percent <=
+                    this.settings.tonerThreshold
+                ) {
+                    return 'progress-low';
+                }
+
+                if (percent <= 50) {
+                    return 'progress-medium';
+                }
+
+                return 'progress-high';
+            }
+
+            getDeviceStatusBadge(printer) {
+
+                if (printer.status === 'offline') {
+
+                    return `
+                        <div class="device-status device-status-error">
+                            <span>Status:</span>
+                            <strong>Offline</strong>
+                        </div>
+                    `;
+                }
+
+                if (
+                    printer.deviceStatus === 'Error'
+                ) {
+
+                    return `
+                        <div class="device-status device-status-error">
+                            <span>Status:</span>
+                            <strong>Error / Paper Jam</strong>
+                        </div>
+                    `;
+                }
+
+                if (
+                    Number(printer.toner) <=
+                        this.settings.tonerThreshold ||
+
+                    Number(printer.drum) <=
+                        this.settings.drumThreshold ||
+
+                    printer.deviceStatus === 'Warning'
+                ) {
+
+                    return `
+                        <div class="device-status device-status-warning">
+                            <span>Status:</span>
+                            <strong>Warning</strong>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="device-status device-status-ready">
+                        <span>Status:</span>
+                        <strong>Ready</strong>
+                    </div>
+                `;
+            }
+
+            createPrinterCardHTML(printer) {
+
+                const isFav =
+                    this.favorites.has(printer.ip);
+
+                const safeIp =
+                    String(printer.ip || '')
+                        .replace(/\./g, '_');
+
+                const toner =
+                    Number(printer.toner) || 0;
+
+                const drum =
+                    Number(printer.drum) || 0;
+
+                const tonerClass =
+                    this.getSupplyLevelClass(toner);
+
+                const drumClass =
+                    this.getSupplyLevelClass(drum);
+
+                const status =
+                    printer.status || 'offline';
+
+                return `
+
+                    <div class="printer-card ${status}">
+
+                        <div
+                            class="printer-card-main"
+                            onclick="printerMonitor.openPrinterConsole('${printer.ip}')"
+                        >
+
+                            <div class="printer-info-row">
+
+                                <span class="printer-name">
+                                    🖨️
+                                    ${printer.name || 'Unknown Printer'}
+                                </span>
+
+                                <div>
+
+                                    <span
+                                        class="status-badge status-${status}"
+                                    >
+                                        ${status}
+                                    </span>
+
+                                    <button
+                                        class="favorite-btn-inline"
+                                        onclick="
+                                            event.stopPropagation();
+                                            printerMonitor.toggleFavorite('${printer.ip}')
+                                        "
+                                    >
+                                        ${isFav ? '★' : '☆'}
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                            <div class="printer-info-row">
+                                <span class="info-label">
+                                    IP:
+                                </span>
+
+                                <span class="info-value">
+                                    ${printer.ip || '-'}
+                                </span>
+                            </div>
+
+                            <div class="printer-info-row">
+                                <span class="info-label">
+                                    Location:
+                                </span>
+
+                                <span class="info-value">
+                                    ${printer.location || '-'}
+                                </span>
+                            </div>
+
+                            <div class="printer-info-row">
+                                <span class="info-label">
+                                    Serial:
+                                </span>
+
+                                <span class="info-value">
+                                    ${printer.serial || '-'}
+                                </span>
+                            </div>
+
+                            ${this.getDeviceStatusBadge(printer)}
+
+                            <div class="supplies">
+
+                                <div class="supply-item">
+
+                                    <div class="supply-header">
+
+                                        <span>
+                                            🧪 Toner
+                                        </span>
+
+                                        <span>
+                                            ${toner}%
+                                        </span>
+
+                                    </div>
+
+                                    <div class="progress-bar">
+
+                                        <div
+                                            class="progress-fill ${tonerClass}"
+                                            style="
+                                                width:${Math.max(
+                                                    0,
+                                                    Math.min(100, toner)
+                                                )}%
+                                            "
+                                        ></div>
+
+                                    </div>
+
+                                </div>
+
+                                <div class="supply-item">
+
+                                    <div class="supply-header">
+
+                                        <span>
+                                            🔧 Drum
+                                        </span>
+
+                                        <span>
+                                            ${drum}%
+                                        </span>
+
+                                    </div>
+
+                                    <div class="progress-bar">
+
+                                        <div
+                                            class="progress-fill ${drumClass}"
+                                            style="
+                                                width:${Math.max(
+                                                    0,
+                                                    Math.min(100, drum)
+                                                )}%
+                                            "
+                                        ></div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div class="last-updated">
+                                ⏰ อัปเดตล่าสุด:
+                                ${printer.lastUpdated || '-'}
+                            </div>
+
+                        </div>
+
+                        <div class="log-toggle-area">
+
+                            <button
+                                class="log-toggle-btn"
+                                onclick="
+                                    event.stopPropagation();
+                                    printerMonitor.logManager.toggleCard('${printer.ip}')
+                                "
+                            >
+                                📊 ดูประวัติ ▼
+                            </button>
+
+                        </div>
+
+                        <div
+                            class="log-section"
+                            id="log-${safeIp}"
+                            style="
+                                display:${this.allExpanded
+                                    ? 'block'
+                                    : 'none'};
+                            "
+                        >
+
+                            <div class="log-item">
+
+                                <span>
+                                    ${printer.lastUpdated || '-'}
+                                </span>
+
+                                <span>
+                                    Toner: ${toner}%
+                                    |
+                                    Drum: ${drum}%
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                `;
+            }
+
+            renderDatabaseGrid() {
+
+                const grid =
+                    document.getElementById(
+                        'databaseGrid'
+                    );
+
+                const searchElement =
+                    document.getElementById(
+                        'databaseSearch'
+                    );
+
+                const supplyElement =
+                    document.getElementById(
+                        'databaseSupplyFilter'
+                    );
+
+                const sortElement =
+                    document.getElementById(
+                        'databaseFilterSelect'
+                    );
+
+                const searchQuery =
+                    searchElement
+                        ? searchElement.value
+                            .toLowerCase()
+                            .trim()
+                        : '';
+
+                const supplyFilter =
+                    supplyElement
+                        ? supplyElement.value
+                        : 'none';
+
+                const sortOption =
+                    sortElement
+                        ? sortElement.value
+                        : 'ip-asc';
+
+                let list =
+                    [...this.printers];
+
+                document.getElementById(
+                    'navTotalCount'
+                ).innerText = list.length;
+
+                const onlineCount =
+                    list.filter(
+                        p => p.status === 'online'
+                    ).length;
+
+                const offlineCount =
+                    list.filter(
+                        p => p.status === 'offline'
+                    ).length;
+
+                const warningCount =
+                    list.filter(
+                        p =>
+                            Number(p.toner) <=
+                                this.settings.tonerThreshold ||
+
+                            Number(p.drum) <=
+                                this.settings.drumThreshold ||
+
+                            p.deviceStatus === 'Warning'
+                    ).length;
+
+                document.getElementById(
+                    'countAll'
+                ).innerText = list.length;
+
+                document.getElementById(
+                    'countOnline'
+                ).innerText = onlineCount;
+
+                document.getElementById(
+                    'countOffline'
+                ).innerText = offlineCount;
+
+                document.getElementById(
+                    'countWarning'
+                ).innerText = warningCount;
+
+                if (
+                    this.currentStatusFilter ===
+                    'online'
+                ) {
+
+                    list =
+                        list.filter(
+                            p => p.status === 'online'
+                        );
+
+                } else if (
+                    this.currentStatusFilter ===
+                    'offline'
+                ) {
+
+                    list =
+                        list.filter(
+                            p => p.status === 'offline'
+                        );
+
+                } else if (
+                    this.currentStatusFilter ===
+                    'warning'
+                ) {
+
+                    list =
+                        list.filter(
+                            p =>
+                                Number(p.toner) <=
+                                    this.settings.tonerThreshold ||
+
+                                Number(p.drum) <=
+                                    this.settings.drumThreshold ||
+
+                                p.deviceStatus === 'Warning'
+                        );
+                }
+
+                if (searchQuery) {
+
+                    list =
+                        list.filter(p => {
+
+                            const ip =
+                                String(p.ip || '')
+                                    .toLowerCase();
+
+                            const name =
+                                String(p.name || '')
+                                    .toLowerCase();
+
+                            const location =
+                                String(p.location || '')
+                                    .toLowerCase();
+
+                            const serial =
+                                String(p.serial || '')
+                                    .toLowerCase();
+
+                            return (
+                                ip.includes(searchQuery) ||
+                                name.includes(searchQuery) ||
+                                location.includes(searchQuery) ||
+                                serial.includes(searchQuery)
+                            );
+                        });
+                }
+
+                if (supplyFilter !== 'none') {
+
+                    const [
+                        type,
+                        val
+                    ] =
+                        supplyFilter.split('-');
+
+                    const targetVal =
+                        parseInt(val, 10);
+
+                    if (type === 'toner') {
+
+                        list =
+                            list.filter(
+                                p =>
+                                    Number(p.toner) <=
+                                    targetVal
+                            );
+                    }
+
+                    if (type === 'drum') {
+
+                        list =
+                            list.filter(
+                                p =>
+                                    Number(p.drum) <=
+                                    targetVal
+                            );
+                    }
+                }
+
+                list.sort((a, b) => {
+
+                    if (
+                        sortOption === 'ip-asc'
+                    ) {
+                        return String(a.ip)
+                            .localeCompare(
+                                String(b.ip),
+                                undefined,
+                                { numeric: true }
+                            );
+                    }
+
+                    if (
+                        sortOption === 'ip-desc'
+                    ) {
+                        return String(b.ip)
+                            .localeCompare(
+                                String(a.ip),
+                                undefined,
+                                { numeric: true }
+                            );
+                    }
+
+                    if (
+                        sortOption === 'toner-asc'
+                    ) {
+                        return Number(a.toner) -
+                            Number(b.toner);
+                    }
+
+                    if (
+                        sortOption === 'toner-desc'
+                    ) {
+                        return Number(b.toner) -
+                            Number(a.toner);
+                    }
+
+                    if (
+                        sortOption === 'drum-asc'
+                    ) {
+                        return Number(a.drum) -
+                            Number(b.drum);
+                    }
+
+                    if (
+                        sortOption === 'drum-desc'
+                    ) {
+                        return Number(b.drum) -
+                            Number(a.drum);
+                    }
+
+                    return 0;
+                });
+
+                if (list.length === 0) {
+
+                    grid.innerHTML = `
+
+                        <div class="empty-state">
+
+                            🖨️
+
+                            <h3 style="margin:10px 0;">
+                                ยังไม่มีข้อมูลเครื่องพิมพ์
+                            </h3>
+
+                            <p>
+                                ไปที่
+                                <strong>
+                                    🔍 ค้นหา & สแกน IP
+                                </strong>
+                                แล้วกดสแกนช่วง IP
+                            </p>
+
+                        </div>
+
+                    `;
+
+                    return;
+                }
+
+                grid.innerHTML =
+                    list
+                        .map(
+                            p =>
+                                this.createPrinterCardHTML(p)
+                        )
+                        .join('');
+            }
+
+            renderFavoritesGrid() {
+
+                const grid =
+                    document.getElementById(
+                        'favoritesGrid'
+                    );
+
+                const favPrinters =
+                    this.printers.filter(
+                        p => this.favorites.has(p.ip)
+                    );
+
+                document.getElementById(
+                    'navFavCount'
+                ).innerText =
+                    favPrinters.length;
+
+                if (
+                    favPrinters.length === 0
+                ) {
+
+                    grid.innerHTML = `
+
+                        <div class="empty-state">
+
+                            ⭐
+
+                            <h3 style="margin:10px 0;">
+                                ยังไม่มีรายการโปรด
+                            </h3>
+
+                            <p>
+                                กด ⭐ บนเครื่องพิมพ์
+                                เพื่อเพิ่มรายการโปรด
+                            </p>
+
+                        </div>
+
+                    `;
+
+                    return;
+                }
+
+                grid.innerHTML =
+                    favPrinters
+                        .map(
+                            p =>
+                                this.createPrinterCardHTML(p)
+                        )
+                        .join('');
+            }
+
+            renderSearchGrid() {
+
+                const grid =
+                    document.getElementById(
+                        'searchGrid'
+                    );
+
+                const sortOption =
+                    document.getElementById(
+                        'searchFilterSelect'
+                    ).value;
+
+                let list =
+                    [...this.lastSearchResults];
+
+                list.sort((a, b) => {
+
+                    if (
+                        sortOption === 'ip-asc'
+                    ) {
+                        return String(a.ip)
+                            .localeCompare(
+                                String(b.ip),
+                                undefined,
+                                { numeric: true }
+                            );
+                    }
+
+                    if (
+                        sortOption === 'ip-desc'
+                    ) {
+                        return String(b.ip)
+                            .localeCompare(
+                                String(a.ip),
+                                undefined,
+                                { numeric: true }
+                            );
+                    }
+
+                    if (
+                        sortOption === 'toner-asc'
+                    ) {
+                        return Number(a.toner) -
+                            Number(b.toner);
+                    }
+
+                    if (
+                        sortOption === 'toner-desc'
+                    ) {
+                        return Number(b.toner) -
+                            Number(a.toner);
+                    }
+
+                    if (
+                        sortOption === 'drum-asc'
+                    ) {
+                        return Number(a.drum) -
+                            Number(b.drum);
+                    }
+
+                    if (
+                        sortOption === 'drum-desc'
+                    ) {
+                        return Number(b.drum) -
+                            Number(a.drum);
+                    }
+
+                    return 0;
+                });
+
+                grid.innerHTML =
+                    list
+                        .map(
+                            p =>
+                                this.createPrinterCardHTML(p)
+                        )
+                        .join('');
+            }
+
+            updateStatTabs() {
+
+                [
+                    'statAll',
+                    'statOnline',
+                    'statOffline',
+                    'statWarning'
+                ].forEach(id => {
+
+                    document
+                        .getElementById(id)
+                        .classList
+                        .remove('active');
+
+                });
+
+                const map = {
+                    all: 'statAll',
+                    online: 'statOnline',
+                    offline: 'statOffline',
+                    warning: 'statWarning'
+                };
+
+                const id =
+                    map[this.currentStatusFilter];
+
+                if (id) {
+
+                    document
+                        .getElementById(id)
+                        .classList
+                        .add('active');
+                }
+            }
+
+            updateAlerts() {
+
+                const badge =
+                    document.getElementById(
+                        'alertBadge'
+                    );
+
+                const body =
+                    document.getElementById(
+                        'alertPanelBody'
+                    );
+
+                const fullBody =
+                    document.getElementById(
+                        'alertsFullViewBody'
+                    );
+
+                const alerts =
+                    this.printers.filter(
+                        p =>
+                            p.status === 'offline' ||
+
+                            Number(p.toner) <=
+                                this.settings.tonerThreshold ||
+
+                            Number(p.drum) <=
+                                this.settings.drumThreshold ||
+
+                            p.deviceStatus === 'Error'
+                    );
+
+                document.getElementById(
+                    'navAlertCount'
+                ).innerText =
+                    alerts.length;
+
+                if (alerts.length > 0) {
+
+                    badge.innerText =
+                        alerts.length;
+
+                    badge.style.display =
+                        'inline-block';
+
+                    const html =
+                        alerts
+                            .map(
+                                a => `
+
+                                    <div class="alert-card ${
+                                        a.status === 'offline' ||
+                                        a.deviceStatus === 'Error'
+                                            ? ''
+                                            : 'warning'
+                                    }">
+
+                                        <div class="alert-title">
+
+                                            <span>
+                                                🖨️
+                                                ${a.name || 'Printer'}
+                                            </span>
+
+                                            <small>
+                                                ${a.ip}
+                                            </small>
+
+                                        </div>
+
+                                        ${
+                                            a.status === 'offline'
+                                                ? '🔴 ออฟไลน์<br>'
+                                                : ''
+                                        }
+
+                                        ${
+                                            Number(a.toner) <=
+                                            this.settings.tonerThreshold
+                                                ? `🧪 Toner:
+                                                   <strong>
+                                                       ${a.toner}%
+                                                   </strong><br>`
+                                                : ''
+                                        }
+
+                                        ${
+                                            Number(a.drum) <=
+                                            this.settings.drumThreshold
+                                                ? `🔧 Drum:
+                                                   <strong>
+                                                       ${a.drum}%
+                                                   </strong><br>`
+                                                : ''
+                                        }
+
+                                        ${
+                                            a.deviceStatus === 'Error'
+                                                ? '⚠️ เครื่องมีข้อผิดพลาด'
+                                                : ''
+                                        }
+
+                                    </div>
+
+                                `
+                            )
+                            .join('');
+
+                    body.innerHTML = html;
+
+                    fullBody.innerHTML = `
+
+                        <div class="printer-grid">
+
+                            ${alerts
+                                .map(
+                                    p =>
+                                        this.createPrinterCardHTML(p)
+                                )
+                                .join('')}
+
+                        </div>
+
+                    `;
+
+                } else {
+
+                    badge.style.display =
+                        'none';
+
+                    const html = `
+
+                        <div
+                            style="
+                                text-align:center;
+                                color:var(--success);
+                                padding:30px;
+                            "
+                        >
+                            ✅ ไม่มีการแจ้งเตือน
+                        </div>
+
+                    `;
+
+                    body.innerHTML = html;
+
+                    fullBody.innerHTML = html;
+                }
+            }
+
+            toggleFavorite(ip) {
+
+                if (this.favorites.has(ip)) {
+
+                    this.favorites.delete(ip);
+
+                    this.showToast(
+                        `ถอด ${ip} ออกจากรายการโปรดแล้ว`,
+                        '☆'
+                    );
+
+                } else {
+
+                    this.favorites.add(ip);
+
+                    this.showToast(
+                        `เพิ่ม ${ip} เข้ารายการโปรดแล้ว`,
+                        '⭐'
+                    );
+                }
+
+                localStorage.setItem(
+                    'plk_favorites',
+                    JSON.stringify(
+                        [...this.favorites]
+                    )
+                );
+
+                this.renderFavoritesGrid();
+
+                this.renderDatabaseGrid();
+            }
+
+            renderRecentIPs() {
+
+                const list =
+                    document.getElementById(
+                        'recentIPsList'
+                    );
+
+                if (
+                    this.recentIPs.length === 0
+                ) {
+
+                    list.innerHTML = `
+                        <span
+                            style="
+                                font-size:.82rem;
+                                color:var(--text-muted);
+                            "
+                        >
+                            ไม่มีประวัติค้นหาล่าสุด
+                        </span>
+                    `;
+
+                    return;
+                }
+
+                list.innerHTML =
+                    this.recentIPs
+                        .map(
+                            ip => `
+
+                                <span
+                                    class="chip"
+                                    onclick="
+                                        document.getElementById('singleIp').value='${ip}';
+                                        checkSingle();
+                                    "
+                                >
+
+                                    🔍 ${ip}
+
+                                    <span
+                                        class="chip-remove"
+                                        onclick="
+                                            event.stopPropagation();
+                                            printerMonitor.removeRecentIP('${ip}')
+                                        "
+                                    >
+                                        ×
+                                    </span>
+
+                                </span>
+
+                            `
+                        )
+                        .join('');
+            }
+
+            addRecentIP(ip) {
+
+                if (
+                    this.recentIPs.includes(ip)
+                ) {
+
+                    this.recentIPs =
+                        this.recentIPs.filter(
+                            x => x !== ip
+                        );
+                }
+
+                this.recentIPs.unshift(ip);
+
+                this.recentIPs =
+                    this.recentIPs.slice(0, 5);
+
+                localStorage.setItem(
+                    'plk_recent_ips',
+                    JSON.stringify(
+                        this.recentIPs
+                    )
+                );
+
+                this.renderRecentIPs();
+            }
+
+            removeRecentIP(ip) {
+
+                this.recentIPs =
+                    this.recentIPs.filter(
+                        item => item !== ip
+                    );
+
+                localStorage.setItem(
+                    'plk_recent_ips',
+                    JSON.stringify(
+                        this.recentIPs
+                    )
+                );
+
+                this.renderRecentIPs();
+            }
+
+            /*
+             * ========================================
+             * SINGLE IP
+             * ========================================
+             */
+
+            async searchSingleIP(ip) {
+
+                this.addRecentIP(ip);
+
+                const container =
+                    document.getElementById(
+                        'searchResultsContainer'
+                    );
+
+                const grid =
+                    document.getElementById(
+                        'searchGrid'
+                    );
+
+                container.style.display =
+                    'block';
+
+                grid.innerHTML = `
+
+                    <div class="empty-state">
+
+                        <span class="loading-spinner"></span>
+
+                        <p style="margin-top:10px;">
+                            กำลังตรวจสอบ ${ip}
+                        </p>
+
+                    </div>
+
+                `;
+
+                try {
+
+                    const response =
+                        await fetch(
+                            '/api/scan',
+                            {
+                                method: 'POST',
+
+                                headers: {
+                                    'Content-Type':
+                                        'application/json'
+                                },
+
+                                body: JSON.stringify({
+                                    base: ip,
+                                    start: 0,
+                                    end: 0,
+                                    single_ip: ip
+                                })
+                            }
+                        );
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            `HTTP ${response.status}`
+                        );
+                    }
+
+                    const data =
+                        await response.json();
+
+                    const found =
+                        Array.isArray(
+                            data.printers
+                        )
+                            ? data.printers
+                            : [];
+
+                    this.lastSearchResults =
+                        found;
+
+                    if (found.length) {
+
+                        this.mergePrinters(found);
+
+                        this.renderSearchGrid();
+
+                        this.showToast(
+                            `พบเครื่องพิมพ์ ${ip}`,
+                            '✅'
+                        );
+
+                    } else {
+
+                        grid.innerHTML = `
+
+                            <div class="empty-state">
+
+                                ❌
+                                ไม่พบเครื่องพิมพ์
+                                ${ip}
+
+                            </div>
+
+                        `;
+
+                        this.showToast(
+                            `ไม่พบเครื่องพิมพ์ ${ip}`,
+                            '⚠️'
+                        );
+                    }
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    grid.innerHTML = `
+
+                        <div class="empty-state">
+
+                            ❌ ไม่สามารถเชื่อมต่อ
+                            Server Scanner ได้
+
+                            <p style="margin-top:8px;">
+                                ${error.message}
+                            </p>
+
+                        </div>
+
+                    `;
+
+                    this.showToast(
+                        'ไม่สามารถเชื่อมต่อ API Scanner',
+                        '❌'
+                    );
+                }
+            }
+
+            /*
+             * ========================================
+             * RANGE SCAN
+             * ========================================
+             */
+
+            async searchRangeIP(
+                base,
+                start,
+                end
+            ) {
+
+                const container =
+                    document.getElementById(
+                        'searchResultsContainer'
+                    );
+
+                const grid =
+                    document.getElementById(
+                        'searchGrid'
+                    );
+
+                const progress =
+                    document.getElementById(
+                        'rangeProgress'
+                    );
+
+                const progressText =
+                    document.getElementById(
+                        'rangeProgressText'
+                    );
+
+                const btn =
+                    document.getElementById(
+                        'scanRangeBtn'
+                    );
+
+                container.style.display =
+                    'block';
+
+                progress.style.display =
+                    'block';
+
+                grid.innerHTML = '';
+
+                btn.disabled = true;
+
+                btn.innerHTML =
+                    '⏳ กำลังสแกน...';
+
+                progressText.innerText =
+                    'กำลังส่งคำสั่งไป Server...';
+
+                try {
+
+                    const response =
+                        await fetch(
+                            '/api/scan',
+                            {
+                                method: 'POST',
+
+                                headers: {
+                                    'Content-Type':
+                                        'application/json'
+                                },
+
+                                body: JSON.stringify({
+                                    base: base,
+                                    start: start,
+                                    end: end
+                                })
+                            }
+                        );
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            `HTTP ${response.status}`
+                        );
+                    }
+
+                    const data =
+                        await response.json();
+
+                    const matches =
+                        Array.isArray(
+                            data.printers
+                        )
+                            ? data.printers
+                            : [];
+
+                    this.lastSearchResults =
+                        matches;
+
+                    this.mergePrinters(matches);
+
+                    progressText.innerText =
+                        '100%';
+
+                    if (matches.length > 0) {
+
+                        this.renderSearchGrid();
+
+                        this.showToast(
+                            `สแกนเสร็จ พบ ${matches.length} เครื่อง`,
+                            '✅'
+                        );
+
+                    } else {
+
+                        grid.innerHTML = `
+
+                            <div class="empty-state">
+
+                                🔎
+
+                                <h3 style="margin:10px 0;">
+                                    ไม่พบเครื่องพิมพ์
+                                </h3>
+
+                                <p>
+                                    ${base}.${start}
+                                    -
+                                    ${base}.${end}
+                                </p>
+
+                            </div>
+
+                        `;
+
+                        this.showToast(
+                            'สแกนเสร็จ แต่ไม่พบเครื่องพิมพ์',
+                            '⚠️'
+                        );
+                    }
+
+                    this.renderDatabaseGrid();
+
+                    this.renderFavoritesGrid();
+
+                    this.updateAlerts();
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    grid.innerHTML = `
+
+                        <div class="empty-state">
+
+                            ❌
+
+                            <h3 style="margin:10px 0;">
+                                Scanner Error
+                            </h3>
+
+                            <p>
+                                ${error.message}
+                            </p>
+
+                            <p style="margin-top:8px;">
+                                ตรวจสอบว่า Flask
+                                มี endpoint
+                                <code>/api/scan</code>
+                            </p>
+
+                        </div>
+
+                    `;
+
+                    this.showToast(
+                        'ไม่สามารถเชื่อมต่อ Scanner API',
+                        '❌'
+                    );
+
+                } finally {
+
+                    progress.style.display =
+                        'none';
+
+                    btn.disabled = false;
+
+                    btn.innerHTML =
+                        '🔍 สแกนช่วง IP';
+                }
+            }
+
+            /*
+             * ========================================
+             * MERGE SCAN RESULTS
+             * ========================================
+             */
+
+            mergePrinters(printers) {
+
+                printers.forEach(newPrinter => {
+
+                    const index =
+                        this.printers.findIndex(
+                            p =>
+                                p.ip ===
+                                newPrinter.ip
+                        );
+
+                    if (index >= 0) {
+
+                        this.printers[index] =
+                            {
+                                ...this.printers[index],
+                                ...newPrinter
+                            };
+
+                    } else {
+
+                        this.printers.push(
+                            newPrinter
+                        );
+                    }
+                });
+
+                localStorage.setItem(
+                    'plk_printers',
+                    JSON.stringify(
+                        this.printers
+                    )
+                );
+            }
+
+            toggleAutoRefresh() {
+
+                this.autoRefreshActive =
+                    !this.autoRefreshActive;
+
+                const indicator =
+                    document.getElementById(
+                        'autoRefreshIndicator'
+                    );
+
+                const btnText =
+                    document.getElementById(
+                        'autoRefreshBtnText'
+                    );
+
+                if (
+                    this.autoRefreshActive
+                ) {
+
+                    indicator.style.display =
+                        'block';
+
+                    btnText.innerText =
+                        'ปิด ออโต้';
+
+                    this.countdownVal =
+                        this.settings.interval;
+
+                    this.autoRefreshTimer =
+                        setInterval(
+                            () => {
+
+                                this.countdownVal--;
+
+                                document.getElementById(
+                                    'countdownText'
+                                ).innerText =
+                                    this.countdownVal;
+
+                                if (
+                                    this.countdownVal <= 0
+                                ) {
+
+                                    this.refreshAllData(
+                                        true
+                                    );
+
+                                    this.countdownVal =
+                                        this.settings.interval;
+                                }
+
+                            },
+                            1000
+                        );
+
+                    this.showToast(
+                        `เปิด Auto Refresh (${this.settings.interval}s)`,
+                        '⏰'
+                    );
+
+                } else {
+
+                    indicator.style.display =
+                        'none';
+
+                    btnText.innerText =
+                        `ออโต้ (${this.settings.interval}s)`;
+
+                    clearInterval(
+                        this.autoRefreshTimer
+                    );
+
+                    this.showToast(
+                        'ปิด Auto Refresh แล้ว',
+                        '⏸️'
+                    );
+                }
+            }
+
+            async refreshAllData(
+                isSilent = false
+            ) {
+
+                if (
+                    this.printers.length === 0
+                ) {
+
+                    if (!isSilent) {
+
+                        this.showToast(
+                            'ยังไม่มีข้อมูล กรุณาสแกน IP ก่อน',
+                            '⚠️'
+                        );
+                    }
+
+                    return;
+                }
+
+                /*
+                 * รีเฟรชข้อมูลเครื่องที่ค้นพบแล้ว
+                 */
+
+                try {
+
+                    const response =
+                        await fetch(
+                            '/api/scan',
+                            {
+                                method: 'POST',
+
+                                headers: {
+                                    'Content-Type':
+                                        'application/json'
+                                },
+
+                                body: JSON.stringify({
+                                    ips:
+                                        this.printers.map(
+                                            p => p.ip
+                                        )
+                                })
+                            }
+                        );
+
+                    if (!response.ok) {
+                        throw new Error(
+                            `HTTP ${response.status}`
+                        );
+                    }
+
+                    const data =
+                        await response.json();
+
+                    if (
+                        Array.isArray(
+                            data.printers
+                        )
+                    ) {
+
+                        this.mergePrinters(
+                            data.printers
+                        );
+                    }
+
+                    this.renderDatabaseGrid();
+
+                    this.renderFavoritesGrid();
+
+                    this.updateAlerts();
+
+                    if (!isSilent) {
+
+                        this.showToast(
+                            'อัปเดตข้อมูลเรียบร้อย',
+                            '🔄'
+                        );
+                    }
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    if (!isSilent) {
+
+                        this.showToast(
+                            'อัปเดตข้อมูลไม่สำเร็จ',
+                            '❌'
+                        );
+                    }
+                }
+            }
+
+            openPrinterConsole(ip) {
+
+                this.showToast(
+                    `เปิดหน้าจัดการเครื่องพิมพ์: http://${ip}`,
+                    '🌐'
+                );
+
+                window.open(
+                    `http://${ip}`,
+                    '_blank'
+                );
+            }
+
+            toggleAlertPanel() {
+
+                document
+                    .getElementById(
+                        'alertPanelContainer'
+                    )
+                    .classList
+                    .toggle('open');
+            }
+
+            openSettingsModal() {
+
+                document.getElementById(
+                    'settingTonerThreshold'
+                ).value =
+                    this.settings.tonerThreshold;
+
+                document.getElementById(
+                    'settingDrumThreshold'
+                ).value =
+                    this.settings.drumThreshold;
+
+                document.getElementById(
+                    'settingRefreshInterval'
+                ).value =
+                    this.settings.interval;
+
+                document.getElementById(
+                    'settingsModal'
+                ).classList.add('open');
+            }
+
+            closeSettingsModal() {
+
+                document.getElementById(
+                    'settingsModal'
+                ).classList.remove('open');
+            }
+
+            saveSettings() {
+
+                this.settings.tonerThreshold =
+                    parseInt(
+                        document.getElementById(
+                            'settingTonerThreshold'
+                        ).value,
+                        10
+                    );
+
+                this.settings.drumThreshold =
+                    parseInt(
+                        document.getElementById(
+                            'settingDrumThreshold'
+                        ).value,
+                        10
+                    );
+
+                this.settings.interval =
+                    parseInt(
+                        document.getElementById(
+                            'settingRefreshInterval'
+                        ).value,
+                        10
+                    );
+
+                localStorage.setItem(
+                    'plk_settings',
+                    JSON.stringify(
+                        this.settings
+                    )
+                );
+
+                this.closeSettingsModal();
+
+                this.renderDatabaseGrid();
+
+                this.renderFavoritesGrid();
+
+                this.updateAlerts();
+
+                this.showToast(
+                    'บันทึกการตั้งค่าแล้ว',
+                    '💾'
+                );
+            }
+
+            exportCSV(
+                data,
+                filename
+            ) {
+
+                if (!data.length) {
+
+                    this.showToast(
+                        'ไม่มีข้อมูลสำหรับ Export',
+                        '⚠️'
+                    );
+
+                    return;
+                }
+
+                let csv =
+                    'IP,Name,Location,Serial,Status,DeviceStatus,Toner(%),Drum(%),LastUpdated\n';
+
+                data.forEach(row => {
+
+                    csv +=
+                        `"${row.ip || ''}",` +
+                        `"${row.name || ''}",` +
+                        `"${row.location || ''}",` +
+                        `"${row.serial || ''}",` +
+                        `"${row.status || ''}",` +
+                        `"${row.deviceStatus || ''}",` +
+                        `${Number(row.toner) || 0},` +
+                        `${Number(row.drum) || 0},` +
+                        `"${row.lastUpdated || ''}"\n`;
+                });
+
+                const blob =
+                    new Blob(
+                        ['\ufeff' + csv],
+                        {
+                            type:
+                                'text/csv;charset=utf-8;'
+                        }
+                    );
+
+                const link =
+                    document.createElement('a');
+
+                link.href =
+                    URL.createObjectURL(blob);
+
+                link.download =
+                    filename;
+
+                document.body.appendChild(link);
+
+                link.click();
+
+                document.body.removeChild(link);
+
+                URL.revokeObjectURL(
+                    link.href
+                );
+
+                this.showToast(
+                    `ส่งออก ${filename} แล้ว`,
+                    '📥'
+                );
+            }
+
+            exportDatabaseData() {
+
+                this.exportCSV(
+                    this.printers,
+                    'printer_database_report.csv'
+                );
+            }
+
+            exportSearchData() {
+
+                this.exportCSV(
+                    this.lastSearchResults,
+                    'printer_search_report.csv'
+                );
+            }
+
+            exportFavoritesData() {
+
+                const favPrinters =
+                    this.printers.filter(
+                        p => this.favorites.has(p.ip)
+                    );
+
+                this.exportCSV(
+                    favPrinters,
+                    'printer_favorites_report.csv'
+                );
+            }
+        }
+
+        /* =========================================================
+           GLOBAL INSTANCE
+        ========================================================= */
+
+        let printerMonitor;
+
+        window.addEventListener(
+            'DOMContentLoaded',
+            () => {
+
+                printerMonitor =
+                    new PrinterMonitorApp();
+
+            }
+        );
+
+        /* =========================================================
+           MAIN NAVIGATION
+        ========================================================= */
+
+        function switchMainView(
+            viewName
+        ) {
+
+            document
+                .querySelectorAll('.nav-item')
+                .forEach(
+                    btn =>
+                        btn.classList.remove(
+                            'active'
+                        )
+                );
+
+            document
+                .querySelectorAll('.page-view')
+                .forEach(
+                    view =>
+                        view.classList.remove(
+                            'active'
+                        )
+                );
+
+            const map = {
+
+                database: [
+                    'navDatabase',
+                    'databaseView'
+                ],
+
+                search: [
+                    'navSearch',
+                    'searchView'
+                ],
+
+                favorites: [
+                    'navFavorites',
+                    'favoritesView'
+                ],
+
+                alerts: [
+                    'navAlerts',
+                    'alertsView'
+                ]
+            };
+
+            if (!map[viewName]) return;
+
+            const [
+                navId,
+                viewId
+            ] = map[viewName];
+
+            document
+                .getElementById(navId)
+                .classList
+                .add('active');
+
+            document
+                .getElementById(viewId)
+                .classList
+                .add('active');
+
+            if (
+                viewName === 'favorites'
+            ) {
+
+                printerMonitor
+                    .renderFavoritesGrid();
+            }
+
+            if (
+                viewName === 'alerts'
+            ) {
+
+                printerMonitor
+                    .updateAlerts();
+            }
+        }
+
+        /* =========================================================
+           SEARCH SUB TAB
+        ========================================================= */
+
+        function switchSearchSubTab(
+            subTabName,
+            button
+        ) {
+
+            document
+                .querySelectorAll('.sub-tab')
+                .forEach(
+                    t =>
+                        t.classList.remove(
+                            'active'
+                        )
+                );
+
+            document
+                .querySelectorAll('.sub-content')
+                .forEach(
+                    c =>
+                        c.classList.remove(
+                            'active'
+                        )
+                );
+
+            button.classList.add('active');
+
+            if (
+                subTabName === 'single'
+            ) {
+
+                document
+                    .getElementById(
+                        'singleSearchContent'
+                    )
+                    .classList
+                    .add('active');
+
+            } else {
+
+                document
+                    .getElementById(
+                        'rangeSearchContent'
+                    )
+                    .classList
+                    .add('active');
+            }
+        }
+
+        /* =========================================================
+           SINGLE SEARCH
+        ========================================================= */
+
+        function checkSingle() {
+
+            const ip =
+                document
+                    .getElementById(
+                        'singleIp'
+                    )
+                    .value
+                    .trim();
+
+            if (!ip) {
+
+                printerMonitor.showToast(
+                    'กรุณากรอก IP Address',
+                    '⚠️'
+                );
+
+                return;
+            }
+
+            printerMonitor.searchSingleIP(
+                ip
+            );
+        }
+
+        /* =========================================================
+           RANGE SEARCH
+        ========================================================= */
+
+        function checkRange() {
+
+            const base =
+                document
+                    .getElementById(
+                        'baseIp'
+                    )
+                    .value
+                    .trim();
+
+            const start =
+                parseInt(
+                    document
+                        .getElementById(
+                            'startRange'
+                        )
+                        .value,
+                    10
+                );
+
+            const end =
+                parseInt(
+                    document
+                        .getElementById(
+                            'endRange'
+                        )
+                        .value,
+                    10
+                );
+
+            const ipPattern =
+                /^(?:\d{1,3}\.){2}\d{1,3}$/;
+
+            if (!ipPattern.test(base)) {
+
+                printerMonitor.showToast(
+                    'Base IP ต้องเป็นรูปแบบ xxx.xxx.xxx',
+                    '⚠️'
+                );
+
+                return;
+            }
+
+            if (
+                isNaN(start) ||
+                isNaN(end) ||
+                start < 1 ||
+                end > 254 ||
+                start > end
+            ) {
+
+                printerMonitor.showToast(
+                    'กรุณาระบุช่วง IP ให้ถูกต้อง',
+                    '⚠️'
+                );
+
+                return;
+            }
+
+            printerMonitor.searchRangeIP(
+                base,
+                start,
+                end
+            );
+        }
+
+        /* =========================================================
+           CLEAR
+        ========================================================= */
+
+        function clearResults(type) {
+
+            if (
+                type === 'single'
+            ) {
+
+                document.getElementById(
+                    'singleIp'
+                ).value = '';
+            }
+
+            document.getElementById(
+                'searchResultsContainer'
+            ).style.display =
+                'none';
+
+            document.getElementById(
+                'searchGrid'
+            ).innerHTML = '';
+
+            printerMonitor.lastSearchResults =
+                [];
+
+            printerMonitor.showToast(
+                'ล้างผลการค้นหาแล้ว',
+                '🗑️'
+            );
+        }
+
+    </script>
+
+</body>
+</html>
