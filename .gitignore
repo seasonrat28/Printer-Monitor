@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg
+*.egg-info/
+dist/
+build/
+venv/
+.env
+
+# SQLite Database (ไม่ต้องเก็บบน Git)
+printers.db
+printers.db-shm
+printers.db-wal
+
+# Node.js (ไม่ได้ใช้แล้ว)
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Temporary / Cloned files
+cloned_data.json
+it_index.html
+it_script.js
+it_setting.html
+it_styles.css
+it_web_page.html
+
+# Antigravity IDE files
+Antigravity IDE.md
+
+# BRAdmin
+BRAdmin Professional 4/
