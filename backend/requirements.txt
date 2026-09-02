@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+alembic
+pysnmp
+pydantic
+pydantic-settings
+python-dotenv
+passlib[bcrypt]
+pyjwt
+aioping
