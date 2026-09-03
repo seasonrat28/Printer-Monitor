@@ -11,7 +11,7 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For development
+    allow_origins=["http://localhost:5173", "http://localhost:3000"], # More strict origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,7 +22,7 @@ async def health_check():
     return {"status": "ok", "message": "Enterprise Printer Monitor API is running"}
 
 from app.api.api import api_router
-from app.db.session import engine
+from app.db.session import engine, SessionLocal
 from app.models.base import Base
 from app.models.user import User
 from app.models.printer import Printer
@@ -30,13 +30,21 @@ from app.models.monitoring import PrinterStatusHistory, PrinterSupplies, Printer
 from app.models.alert import Alert
 from app.models.group import PrinterGroup
 from app.models.audit import AuditLog
+from app.models.settings import SystemSetting
 from app.monitoring.scheduler import start_scheduler
+from app.db.init_db import init_db
 
 # Create tables for dev
 Base.metadata.create_all(bind=engine)
 
 @app.on_event("startup")
 async def startup_event():
+    # Initialize DB with default user
+    db = SessionLocal()
+    try:
+        init_db(db)
+    finally:
+        db.close()
     start_scheduler()
 
 app.include_router(api_router, prefix="/api/v1")

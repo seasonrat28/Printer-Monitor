@@ -23,6 +23,16 @@ class Settings(BaseSettings):
     
     # Demo Mode
     DEMO_MODE: bool = False
+    
+    # Notifications
+    LINE_NOTIFY_TOKEN: str = ""
+    TEAMS_WEBHOOK_URL: str = ""
+    SMTP_SERVER: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_TO_EMAIL: str = ""
 
     class Config:
         env_file = ".env"

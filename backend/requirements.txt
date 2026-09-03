@@ -9,3 +9,5 @@ python-dotenv
 passlib[bcrypt]
 pyjwt
 aioping
+pytest
+httpx

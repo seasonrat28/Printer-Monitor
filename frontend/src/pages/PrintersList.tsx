@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { printerService } from '../services/api';
 import { useWebSocket } from '../contexts/WebSocketContext';
-import { Printer as PrinterIcon, Plus, Trash2, RefreshCw } from 'lucide-react';
+import { Printer as PrinterIcon, Plus, Trash2, RefreshCw, Upload, Download, ExternalLink } from 'lucide-react';
+import api from '../services/api';
 
 interface Printer {
     id: number;
@@ -17,6 +18,7 @@ const PrintersList = () => {
     const [printers, setPrinters] = useState<Printer[]>([]);
     const [loading, setLoading] = useState(true);
     const { lastEvent } = useWebSocket();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetchPrinters();
@@ -55,6 +57,26 @@ const PrintersList = () => {
         }
     };
 
+    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            await api.post('/printers/import/csv', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            alert('Printers imported successfully!');
+            fetchPrinters();
+        } catch (err: any) {
+            alert(err.response?.data?.detail || 'Failed to import printers');
+        } finally {
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -67,6 +89,27 @@ const PrintersList = () => {
                         <RefreshCw size={16} />
                         <span>Refresh</span>
                     </button>
+                    <input 
+                        type="file" 
+                        accept=".csv" 
+                        className="hidden" 
+                        ref={fileInputRef} 
+                        onChange={handleImport} 
+                    />
+                    <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                        <Upload size={16} />
+                        <span>Import CSV</span>
+                    </button>
+                    <a 
+                        href={`http://${window.location.hostname}:8000/api/v1/printers/export/csv`}
+                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                        <Download size={16} />
+                        <span>Export CSV</span>
+                    </a>
                     <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center space-x-2 hover:bg-indigo-700 transition-colors">
                         <Plus size={16} />
                         <span>Add Printer</span>
@@ -116,12 +159,23 @@ const PrintersList = () => {
                                         {printer.last_seen ? new Date(printer.last_seen).toLocaleString() : 'Never'}
                                     </td>
                                     <td className="p-4 text-right">
-                                        <button 
-                                            onClick={() => handleDelete(printer.id)}
-                                            className="text-gray-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                        <div className="flex justify-end space-x-2">
+                                            <a 
+                                                href={`http://${printer.ip_address}`} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="text-gray-400 hover:text-blue-600 transition-colors opacity-0 group-hover:opacity-100 p-2"
+                                                title="Open Web Management"
+                                            >
+                                                <ExternalLink size={18} />
+                                            </a>
+                                            <button 
+                                                onClick={() => handleDelete(printer.id)}
+                                                className="text-gray-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 p-2"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))

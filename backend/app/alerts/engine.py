@@ -45,6 +45,14 @@ async def _create_or_update_alert(db: Session, printer_id: int, alert_type: str,
         db.commit()
         db.refresh(new_alert)
         await _broadcast_alert(new_alert)
+        
+        # Dispatch to external channels
+        from app.core.notifications import dispatch_alert
+        from app.models.printer import Printer
+        printer_obj = db.query(Printer).filter(Printer.id == printer_id).first()
+        ip_str = printer_obj.ip_address if printer_obj else f"ID {printer_id}"
+        title = f"[{severity}] Printer Alert: {ip_str}"
+        await dispatch_alert(title, message)
 
 async def _resolve_alerts(db: Session, printer_id: int, alert_type: str):
     alerts = db.query(Alert).filter(
