@@ -142,9 +142,18 @@ def start_backend(port):
         offline_dir = backend_dir / "offline_packages"
         if offline_dir.exists() and offline_dir.is_dir():
             print_and_log("Installing backend dependencies from offline packages...")
-            subprocess.run([str(venv_python), "-m", "pip", "install", "--no-index", "--find-links=offline_packages", "-r", "requirements.txt"], cwd=str(backend_dir))
+            try:
+                subprocess.run([str(venv_python), "-m", "pip", "install", "--no-index", "--find-links=offline_packages", "-r", "requirements.txt"], cwd=str(backend_dir), check=True)
+            except subprocess.CalledProcessError as e:
+                print_and_log(f"Failed to install offline packages: {e}", "error")
+                sys.exit(1)
         else:
-            subprocess.run([str(venv_python), "-m", "pip", "install", "-r", "requirements.txt"], cwd=str(backend_dir))
+            print_and_log("Installing backend dependencies from PyPI...")
+            try:
+                subprocess.run([str(venv_python), "-m", "pip", "install", "-r", "requirements.txt"], cwd=str(backend_dir), check=True)
+            except subprocess.CalledProcessError as e:
+                print_and_log(f"Failed to install dependencies from PyPI: {e}", "error")
+                sys.exit(1)
         
     python_exec = str(venv_python)
         
