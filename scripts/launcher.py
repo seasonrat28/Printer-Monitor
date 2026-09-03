@@ -11,6 +11,13 @@ import urllib.error
 import webbrowser
 from pathlib import Path
 
+# Set Proxy for the entire script (so pip and npm can use it)
+PROXY_URL = "http://Reception:Rct%402026@10.99.200.159:8080"
+os.environ["HTTP_PROXY"] = PROXY_URL
+os.environ["HTTPS_PROXY"] = PROXY_URL
+os.environ["http_proxy"] = PROXY_URL
+os.environ["https_proxy"] = PROXY_URL
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 RUNTIME_DIR = BASE_DIR / "runtime"
 LOGS_DIR = BASE_DIR / "logs"
