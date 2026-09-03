@@ -17,6 +17,25 @@
 - [ข้อมูล SNMP (SNMP Implementation)](./docs/snmp.md)
 - [การติดตั้งใช้งาน (Deployment Guide)](./docs/deployment.md)
 
+## Windows Launcher (No PowerShell)
+
+This project does not require PowerShell to start, ensuring compatibility with strict Endpoint Security systems (like Sangfor).
+
+- **Start:** `start.bat`
+- **Stop:** `stop.bat`
+- **Restart:** `restart.bat`
+- **Status:** `status.bat`
+
+### Production Network Details
+- **Monitoring Server:** `10.119.43.25`
+- **Printer Networks:** `10.119.34.0/24`, `10.119.43.0/24`
+- **SNMP:** `UDP 161`
+- **Backend:** Port Range `9100-9120`
+- **Frontend:** Port Range `9121-9140`
+
+### Troubleshooting: Endpoint Security Block
+If the launcher fails or the processes (`python.exe`, `node.exe`) are blocked by your antivirus/Sangfor endpoint security, please contact your organization administrator to whitelist or approve the application according to the security policy.
+
 ## สำหรับผู้พัฒนา (For Developers)
 
 ### Backend
