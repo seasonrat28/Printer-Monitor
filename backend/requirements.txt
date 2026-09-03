@@ -11,3 +11,4 @@ pyjwt
 aioping
 pytest
 httpx
+python-multipart
