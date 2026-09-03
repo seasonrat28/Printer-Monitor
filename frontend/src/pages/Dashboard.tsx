@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { printerService } from '../services/api';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { Printer, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
