@@ -152,8 +152,12 @@ def start_backend(port):
             try:
                 subprocess.run([str(venv_python), "-m", "pip", "install", "--no-index", "--find-links=offline_packages", "-r", "requirements.txt"], cwd=str(backend_dir), check=True)
             except subprocess.CalledProcessError as e:
-                print_and_log(f"Failed to install offline packages: {e}", "error")
-                sys.exit(1)
+                print_and_log(f"Failed to install offline packages (some might be missing). Falling back to PyPI with Proxy...", "info")
+                try:
+                    subprocess.run([str(venv_python), "-m", "pip", "install", "-r", "requirements.txt"], cwd=str(backend_dir), check=True)
+                except subprocess.CalledProcessError as e2:
+                    print_and_log(f"Failed to install dependencies from PyPI: {e2}", "error")
+                    sys.exit(1)
         else:
             print_and_log("Installing backend dependencies from PyPI...")
             try:
