@@ -145,3 +145,66 @@ async def _check_single_printer_supplies(printer_id: int, adapter: StandardSNMPA
             total_pages=counters["total_pages"]
         )
         db.add(new_counter)
+
+async def simulate_demo_printers():
+    import random
+    db: Session = SessionLocal()
+    try:
+        printers = db.query(Printer).filter(Printer.ip_address.like("192.168.99.%")).all()
+        statuses = ["ONLINE", "ONLINE", "ONLINE", "WARNING", "OFFLINE"]
+        
+        for p in printers:
+            # Random status
+            new_status = random.choice(statuses)
+            p.status = new_status
+            p.last_seen = datetime.utcnow()
+            
+            # Broadcast status update
+            await manager.broadcast({
+                "type": "STATUS_UPDATE",
+                "data": {
+                    "printer_id": p.id,
+                    "status": new_status
+                }
+            })
+            
+            # Random supplies
+            supply_name = "Black Toner"
+            existing_supply = db.query(PrinterSupplies).filter(
+                PrinterSupplies.printer_id == p.id,
+                PrinterSupplies.name == supply_name
+            ).first()
+            
+            new_level = random.randint(5, 100)
+            if existing_supply:
+                existing_supply.level = new_level
+            else:
+                existing_supply = PrinterSupplies(
+                    printer_id=p.id,
+                    supply_type="toner",
+                    name=supply_name,
+                    level=new_level,
+                    maximum=100
+                )
+                db.add(existing_supply)
+                
+            db.flush()
+            
+            # Broadcast supply update
+            await manager.broadcast({
+                "type": "SUPPLY_UPDATE",
+                "data": {
+                    "printer_id": p.id,
+                    "supply_name": supply_name,
+                    "level": new_level,
+                    "maximum": 100
+                }
+            })
+            
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error simulating demo printers: {e}")
+    finally:
+        db.close()
+

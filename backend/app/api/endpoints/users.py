@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.session import get_db
-from app.models.user import User, Role
+from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserResponse
 from passlib.context import CryptContext
 from app.api.deps import get_current_active_user
@@ -14,7 +14,7 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 def verify_admin(current_user: User = Depends(get_current_active_user)):
-    if current_user.role != Role.ADMIN:
+    if current_user.role != "ADMIN":
         raise HTTPException(status_code=403, detail="Not enough permissions")
     return current_user
 
@@ -40,7 +40,7 @@ def create_user(
     db_user = User(
         username=user_in.username,
         display_name=user_in.display_name,
-        role=Role(user_in.role),
+        role=user_in.role,
         is_active=user_in.is_active,
         password_hash=get_password_hash(user_in.password)
     )
@@ -71,7 +71,7 @@ def update_user(
         del update_data["password"]
         
     if "role" in update_data:
-        update_data["role"] = Role(update_data["role"])
+        pass # role is already string
         
     for key, value in update_data.items():
         setattr(db_user, key, value)

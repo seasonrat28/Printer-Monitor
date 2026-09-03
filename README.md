@@ -1,34 +1,34 @@
-# Enterprise Printer Monitoring System
+# Printer Monitor
 
-A scalable, real-time printer monitoring system similar to Brother BRAdmin Professional 4, built with FastAPI, WebSockets, Python `pysnmp`, and React (Vite).
+ระบบตรวจสอบและจัดการเครื่องพิมพ์ผ่านโปรโตคอล SNMP 
 
-## Features
+## คุณสมบัติหลัก (Features)
+- 📊 **Dashboard 실시간:** ดูสถานะหมึกพิมพ์ กระดาษ และสถานะเครือข่ายของเครื่องพิมพ์แบบ Real-time
+- 🔍 **SNMP Polling:** ดึงข้อมูลจากเครื่องพิมพ์ทุกรุ่นที่รองรับมาตรฐาน SNMP
+- 🔔 **Alerts & Notifications:** แจ้งเตือนผ่าน LINE Notify / Email เมื่อหมึกใกล้หมดหรือเครื่องพิมพ์มีปัญหา
+- 📁 **CSV Import/Export:** นำเข้าและส่งออกข้อมูลเครื่องพิมพ์เพื่อความสะดวกในการจัดการ
+- 🌓 **Dark Mode:** รองรับโหมดกลางคืนเพื่อถนอมสายตา
+- 🔒 **Role-Based Access Control:** ควบคุมสิทธิ์การใช้งาน (Admin / Viewer)
 
-- **Auto Discovery**: CIDR Ping Sweep and SNMP detection.
-- **Monitoring**: Background jobs polling SNMP status, supplies (toner/drum), and counters.
-- **Real-time Alerts**: WebSockets immediately broadcast low toner warnings and offline statuses.
-- **Enterprise Ready**: Groups management, Audit Logging, and Import/Export capabilities.
+## การติดตั้งและการใช้งาน (Installation & Usage)
+อ้างอิงจากโฟลเดอร์ `docs/` สำหรับข้อมูลเพิ่มเติม:
+- [สถาปัตยกรรมระบบ (Architecture)](./docs/architecture.md)
+- [คู่มือ API (API Documentation)](./docs/api.md)
+- [ข้อมูล SNMP (SNMP Implementation)](./docs/snmp.md)
+- [การติดตั้งใช้งาน (Deployment Guide)](./docs/deployment.md)
 
-## Requirements
+## สำหรับผู้พัฒนา (For Developers)
 
-- Python 3.10+
-- Node.js 18+
-- Docker & Docker Compose (for Production Deployment)
-
-## Quick Start (Development)
-
-**Backend:**
-
+### Backend
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+venv\Scripts\activate  # Windows
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+python -m app.main
 ```
 
-**Frontend:**
-
+### Frontend
 ```bash
 cd frontend
 npm install
