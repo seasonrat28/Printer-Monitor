@@ -1,73 +1,102 @@
 C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
 * 'orm_mode' has been renamed to 'from_attributes'
   warnings.warn(message, UserWarning)
-2026-09-03 10:22:59,357 - fastapi - ERROR - Form data requires "python-multipart" to be installed. 
-You can install "python-multipart" with: 
+C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\app\main.py:47: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
 
-pip install python-multipart
-
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Will watch for changes in these directories: ['C:\\Users\\OPOR PORO\\Downloads\\Printer-Monitor\\backend']
+INFO:     Uvicorn running on http://0.0.0.0:9100 (Press CTRL+C to quit)
+INFO:     Started reloader process [30476] using StatReload
+C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+INFO:     Started server process [10524]
+INFO:     Waiting for application startup.
+2026-09-03 15:45:12,506 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
 Traceback (most recent call last):
-  File "<frozen runpy>", line 203, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\app\main.py", line 31, in <module>
-    from app.api.api import api_router
-  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\app\api\api.py", line 2, in <module>
-    from app.api.endpoints import printers, auth, discovery, ws, reports, groups, users, settings
-  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\app\api\endpoints\printers.py", line 69, in <module>
-    @router.post("/import/csv")
-     ~~~~~~~~~~~^^^^^^^^^^^^^^^
-  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 3004, in decorator
-    self.add_api_route(
-    ~~~~~~~~~~~~~~~~~~^
-        path,
-        ^^^^^
-    ...<23 lines>...
-        generate_unique_id_function=generate_unique_id_function,
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 2939, in add_api_route
-    route = route_class(
-        self.prefix + path,
-    ...<27 lines>...
-        ),
-    )
-  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 1193, in __init__
-    _populate_api_route_state(
-    ~~~~~~~~~~~~~~~~~~~~~~~~~^
-        cast(_APIRouteLike, self),
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ...<26 lines>...
-        strict_content_type=strict_content_type,
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 1061, in _populate_api_route_state
-    ) = _build_dependant_with_parameterless_dependencies(
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        path=route.path_format,
-        ^^^^^^^^^^^^^^^^^^^^^^^
-        call=route.endpoint,
-        ^^^^^^^^^^^^^^^^^^^^
-        dependencies=route.dependencies,
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 861, in _build_dependant_with_parameterless_dependencies
-    dependant = get_dependant(path=path, call=call, scope="function")
-  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 296, in get_dependant
-    param_details = analyze_param(
-        param_name=param_name,
-    ...<2 lines>...
-        is_path_param=is_path_param,
-    )
-  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 523, in analyze_param
-    ensure_multipart_is_installed()
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 129, in ensure_multipart_is_installed
-    raise RuntimeError(multipart_not_installed_error) from None
-RuntimeError: Form data requires "python-multipart" to be installed. 
-You can install "python-multipart" with: 
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\starlette\routing.py", line 648, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Program Files\Python314\Lib\contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 240, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 265, in __aenter__
+    await self._router._startup()
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 6375, in _startup
+    await handler()
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\app\main.py", line 52, in startup_event
+    init_db(db)
+    ~~~~~~~^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\app\db\init_db.py", line 12, in init_db
+    password_hash=get_password_hash("admin"),
+                  ~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\app\core\security.py", line 13, in get_password_hash
+    return pwd_context.hash(password)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\context.py", line 2258, in hash
+    return record.hash(secret, **kwds)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\utils\handlers.py", line 779, in hash
+    self.checksum = self._calc_checksum(secret)
+                    ~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 591, in _calc_checksum
+    self._stub_requires_backend()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\utils\handlers.py", line 2254, in _stub_requires_backend
+    cls.set_backend()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\utils\handlers.py", line 2156, in set_backend
+    return owner.set_backend(name, dryrun=dryrun)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\utils\handlers.py", line 2163, in set_backend
+    return cls.set_backend(name, dryrun=dryrun)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\utils\handlers.py", line 2188, in set_backend
+    cls._set_backend(name, dryrun)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\utils\handlers.py", line 2311, in _set_backend
+    super(SubclassBackendMixin, cls)._set_backend(name, dryrun)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\utils\handlers.py", line 2224, in _set_backend
+    ok = loader(**kwds)
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 626, in _load_backend_mixin
+    return mixin_cls._finalize_backend_mixin(name, dryrun)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 421, in _finalize_backend_mixin
+    if detect_wrap_bug(IDENT_2A):
+       ~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 380, in detect_wrap_bug
+    if verify(secret, bug_hash):
+       ~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\utils\handlers.py", line 792, in verify
+    return consteq(self._calc_checksum(secret), chk)
+                   ~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 655, in _calc_checksum
+    hash = _bcrypt.hashpw(secret, config)
+ValueError: password cannot be longer than 72 bytes, truncate manually if necessary (e.g. my_password[:72])
 
-pip install python-multipart
-
+ERROR:    Application startup failed. Exiting.

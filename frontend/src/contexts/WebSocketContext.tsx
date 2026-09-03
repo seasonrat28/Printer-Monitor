@@ -21,7 +21,8 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         // Adjust URL for production vs dev
-        const wsUrl = `ws://${window.location.hostname}:8000/api/v1/ws/dashboard`;
+        const wsBase = import.meta.env.VITE_API_URL?.replace(/^http/, 'ws') || `ws://${window.location.hostname}:8000`;
+        const wsUrl = `${wsBase}/api/v1/ws/dashboard`;
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => setIsConnected(true);

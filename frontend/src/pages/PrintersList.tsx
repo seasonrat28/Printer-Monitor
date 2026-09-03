@@ -104,7 +104,7 @@ const PrintersList = () => {
                         <span>Import CSV</span>
                     </button>
                     <a 
-                        href={`http://${window.location.hostname}:8000/api/v1/printers/export/csv`}
+                        href={`${import.meta.env.VITE_API_URL}/api/v1/printers/export/csv`}
                         className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
                         <Download size={16} />
