@@ -1,1 +1,73 @@
-C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Scripts\python.exe: No module named uvicorn
+C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+2026-09-03 10:22:59,357 - fastapi - ERROR - Form data requires "python-multipart" to be installed. 
+You can install "python-multipart" with: 
+
+pip install python-multipart
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\app\main.py", line 31, in <module>
+    from app.api.api import api_router
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\app\api\api.py", line 2, in <module>
+    from app.api.endpoints import printers, auth, discovery, ws, reports, groups, users, settings
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\app\api\endpoints\printers.py", line 69, in <module>
+    @router.post("/import/csv")
+     ~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 3004, in decorator
+    self.add_api_route(
+    ~~~~~~~~~~~~~~~~~~^
+        path,
+        ^^^^^
+    ...<23 lines>...
+        generate_unique_id_function=generate_unique_id_function,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 2939, in add_api_route
+    route = route_class(
+        self.prefix + path,
+    ...<27 lines>...
+        ),
+    )
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 1193, in __init__
+    _populate_api_route_state(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        cast(_APIRouteLike, self),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<26 lines>...
+        strict_content_type=strict_content_type,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 1061, in _populate_api_route_state
+    ) = _build_dependant_with_parameterless_dependencies(
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        path=route.path_format,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+        call=route.endpoint,
+        ^^^^^^^^^^^^^^^^^^^^
+        dependencies=route.dependencies,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\routing.py", line 861, in _build_dependant_with_parameterless_dependencies
+    dependant = get_dependant(path=path, call=call, scope="function")
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 296, in get_dependant
+    param_details = analyze_param(
+        param_name=param_name,
+    ...<2 lines>...
+        is_path_param=is_path_param,
+    )
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 523, in analyze_param
+    ensure_multipart_is_installed()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\OPOR PORO\Downloads\Printer-Monitor\backend\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 129, in ensure_multipart_is_installed
+    raise RuntimeError(multipart_not_installed_error) from None
+RuntimeError: Form data requires "python-multipart" to be installed. 
+You can install "python-multipart" with: 
+
+pip install python-multipart
+

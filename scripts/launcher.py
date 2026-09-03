@@ -45,12 +45,14 @@ def find_free_port(start_port, end_port):
     raise Exception(f"No free ports in range {start_port}-{end_port}")
 
 def check_process_running(pid):
+    if not pid:
+        return False
     try:
         if os.name == 'nt':
             output = subprocess.check_output(f'tasklist /FI "PID eq {pid}" /NH', shell=True).decode()
             return str(pid) in output
         else:
-            os.kill(pid, 0)
+            os.kill(int(pid), 0)
             return True
     except:
         return False
@@ -124,13 +126,16 @@ def start_backend(port):
     venv_python = backend_dir / "venv" / "Scripts" / "python.exe"
     
     if not venv_python.exists():
-        python_exec = sys.executable
-    else:
-        python_exec = str(venv_python)
+        print_and_log("Creating virtual environment and installing backend dependencies (This may take a minute)...")
+        subprocess.run([sys.executable, "-m", "venv", "venv"], cwd=str(backend_dir))
+        subprocess.run([str(venv_python), "-m", "pip", "install", "-r", "requirements.txt"], cwd=str(backend_dir))
         
-    cmd = [python_exec, "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", str(port)]
+    python_exec = str(venv_python)
+        
+    cmd = [python_exec, "-m", "app.main"]
     
     env = os.environ.copy()
+    env["PORT"] = str(port)
     
     log_f = open(BACKEND_LOG, "w")
     flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
