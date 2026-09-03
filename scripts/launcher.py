@@ -164,7 +164,7 @@ def start_frontend(port, backend_url):
         print_and_log("Installing frontend dependencies...")
         subprocess.run([npm_exec, "install"], cwd=str(frontend_dir), stdout=subprocess.DEVNULL)
         
-    cmd = [npm_exec, "run", "dev", "--", "--port", str(port)]
+    cmd = [npm_exec, "run", "dev", "--", "--host", "0.0.0.0", "--port", str(port)]
     
     env = os.environ.copy()
     env["VITE_API_URL"] = backend_url
