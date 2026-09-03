@@ -44,6 +44,17 @@ def find_free_port(start_port, end_port):
                 return port
     raise Exception(f"No free ports in range {start_port}-{end_port}")
 
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
 def check_process_running(pid):
     if not pid:
         return False
@@ -218,14 +229,16 @@ def start():
     print_and_log(f"[OK] Frontend : {frontend_port}")
     print_and_log("")
     
-    backend_url = f"http://127.0.0.1:{backend_port}"
-    frontend_url = f"http://127.0.0.1:{frontend_port}"
+    server_ip = get_local_ip()
+    
+    backend_url = f"http://{server_ip}:{backend_port}"
+    frontend_url = f"http://{server_ip}:{frontend_port}"
     
     # Save ports
     save_ports({
-        "backend_host": "127.0.0.1",
+        "backend_host": server_ip,
         "backend_port": backend_port,
-        "frontend_host": "127.0.0.1",
+        "frontend_host": server_ip,
         "frontend_port": frontend_port,
         "backend_url": backend_url,
         "frontend_url": frontend_url
