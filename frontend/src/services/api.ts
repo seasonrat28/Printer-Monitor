@@ -7,14 +7,27 @@ const api = axios.create({
     }
 });
 
-// Add interceptor if using auth
+// Add request interceptor if using auth
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token') || localStorage.getItem('token');
     if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
 });
+
+// Add response interceptor to handle 401 Unauthorized
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('access_token');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
 
 export const printerService = {
     getPrinters: () => api.get('/printers/'),

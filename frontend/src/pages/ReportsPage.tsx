@@ -44,9 +44,12 @@ export const ReportsPage = () => {
         fetch(`${API_BASE}/reports/stats`, {
             headers: { Authorization: `Bearer ${token}` }
         })
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) throw new Error('Failed to fetch stats');
+                return r.json();
+            })
             .then(data => { setStats(data); setLoading(false); })
-            .catch(() => setLoading(false));
+            .catch(() => { setStats(null); setLoading(false); });
     }, []);
 
     const download = (endpoint: string) => {
