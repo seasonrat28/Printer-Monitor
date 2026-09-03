@@ -128,7 +128,12 @@ def start_backend(port):
     if not venv_python.exists():
         print_and_log("Creating virtual environment and installing backend dependencies (This may take a minute)...")
         subprocess.run([sys.executable, "-m", "venv", "venv"], cwd=str(backend_dir))
-        subprocess.run([str(venv_python), "-m", "pip", "install", "-r", "requirements.txt"], cwd=str(backend_dir))
+        offline_dir = backend_dir / "offline_packages"
+        if offline_dir.exists() and offline_dir.is_dir():
+            print_and_log("Installing backend dependencies from offline packages...")
+            subprocess.run([str(venv_python), "-m", "pip", "install", "--no-index", "--find-links=offline_packages", "-r", "requirements.txt"], cwd=str(backend_dir))
+        else:
+            subprocess.run([str(venv_python), "-m", "pip", "install", "-r", "requirements.txt"], cwd=str(backend_dir))
         
     python_exec = str(venv_python)
         
