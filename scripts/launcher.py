@@ -254,7 +254,7 @@ def start():
         return
         
     print_and_log("Starting frontend...")
-    f_pid = start_frontend(frontend_port, f"{backend_url}/api/v1")
+    f_pid = start_frontend(frontend_port, backend_url)
     if check_frontend_health(frontend_url):
         print_and_log("[OK] Frontend Ready")
     else:
