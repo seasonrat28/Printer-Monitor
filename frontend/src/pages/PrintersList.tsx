@@ -36,7 +36,14 @@ const PrintersList = () => {
         if (lastEvent?.type === 'STATUS_UPDATE') {
             setPrinters(prev => prev.map(p => 
                 p.id === lastEvent.data.printer_id 
-                    ? { ...p, status: lastEvent.data.status } 
+                    ? { 
+                        ...p, 
+                        status: lastEvent.data.status,
+                        hostname: lastEvent.data.hostname !== undefined ? lastEvent.data.hostname : p.hostname,
+                        location: lastEvent.data.location !== undefined ? lastEvent.data.location : p.location,
+                        serial_number: lastEvent.data.serial_number !== undefined ? lastEvent.data.serial_number : p.serial_number,
+                        model: lastEvent.data.model !== undefined ? lastEvent.data.model : p.model
+                      } 
                     : p
             ));
         } else if (lastEvent?.type === 'SUPPLY_UPDATE') {

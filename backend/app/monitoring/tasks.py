@@ -60,6 +60,15 @@ async def _check_single_printer_status(printer_id: int, adapter: StandardSNMPAda
         printer.status = status
         printer.last_seen = datetime.utcnow()
         
+        # Fetch metadata if it's missing (happens on first run or DB reset)
+        if not printer.hostname or not printer.location or not printer.serial_number:
+            sys_info = await adapter.get_system_info()
+            if sys_info:
+                if sys_info.get("sysName"): printer.hostname = sys_info["sysName"]
+                if sys_info.get("sysLocation"): printer.location = sys_info["sysLocation"]
+                if sys_info.get("serialNumber"): printer.serial_number = sys_info["serialNumber"]
+                if sys_info.get("model"): printer.model = sys_info["model"]
+        
         # Evaluate Alerts
         await evaluate_status_alerts(db, printer)
         
@@ -71,7 +80,11 @@ async def _check_single_printer_status(printer_id: int, adapter: StandardSNMPAda
             "type": "STATUS_UPDATE",
             "data": {
                 "printer_id": printer_id,
-                "status": status
+                "status": status,
+                "hostname": printer.hostname,
+                "location": printer.location,
+                "serial_number": printer.serial_number,
+                "model": printer.model
             }
         })
 
