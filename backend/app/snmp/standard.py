@@ -15,7 +15,7 @@ class StandardSNMPAdapter(SNMPAdapter):
         errorIndication, errorStatus, errorIndex, varBinds = await get_cmd(
             self.snmp_engine,
             CommunityData(self.community, mpModel=1 if self.version == "v2c" else 0),
-            UdpTransportTarget((self.ip, 161)),
+            await UdpTransportTarget.create((self.ip, 161)),
             ContextData(),
             ObjectType(ObjectIdentity(oid))
         )
@@ -62,7 +62,7 @@ class StandardSNMPAdapter(SNMPAdapter):
         async for errorIndication, errorStatus, errorIndex, varBinds in next_cmd(
             self.snmp_engine,
             CommunityData(self.community, mpModel=1 if self.version == "v2c" else 0),
-            UdpTransportTarget((self.ip, 161)),
+            await UdpTransportTarget.create((self.ip, 161)),
             ContextData(),
             ObjectType(ObjectIdentity(oid)),
             lexicographicMode=False
