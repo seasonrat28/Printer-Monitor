@@ -11,12 +11,23 @@ import urllib.error
 import webbrowser
 from pathlib import Path
 
-# Set Proxy for the entire script (so pip and npm can use it)
-PROXY_URL = "http://Reception:Rct%402026@10.99.200.159:8080"
-os.environ["HTTP_PROXY"] = PROXY_URL
-os.environ["HTTPS_PROXY"] = PROXY_URL
-os.environ["http_proxy"] = PROXY_URL
-os.environ["https_proxy"] = PROXY_URL
+def is_proxy_reachable(proxy_host, proxy_port):
+    try:
+        with socket.create_connection((proxy_host, proxy_port), timeout=1):
+            return True
+    except:
+        return False
+
+# Set Proxy only if it's reachable (so it works both at office and at home)
+PROXY_HOST = "10.99.200.159"
+PROXY_PORT = 8080
+if is_proxy_reachable(PROXY_HOST, PROXY_PORT):
+    PROXY_URL = f"http://Reception:Rct%402026@{PROXY_HOST}:{PROXY_PORT}"
+    os.environ["HTTP_PROXY"] = PROXY_URL
+    os.environ["HTTPS_PROXY"] = PROXY_URL
+    os.environ["http_proxy"] = PROXY_URL
+    os.environ["https_proxy"] = PROXY_URL
+    os.environ["NO_PROXY"] = "localhost,127.0.0.1,::1"
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 RUNTIME_DIR = BASE_DIR / "runtime"
@@ -52,7 +63,16 @@ def find_free_port(start_port, end_port):
     raise Exception(f"No free ports in range {start_port}-{end_port}")
 
 def get_local_ip():
-    return 'localhost'
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # Doesn't have to be reachable, just forces socket to determine local IP used to route to internet
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
 
 def check_process_running(pid):
     if not pid:
@@ -242,6 +262,9 @@ def start():
     print_and_log("")
     
     server_ip = get_local_ip()
+    
+    if "NO_PROXY" in os.environ:
+        os.environ["NO_PROXY"] += f",{server_ip}"
     
     backend_url = f"http://{server_ip}:{backend_port}"
     frontend_url = f"http://{server_ip}:{frontend_port}"
