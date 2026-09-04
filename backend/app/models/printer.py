@@ -19,6 +19,8 @@ class Printer(Base):
     department = Column(String, nullable=True)
     status = Column(String, default="UNKNOWN")
     last_seen = Column(DateTime, nullable=True)
+    toner_level = Column(Integer, nullable=True)
+    drum_level = Column(Integer, nullable=True)
     snmp_enabled = Column(Boolean, default=True)
     snmp_version = Column(String, default="v2c")
     snmp_community = Column(String, default="public")

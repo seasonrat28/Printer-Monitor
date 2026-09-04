@@ -44,11 +44,65 @@ class StandardSNMPAdapter(SNMPAdapter):
         status_map = {"3": "ONLINE", "4": "ONLINE", "5": "ONLINE", "1": "WARNING", "2": "UNKNOWN"}
         return status_map.get(status_val, "UNKNOWN")
 
-    async def get_supplies(self) -> list[Dict[str, Any]]:
-        # prtMarkerSuppliesLevel (1.3.6.1.2.1.43.11.1.1.9.1.1)
-        # We will implement table walking later for full support.
-        # This is a stub for standard MIB single lookup.
-        return []
+    async def _walk_oid(self, oid: str) -> Dict[str, str]:
+        results = {}
+        async for errorIndication, errorStatus, errorIndex, varBinds in next_cmd(
+            self.snmp_engine,
+            CommunityData(self.community, mpModel=1 if self.version == "v2c" else 0),
+            UdpTransportTarget((self.ip, 161)),
+            ContextData(),
+            ObjectType(ObjectIdentity(oid)),
+            lexicographicMode=False
+        ):
+            if errorIndication or errorStatus:
+                break
+            for varBind in varBinds:
+                # varBind[0] is the OID, varBind[1] is the value
+                oid_str = str(varBind[0])
+                idx = oid_str.split('.')[-1]
+                results[idx] = str(varBind[1])
+        return results
+
+    async def get_supplies(self) -> Dict[str, Any]:
+        try:
+            # 1.3.6.1.2.1.43.11.1.1.6 - prtMarkerSuppliesDescription
+            # 1.3.6.1.2.1.43.11.1.1.8 - prtMarkerSuppliesMaxCapacity
+            # 1.3.6.1.2.1.43.11.1.1.9 - prtMarkerSuppliesLevel
+            descriptions = await self._walk_oid("1.3.6.1.2.1.43.11.1.1.6")
+            max_caps = await self._walk_oid("1.3.6.1.2.1.43.11.1.1.8")
+            levels = await self._walk_oid("1.3.6.1.2.1.43.11.1.1.9")
+
+            toner_level = None
+            drum_level = None
+
+            for idx, desc in descriptions.items():
+                desc_lower = desc.lower()
+                try:
+                    level = int(levels.get(idx, -1))
+                    max_cap = int(max_caps.get(idx, 1))
+                    
+                    if max_cap <= 0:
+                        continue
+                        
+                    percentage = int((level / max_cap) * 100)
+                    if percentage < 0:
+                        percentage = 0 # Some printers return -3 for OK
+                    
+                    if "drum" in desc_lower or "photoconductor" in desc_lower or "imaging" in desc_lower:
+                        if drum_level is None:
+                            drum_level = percentage
+                    elif "toner" in desc_lower or "cartridge" in desc_lower or "black" in desc_lower or "cyan" in desc_lower or "magenta" in desc_lower or "yellow" in desc_lower:
+                        if toner_level is None:
+                            toner_level = percentage
+                except ValueError:
+                    continue
+
+            return {
+                "toner_level": toner_level,
+                "drum_level": drum_level
+            }
+        except Exception as e:
+            return {"toner_level": None, "drum_level": None}
 
     async def get_counters(self) -> Dict[str, Any]:
         # prtMarkerLifeCount (1.3.6.1.2.1.43.10.2.1.4.1.1)

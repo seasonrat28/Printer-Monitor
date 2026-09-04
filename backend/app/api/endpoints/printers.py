@@ -29,6 +29,54 @@ def add_printer(printer: PrinterCreate, db: Session = Depends(get_db)):
     db.refresh(new_printer)
     return new_printer
 
+import ipaddress
+import re
+
+def parse_ips(raw: str) -> List[str]:
+    ips = set()
+    lines = raw.replace(',', '\n').split('\n')
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        # Check if range like 10.119.34.21-50
+        match = re.match(r'^(\d+\.\d+\.\d+\.)(\d+)-(\d+)$', line)
+        if match:
+            prefix = match.group(1)
+            start = int(match.group(2))
+            end = int(match.group(3))
+            if start <= end and start >= 0 and end <= 255:
+                for i in range(start, end + 1):
+                    ips.add(f"{prefix}{i}")
+        else:
+            try:
+                # Validate simple IP
+                ipaddress.ip_address(line)
+                ips.add(line)
+            except ValueError:
+                pass
+    return list(ips)
+
+from app.schemas.printer import PrinterBulkCreate
+
+@router.post("/bulk")
+def add_printers_bulk(payload: PrinterBulkCreate, db: Session = Depends(get_db)):
+    ip_list = parse_ips(payload.raw_ips)
+    if not ip_list:
+        raise HTTPException(status_code=400, detail="No valid IP addresses found")
+    
+    added = 0
+    for ip in ip_list:
+        db_printer = db.query(PrinterModel).filter(PrinterModel.ip_address == ip).first()
+        if not db_printer:
+            new_printer = PrinterModel(ip_address=ip)
+            db.add(new_printer)
+            added += 1
+            
+    db.add(AuditLog(action="ADD_PRINTERS_BULK", entity_type="Printer", details=f"Added {added} printers"))
+    db.commit()
+    return {"message": f"Successfully added {added} printers", "added_count": added}
+
 @router.get("/{printer_id}", response_model=PrinterResponse)
 def get_printer(printer_id: int, db: Session = Depends(get_db)):
     db_printer = db.query(PrinterModel).filter(PrinterModel.id == printer_id).first()

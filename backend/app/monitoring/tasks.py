@@ -96,48 +96,21 @@ async def _check_single_printer_supplies(printer_id: int, adapter: StandardSNMPA
     counters = await adapter.get_counters()
     printer = db.query(Printer).filter(Printer.id == printer_id).first()
     
-    for supply in supplies:
-        existing = db.query(PrinterSupplies).filter(
-            PrinterSupplies.printer_id == printer_id,
-            PrinterSupplies.name == supply.get("name")
-        ).first()
-        if existing:
-            existing.level = supply.get("level")
-            existing.maximum = supply.get("maximum")
-            await evaluate_supply_alerts(db, printer, existing)
+    if printer:
+        if supplies.get("toner_level") is not None:
+            printer.toner_level = supplies["toner_level"]
+        if supplies.get("drum_level") is not None:
+            printer.drum_level = supplies["drum_level"]
             
-            # Broadcast supply update
-            await manager.broadcast({
-                "type": "SUPPLY_UPDATE",
-                "data": {
-                    "printer_id": printer_id,
-                    "supply_name": existing.name,
-                    "level": existing.level,
-                    "maximum": existing.maximum
-                }
-            })
-        else:
-            new_supply = PrinterSupplies(
-                printer_id=printer_id,
-                supply_type=supply.get("type", "unknown"),
-                name=supply.get("name", "Unknown Supply"),
-                level=supply.get("level", 0),
-                maximum=supply.get("maximum", 100)
-            )
-            db.add(new_supply)
-            # Need to flush to have the object initialized fully for evaluation
-            db.flush()
-            await evaluate_supply_alerts(db, printer, new_supply)
-            
-            await manager.broadcast({
-                "type": "SUPPLY_UPDATE",
-                "data": {
-                    "printer_id": printer_id,
-                    "supply_name": new_supply.name,
-                    "level": new_supply.level,
-                    "maximum": new_supply.maximum
-                }
-            })
+        # Broadcast supply update directly
+        await manager.broadcast({
+            "type": "SUPPLY_UPDATE",
+            "data": {
+                "printer_id": printer_id,
+                "toner_level": printer.toner_level,
+                "drum_level": printer.drum_level
+            }
+        })
             
     if counters and "total_pages" in counters:
         new_counter = PrinterCounters(
