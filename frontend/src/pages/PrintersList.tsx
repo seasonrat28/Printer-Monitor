@@ -20,6 +20,10 @@ const PrintersList = () => {
     const { lastEvent } = useWebSocket();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newPrinter, setNewPrinter] = useState({ ip_address: '', hostname: '', manufacturer: '', model: '', snmp_community: 'public' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     useEffect(() => {
         fetchPrinters();
     }, []);
@@ -65,15 +69,44 @@ const PrintersList = () => {
         formData.append('file', file);
 
         try {
-            await api.post('/printers/import/csv', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            await api.post('/printers/import/csv', formData);
             alert('Printers imported successfully!');
             fetchPrinters();
         } catch (err: any) {
             alert(err.response?.data?.detail || 'Failed to import printers');
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const handleExport = async () => {
+        try {
+            const response = await api.get('/printers/export/csv', { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'printers_export.csv');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error("Failed to export printers", err);
+            alert("Failed to export printers");
+        }
+    };
+
+    const handleAddPrinter = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setIsSubmitting(true);
+            await printerService.addPrinter(newPrinter);
+            setIsAddModalOpen(false);
+            setNewPrinter({ ip_address: '', hostname: '', manufacturer: '', model: '', snmp_community: 'public' });
+            fetchPrinters();
+        } catch (err: any) {
+            alert(err.response?.data?.detail || 'Failed to add printer');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -103,14 +136,17 @@ const PrintersList = () => {
                         <Upload size={16} />
                         <span>Import CSV</span>
                     </button>
-                    <a 
-                        href={`${import.meta.env.VITE_API_URL}/api/v1/printers/export/csv`}
+                    <button 
+                        onClick={handleExport}
                         className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
                         <Download size={16} />
                         <span>Export CSV</span>
-                    </a>
-                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center space-x-2 hover:bg-indigo-700 transition-colors">
+                    </button>
+                    <button 
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center space-x-2 hover:bg-indigo-700 transition-colors"
+                    >
                         <Plus size={16} />
                         <span>Add Printer</span>
                     </button>
@@ -183,6 +219,73 @@ const PrintersList = () => {
                     </tbody>
                 </table>
             </div>
+
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setIsAddModalOpen(false)}></div>
+                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                            <form onSubmit={handleAddPrinter}>
+                                <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                    <div className="sm:flex sm:items-start">
+                                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="modal-title">
+                                                Add New Printer
+                                            </h3>
+                                            <div className="mt-4 space-y-4">
+                                                <div>
+                                                    <label htmlFor="ip_address" className="block text-sm font-medium text-gray-700 dark:text-gray-300">IP Address *</label>
+                                                    <input type="text" id="ip_address" required
+                                                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                                                        value={newPrinter.ip_address} onChange={e => setNewPrinter({...newPrinter, ip_address: e.target.value})}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="hostname" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Hostname (Optional)</label>
+                                                    <input type="text" id="hostname"
+                                                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                                                        value={newPrinter.hostname} onChange={e => setNewPrinter({...newPrinter, hostname: e.target.value})}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="manufacturer" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Manufacturer (Optional)</label>
+                                                    <input type="text" id="manufacturer"
+                                                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                                                        value={newPrinter.manufacturer} onChange={e => setNewPrinter({...newPrinter, manufacturer: e.target.value})}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="model" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Model (Optional)</label>
+                                                    <input type="text" id="model"
+                                                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                                                        value={newPrinter.model} onChange={e => setNewPrinter({...newPrinter, model: e.target.value})}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="snmp_community" className="block text-sm font-medium text-gray-700 dark:text-gray-300">SNMP Community</label>
+                                                    <input type="text" id="snmp_community"
+                                                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+                                                        value={newPrinter.snmp_community} onChange={e => setNewPrinter({...newPrinter, snmp_community: e.target.value})}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                    <button type="submit" disabled={isSubmitting} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50">
+                                        {isSubmitting ? 'Adding...' : 'Add Printer'}
+                                    </button>
+                                    <button type="button" onClick={() => setIsAddModalOpen(false)} className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
