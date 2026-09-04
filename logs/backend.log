@@ -1,0 +1,102 @@
+D:\app\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+D:\app\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+D:\app\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+D:\app\Printer-Monitor\backend\app\main.py:47: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Will watch for changes in these directories: ['D:\\app\\Printer-Monitor\\backend']
+INFO:     Uvicorn running on http://0.0.0.0:9100 (Press CTRL+C to quit)
+INFO:     Started reloader process [29584] using StatReload
+D:\app\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+D:\app\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+D:\app\Printer-Monitor\backend\venv\Lib\site-packages\pydantic\_internal\_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+INFO:     Started server process [26976]
+INFO:     Waiting for application startup.
+2026-09-04 13:27:15,218 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-09-04 13:27:15,218 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-09-04 13:27:15,218 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-09-04 13:27:15,219 - apscheduler.scheduler - INFO - Added job "ping_printers" to job store "default"
+2026-09-04 13:27:15,219 - apscheduler.scheduler - INFO - Added job "check_snmp_status" to job store "default"
+2026-09-04 13:27:15,219 - apscheduler.scheduler - INFO - Added job "check_snmp_supplies" to job store "default"
+2026-09-04 13:27:15,219 - apscheduler.scheduler - INFO - Scheduler started
+INFO:     Application startup complete.
+INFO:     10.119.43.25:61414 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.119.43.25:53752 - "WebSocket /api/v1/ws/dashboard" [accepted]
+INFO:     connection open
+INFO:     10.119.43.25:57659 - "OPTIONS /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:55364 - "OPTIONS /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:55258 - "WebSocket /api/v1/ws/dashboard" [accepted]
+INFO:     connection open
+INFO:     10.119.43.25:55364 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:55364 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:55364 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:55364 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:54211 - "WebSocket /api/v1/ws/dashboard" [accepted]
+INFO:     connection open
+INFO:     10.119.43.25:51201 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:52607 - "WebSocket /api/v1/ws/dashboard" [accepted]
+INFO:     connection open
+INFO:     10.119.43.25:51201 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:51939 - "WebSocket /api/v1/ws/dashboard" [accepted]
+INFO:     connection open
+INFO:     10.119.43.25:51201 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:53597 - "WebSocket /api/v1/ws/dashboard" [accepted]
+INFO:     connection open
+INFO:     10.119.43.25:51201 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+2026-09-04 13:27:45,234 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:28:15 +07)" (scheduled at 2026-09-04 13:27:45.218533+07:00)
+2026-09-04 13:27:47,301 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:28:15 +07)" executed successfully
+2026-09-04 13:28:15,233 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:28:45 +07)" (scheduled at 2026-09-04 13:28:15.218533+07:00)
+2026-09-04 13:28:15,235 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 13:29:15 +07)" (scheduled at 2026-09-04 13:28:15.218746+07:00)
+2026-09-04 13:28:27,306 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 13:29:15 +07)" executed successfully
+2026-09-04 13:28:29,349 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:28:45 +07)" executed successfully
+2026-09-04 13:28:45,229 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:29:15 +07)" (scheduled at 2026-09-04 13:28:45.218533+07:00)
+2026-09-04 13:28:47,286 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:29:15 +07)" executed successfully
+2026-09-04 13:29:15,233 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:29:45 +07)" (scheduled at 2026-09-04 13:29:15.218533+07:00)
+2026-09-04 13:29:15,235 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 13:30:15 +07)" (scheduled at 2026-09-04 13:29:15.218746+07:00)
+2026-09-04 13:29:28,913 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 13:30:15 +07)" executed successfully
+2026-09-04 13:29:30,965 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:29:45 +07)" executed successfully
+2026-09-04 13:29:45,219 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:30:15 +07)" (scheduled at 2026-09-04 13:29:45.218533+07:00)
+2026-09-04 13:29:47,269 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:30:15 +07)" executed successfully
+2026-09-04 13:30:15,224 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:30:45 +07)" (scheduled at 2026-09-04 13:30:15.218533+07:00)
+2026-09-04 13:30:15,227 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 13:31:15 +07)" (scheduled at 2026-09-04 13:30:15.218746+07:00)
+2026-09-04 13:30:28,618 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 13:31:15 +07)" executed successfully
+2026-09-04 13:30:30,660 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:30:45 +07)" executed successfully
+2026-09-04 13:30:45,227 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:31:15 +07)" (scheduled at 2026-09-04 13:30:45.218533+07:00)
+2026-09-04 13:30:47,273 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:31:15 +07)" executed successfully
+2026-09-04 13:31:15,234 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:31:45 +07)" (scheduled at 2026-09-04 13:31:15.218533+07:00)
+2026-09-04 13:31:15,237 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 13:32:15 +07)" (scheduled at 2026-09-04 13:31:15.218746+07:00)
+2026-09-04 13:31:28,229 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 13:32:15 +07)" executed successfully
+Error checking SNMP status: Please call .create() to construct UdpTransportTarget object
+Error checking SNMP status: Please call .create() to construct UdpTransportTarget object
+Error checking SNMP status: Please call .create() to construct UdpTransportTarget object
+Error checking SNMP status: Please call .create() to construct UdpTransportTarget object
+INFO:     10.119.43.25:55765 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:55765 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+2026-09-04 13:31:30,280 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:31:45 +07)" executed successfully
+2026-09-04 13:31:45,233 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:32:15 +07)" (scheduled at 2026-09-04 13:31:45.218533+07:00)
+2026-09-04 13:31:47,279 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:32:15 +07)" executed successfully
+INFO:     10.119.43.25:62884 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:62884 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:60408 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+INFO:     10.119.43.25:60408 - "GET /api/v1/printers/ HTTP/1.1" 200 OK
+2026-09-04 13:32:15,226 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:32:45 +07)" (scheduled at 2026-09-04 13:32:15.218533+07:00)
+2026-09-04 13:32:15,229 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 13:33:15 +07)" (scheduled at 2026-09-04 13:32:15.218746+07:00)
+2026-09-04 13:32:26,709 - apscheduler.executors.default - WARNING - Run time of job "check_snmp_supplies (trigger: interval[0:05:00], next run at: 2026-09-04 13:37:15 +07)" was missed by 0:00:11.490430
+2026-09-04 13:32:26,715 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 13:33:15 +07)" executed successfully
+2026-09-04 13:32:28,763 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 13:32:45 +07)" executed successfully

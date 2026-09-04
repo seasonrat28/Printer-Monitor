@@ -3,7 +3,7 @@
 > vite --host 0.0.0.0 --port 9121
 
 
-  [32m[1mVITE[22m v8.2.2[39m  [2mready in [0m[1m192[22m[2m[0m ms[22m
+  [32m[1mVITE[22m v8.2.2[39m  [2mready in [0m[1m196[22m[2m[0m ms[22m
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m9121[22m/[39m
   [32m➜[39m  [1mNetwork[22m: [36mhttp://10.171.200.43:[1m9121[22m/[39m  [2mWi-Fi[22m
