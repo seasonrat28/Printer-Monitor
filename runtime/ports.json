@@ -1,1 +1,1 @@
-{"backend_host": "172.50.2.61", "backend_port": 9100, "frontend_host": "172.50.2.61", "frontend_port": 9121, "backend_url": "http://172.50.2.61:9100", "frontend_url": "http://172.50.2.61:9121"}
+{"backend_host": "10.119.43.25", "backend_port": 9100, "frontend_host": "10.119.43.25", "frontend_port": 9121, "backend_url": "http://10.119.43.25:9100", "frontend_url": "http://10.119.43.25:9121"}
