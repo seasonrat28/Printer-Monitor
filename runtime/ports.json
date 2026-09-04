@@ -1,0 +1,1 @@
+{"backend_host": "127.0.0.1", "backend_port": 9102, "frontend_host": "127.0.0.1", "frontend_port": 9121, "backend_url": "http://127.0.0.1:9102", "frontend_url": "http://127.0.0.1:9121"}
