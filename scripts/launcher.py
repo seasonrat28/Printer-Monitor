@@ -68,7 +68,7 @@ def get_local_ip():
     Ethernet: 10.119.43.25
     Wi-Fi:    10.171.200.43
     """
-    LAN_IP = "127.0.0.1"
+    LAN_IP = "10.119.43.25"
 
     try:
         socket.inet_aton(LAN_IP)
