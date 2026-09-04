@@ -4293,3 +4293,49 @@ INFO:     10.119.43.25:64514 - "GET /favicon.ico HTTP/1.1" 404 Not Found
 2026-09-04 11:17:55,908 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:18:25 +07)" executed successfully
 2026-09-04 11:17:55,908 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:18:55 +07)" (scheduled at 2026-09-04 11:17:55.895387+07:00)
 2026-09-04 11:17:55,908 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:18:55 +07)" executed successfully
+2026-09-04 11:18:25,911 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:18:55 +07)" (scheduled at 2026-09-04 11:18:25.895195+07:00)
+2026-09-04 11:18:25,911 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:18:55 +07)" executed successfully
+2026-09-04 11:18:55,906 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:19:25 +07)" (scheduled at 2026-09-04 11:18:55.895195+07:00)
+2026-09-04 11:18:55,907 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:19:25 +07)" executed successfully
+2026-09-04 11:18:55,907 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:19:55 +07)" (scheduled at 2026-09-04 11:18:55.895387+07:00)
+2026-09-04 11:18:55,907 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:19:55 +07)" executed successfully
+2026-09-04 11:19:25,902 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:19:55 +07)" (scheduled at 2026-09-04 11:19:25.895195+07:00)
+2026-09-04 11:19:25,903 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:19:55 +07)" executed successfully
+2026-09-04 11:19:55,910 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:20:25 +07)" (scheduled at 2026-09-04 11:19:55.895195+07:00)
+2026-09-04 11:19:55,910 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:20:25 +07)" executed successfully
+2026-09-04 11:19:55,910 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:20:55 +07)" (scheduled at 2026-09-04 11:19:55.895387+07:00)
+2026-09-04 11:19:55,911 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:20:55 +07)" executed successfully
+2026-09-04 11:20:25,898 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:20:55 +07)" (scheduled at 2026-09-04 11:20:25.895195+07:00)
+2026-09-04 11:20:25,899 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:20:55 +07)" executed successfully
+2026-09-04 11:20:55,902 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:21:25 +07)" (scheduled at 2026-09-04 11:20:55.895195+07:00)
+2026-09-04 11:20:55,903 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:21:25 +07)" executed successfully
+2026-09-04 11:20:55,903 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:21:55 +07)" (scheduled at 2026-09-04 11:20:55.895387+07:00)
+2026-09-04 11:20:55,903 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:21:55 +07)" executed successfully
+2026-09-04 11:20:55,903 - apscheduler.executors.default - INFO - Running job "check_snmp_supplies (trigger: interval[0:05:00], next run at: 2026-09-04 11:25:55 +07)" (scheduled at 2026-09-04 11:20:55.895487+07:00)
+2026-09-04 11:20:55,904 - apscheduler.executors.default - INFO - Job "check_snmp_supplies (trigger: interval[0:05:00], next run at: 2026-09-04 11:25:55 +07)" executed successfully
+2026-09-04 11:21:25,899 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:21:55 +07)" (scheduled at 2026-09-04 11:21:25.895195+07:00)
+2026-09-04 11:21:25,900 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:21:55 +07)" executed successfully
+2026-09-04 11:21:55,906 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:22:25 +07)" (scheduled at 2026-09-04 11:21:55.895195+07:00)
+2026-09-04 11:21:55,907 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:22:25 +07)" executed successfully
+2026-09-04 11:21:55,907 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:22:55 +07)" (scheduled at 2026-09-04 11:21:55.895387+07:00)
+2026-09-04 11:21:55,908 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:22:55 +07)" executed successfully
+2026-09-04 11:22:25,906 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:22:55 +07)" (scheduled at 2026-09-04 11:22:25.895195+07:00)
+2026-09-04 11:22:25,907 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:22:55 +07)" executed successfully
+2026-09-04 11:22:55,909 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:23:25 +07)" (scheduled at 2026-09-04 11:22:55.895195+07:00)
+2026-09-04 11:22:55,910 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:23:25 +07)" executed successfully
+2026-09-04 11:22:55,910 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:23:55 +07)" (scheduled at 2026-09-04 11:22:55.895387+07:00)
+2026-09-04 11:22:55,911 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:23:55 +07)" executed successfully
+2026-09-04 11:23:25,896 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:23:55 +07)" (scheduled at 2026-09-04 11:23:25.895195+07:00)
+2026-09-04 11:23:25,897 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:23:55 +07)" executed successfully
+2026-09-04 11:23:55,904 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:24:25 +07)" (scheduled at 2026-09-04 11:23:55.895195+07:00)
+2026-09-04 11:23:55,904 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:24:25 +07)" executed successfully
+2026-09-04 11:23:55,905 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:24:55 +07)" (scheduled at 2026-09-04 11:23:55.895387+07:00)
+2026-09-04 11:23:55,905 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:24:55 +07)" executed successfully
+2026-09-04 11:24:25,907 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:24:55 +07)" (scheduled at 2026-09-04 11:24:25.895195+07:00)
+2026-09-04 11:24:25,908 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:24:55 +07)" executed successfully
+2026-09-04 11:24:55,898 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:25:25 +07)" (scheduled at 2026-09-04 11:24:55.895195+07:00)
+2026-09-04 11:24:55,899 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:25:25 +07)" executed successfully
+2026-09-04 11:24:55,899 - apscheduler.executors.default - INFO - Running job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:25:55 +07)" (scheduled at 2026-09-04 11:24:55.895387+07:00)
+2026-09-04 11:24:55,900 - apscheduler.executors.default - INFO - Job "check_snmp_status (trigger: interval[0:01:00], next run at: 2026-09-04 11:25:55 +07)" executed successfully
+2026-09-04 11:25:25,904 - apscheduler.executors.default - INFO - Running job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:25:55 +07)" (scheduled at 2026-09-04 11:25:25.895195+07:00)
+2026-09-04 11:25:25,904 - apscheduler.executors.default - INFO - Job "ping_printers (trigger: interval[0:00:30], next run at: 2026-09-04 11:25:55 +07)" executed successfully
