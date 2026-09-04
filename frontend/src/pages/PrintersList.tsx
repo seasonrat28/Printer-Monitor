@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { printerService } from '../services/api';
 import { useWebSocket } from '../contexts/WebSocketContext';
-import { Printer as PrinterIcon, Plus, Trash2, RefreshCw, Upload, Download, ExternalLink, Info } from 'lucide-react';
+import { Printer as PrinterIcon, Plus, Trash2, RefreshCw, Upload, Download, ExternalLink, Info, Star, ChevronDown, History } from 'lucide-react';
 import api from '../services/api';
 
 interface Printer {
@@ -14,6 +14,8 @@ interface Printer {
     last_seen: string;
     toner_level?: number;
     drum_level?: number;
+    location?: string;
+    serial_number?: string;
 }
 
 const PrintersList = () => {
@@ -126,23 +128,72 @@ const PrintersList = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'ONLINE': return 'bg-emerald-500';
-            case 'WARNING': return 'bg-amber-500';
-            case 'OFFLINE': return 'bg-red-500';
-            default: return 'bg-gray-400';
+            case 'ONLINE': return 'border-emerald-500 bg-emerald-500 text-emerald-700';
+            case 'WARNING': return 'border-amber-500 bg-amber-500 text-amber-700';
+            case 'OFFLINE': return 'border-red-500 bg-red-500 text-red-700';
+            default: return 'border-gray-400 bg-gray-400 text-gray-700';
         }
     };
 
-    const renderProgressBar = (label: string, level?: number, colorClass: string = "bg-blue-500") => {
-        if (level === undefined || level === null) return null;
-        return (
-            <div className="mt-3">
-                <div className="flex justify-between text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                    <span>{label}</span>
-                    <span>{level}%</span>
+    const getStatusText = (status: string) => {
+        switch (status) {
+            case 'ONLINE': return 'Ready';
+            case 'WARNING': return 'Warning';
+            case 'OFFLINE': return 'Error';
+            default: return 'Unknown';
+        }
+    };
+
+    const getStatusBadgeClass = (status: string) => {
+        switch (status) {
+            case 'ONLINE': return 'bg-emerald-100 text-emerald-700 border-emerald-500';
+            case 'WARNING': return 'bg-amber-100 text-amber-700 border-amber-500';
+            case 'OFFLINE': return 'bg-red-100 text-red-700 border-red-500';
+            default: return 'bg-gray-100 text-gray-700 border-gray-400';
+        }
+    };
+
+    const getStatusCardBorder = (status: string) => {
+        switch (status) {
+            case 'ONLINE': return 'border-emerald-500';
+            case 'WARNING': return 'border-amber-500';
+            case 'OFFLINE': return 'border-red-500';
+            default: return 'border-gray-300';
+        }
+    };
+
+    const renderProgressBar = (label: string, level?: number) => {
+        if (level === undefined || level === null) return (
+             <div className="flex-1 flex flex-col items-center opacity-50">
+                <span className="text-[10px] uppercase font-bold text-gray-500 flex items-center space-x-1">
+                    <span>✏️</span> <span>{label}</span>
+                </span>
+                <span className="text-xl font-bold text-gray-400 my-1">-</span>
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                    <div className="h-1.5 rounded-full w-0"></div>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div className={`${colorClass} h-2 rounded-full`} style={{ width: `${level}%` }}></div>
+            </div>
+        );
+
+        let colorClass = "bg-emerald-500";
+        let textColor = "text-emerald-500";
+        if (level < 20) {
+            colorClass = "bg-red-500";
+            textColor = "text-red-500";
+        } else if (level <= 50) {
+            colorClass = "bg-amber-400";
+            textColor = "text-amber-500";
+        }
+
+        return (
+            <div className="flex-1 flex flex-col items-center">
+                <span className="text-[10px] uppercase font-bold text-gray-500 flex items-center space-x-1 tracking-wider">
+                    <span className="opacity-70">{label === 'TONER' ? '✒️' : '🗞️'}</span> 
+                    <span>{label}</span>
+                </span>
+                <span className={`text-2xl font-bold my-1 ${textColor}`}>{level}%</span>
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                    <div className={`${colorClass} h-1.5 rounded-full`} style={{ width: `${level}%` }}></div>
                 </div>
             </div>
         );
@@ -200,52 +251,79 @@ const PrintersList = () => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {printers.map(printer => (
-                        <div key={printer.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden hover:shadow-md transition-shadow group relative flex flex-col">
-                            <div className="p-5 flex-1">
+                        <div key={printer.id} className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group flex flex-col relative overflow-hidden border-2 ${getStatusCardBorder(printer.status)}`}>
+                            
+                            {/* Card Content */}
+                            <div className="p-5 flex-1 flex flex-col">
+                                
+                                {/* Header */}
                                 <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center space-x-3">
-                                        <div className={`w-3 h-3 rounded-full ${getStatusColor(printer.status)} shadow-sm`}></div>
-                                        <h3 className="font-semibold text-lg text-gray-900 dark:text-white truncate" title={printer.ip_address}>
-                                            {printer.ip_address}
+                                    <div className="flex items-center space-x-2 w-full">
+                                        <PrinterIcon className="text-gray-400" size={20} />
+                                        <h3 className="font-bold text-gray-800 text-lg truncate flex-1" title={printer.hostname || printer.model || printer.ip_address}>
+                                            {printer.hostname || printer.model || printer.ip_address}
                                         </h3>
-                                    </div>
-                                    <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <a 
-                                            href={`http://${printer.ip_address}`} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-gray-400 hover:text-indigo-600 transition-colors"
-                                            title="Open Web Management"
-                                        >
-                                            <ExternalLink size={16} />
-                                        </a>
-                                        <button 
-                                            onClick={() => handleDelete(printer.id)}
-                                            className="text-gray-400 hover:text-red-600 transition-colors"
-                                            title="Delete Printer"
-                                        >
-                                            <Trash2 size={16} />
+                                        <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wider ${getStatusColor(printer.status).split(' ')[1]}`}>
+                                            {printer.status}
+                                        </div>
+                                        <button className="text-gray-300 hover:text-amber-400 transition-colors ml-1">
+                                            <Star size={18} />
                                         </button>
                                     </div>
                                 </div>
                                 
-                                <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                                    <p className="flex justify-between"><span>Manufacturer:</span> <span className="font-medium text-gray-900 dark:text-white truncate max-w-[60%] text-right">{printer.manufacturer || '-'}</span></p>
-                                    <p className="flex justify-between"><span>Model:</span> <span className="font-medium text-gray-900 dark:text-white truncate max-w-[60%] text-right">{printer.model || '-'}</span></p>
-                                    <p className="flex justify-between"><span>Status:</span> <span className="font-medium text-gray-900 dark:text-white">{printer.status}</span></p>
+                                {/* Detailed Info */}
+                                <div className="text-xs text-gray-500 space-y-2 mb-4 w-full">
+                                    <div className="flex justify-between border-b border-gray-100 pb-1">
+                                        <span className="font-medium">IP:</span> 
+                                        <span className="text-gray-800">{printer.ip_address}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-gray-100 pb-1">
+                                        <span className="font-medium">Location:</span> 
+                                        <span className="text-gray-800 truncate max-w-[150px] text-right" title={printer.location || '-'}>{printer.location || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-gray-100 pb-1">
+                                        <span className="font-medium">Serial No.:</span> 
+                                        <span className="text-gray-800">{printer.serial_number || '-'}</span>
+                                    </div>
                                 </div>
 
-                                <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
-                                    {renderProgressBar("Toner", printer.toner_level, "bg-indigo-500")}
-                                    {renderProgressBar("Drum", printer.drum_level, "bg-teal-500")}
-                                    {printer.toner_level === undefined && printer.drum_level === undefined && (
-                                        <p className="text-xs text-gray-400 mt-2 text-center">No supplies data yet</p>
-                                    )}
+                                {/* Status Box */}
+                                <div className={`px-3 py-1.5 rounded-md border text-xs font-bold w-full text-center mb-5 ${getStatusBadgeClass(printer.status)}`}>
+                                    Status: {getStatusText(printer.status)}
                                 </div>
+
+                                {/* Progress Bars */}
+                                <div className="flex items-center justify-between space-x-6 px-2 mb-4">
+                                    {renderProgressBar("TONER", printer.toner_level)}
+                                    {/* Vertical Divider */}
+                                    <div className="h-10 w-px bg-gray-200"></div>
+                                    {renderProgressBar("DRUM", printer.drum_level)}
+                                </div>
+                                
                             </div>
-                            <div className="bg-gray-50 dark:bg-gray-900/50 px-5 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 flex justify-between">
-                                <span>Last seen:</span>
-                                <span>{printer.last_seen ? new Date(printer.last_seen).toLocaleString() : 'Never'}</span>
+
+                            {/* Footer */}
+                            <div className="bg-gray-50/80 px-4 py-2 border-t border-gray-100 flex flex-col items-center justify-center">
+                                <div className="flex items-center text-[10px] text-gray-400 mb-2 space-x-1">
+                                    <RefreshCw size={10} className={printer.status === 'ONLINE' ? 'text-emerald-500' : ''} />
+                                    <span>อัพเดทล่าสุด: {printer.last_seen ? new Date(printer.last_seen).toLocaleString('en-GB') : 'Never'}</span>
+                                </div>
+                                <button className="flex items-center space-x-1 text-[11px] text-gray-500 hover:text-gray-800 transition-colors font-medium">
+                                    <History size={12} />
+                                    <span>ประวัติ</span>
+                                    <ChevronDown size={12} />
+                                </button>
+                            </div>
+                            
+                            {/* Hover Actions */}
+                            <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-md shadow-sm p-1">
+                                <a href={`http://${printer.ip_address}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors" title="Open Web Management">
+                                    <ExternalLink size={14} />
+                                </a>
+                                <button onClick={() => handleDelete(printer.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Delete Printer">
+                                    <Trash2 size={14} />
+                                </button>
                             </div>
                         </div>
                     ))}
