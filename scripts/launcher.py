@@ -63,16 +63,18 @@ def find_free_port(start_port, end_port):
     raise Exception(f"No free ports in range {start_port}-{end_port}")
 
 def get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    """
+    Printer Monitor uses the corporate Ethernet IP.
+    Ethernet: 10.119.43.25
+    Wi-Fi:    10.171.200.43
+    """
+    LAN_IP = "10.119.43.25"
+
     try:
-        # Doesn't have to be reachable, just forces socket to determine local IP used to route to internet
-        s.connect(('10.255.255.255', 1))
-        IP = s.getsockname()[0]
-    except Exception:
-        IP = '127.0.0.1'
-    finally:
-        s.close()
-    return IP
+        socket.inet_aton(LAN_IP)
+        return LAN_IP
+    except socket.error:
+        return "127.0.0.1"
 
 def check_process_running(pid):
     if not pid:
