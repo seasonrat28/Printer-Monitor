@@ -24,22 +24,35 @@ class StandardSNMPAdapter(SNMPAdapter):
         return str(varBinds[0][1])
 
     async def get_system_info(self) -> Dict[str, Any]:
-        # sysDescr, sysName, sysLocation
+        # sysDescr, sysName, sysLocation, prtGeneralSerialNumber, prtGeneralPrinterName
         sysDescr = await self._get_oid("1.3.6.1.2.1.1.1.0")
         sysName = await self._get_oid("1.3.6.1.2.1.1.5.0")
         sysLocation = await self._get_oid("1.3.6.1.2.1.1.6.0")
         
+        # Try to get serial number and model from prtGeneral
+        serial_number = await self._get_oid("1.3.6.1.2.1.43.5.1.1.17.1")
+        model = await self._get_oid("1.3.6.1.2.1.43.5.1.1.16.1")
+        
         return {
             "sysDescr": sysDescr,
             "sysName": sysName,
-            "sysLocation": sysLocation
+            "sysLocation": sysLocation,
+            "serialNumber": serial_number,
+            "model": model
         }
 
     async def get_status(self) -> str:
         # Standard Host Resources MIB hrPrinterStatus (1.3.6.1.2.1.25.3.5.1.1.1)
         status_val = await self._get_oid("1.3.6.1.2.1.25.3.5.1.1.1")
+        
+        # If hrPrinterStatus is missing, try hrDeviceStatus (1.3.6.1.2.1.25.3.2.1.5.1)
         if not status_val:
+            device_status = await self._get_oid("1.3.6.1.2.1.25.3.2.1.5.1")
+            if device_status:
+                device_status_map = {"1": "UNKNOWN", "2": "ONLINE", "3": "WARNING", "4": "OFFLINE", "5": "OFFLINE"}
+                return device_status_map.get(device_status, "UNKNOWN")
             return "UNKNOWN"
+            
         # 1: other, 2: unknown, 3: idle, 4: printing, 5: warmup
         status_map = {"3": "ONLINE", "4": "ONLINE", "5": "ONLINE", "1": "WARNING", "2": "UNKNOWN"}
         return status_map.get(status_val, "UNKNOWN")

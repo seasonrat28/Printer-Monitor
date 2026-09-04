@@ -94,9 +94,16 @@ async def check_snmp_supplies():
 async def _check_single_printer_supplies(printer_id: int, adapter: StandardSNMPAdapter, db: Session):
     supplies = await adapter.get_supplies()
     counters = await adapter.get_counters()
+    sys_info = await adapter.get_system_info()
     printer = db.query(Printer).filter(Printer.id == printer_id).first()
     
     if printer:
+        if sys_info:
+            if sys_info.get("sysName"): printer.hostname = sys_info["sysName"]
+            if sys_info.get("sysLocation"): printer.location = sys_info["sysLocation"]
+            if sys_info.get("serialNumber"): printer.serial_number = sys_info["serialNumber"]
+            if sys_info.get("model"): printer.model = sys_info["model"]
+
         if supplies.get("toner_level") is not None:
             printer.toner_level = supplies["toner_level"]
         if supplies.get("drum_level") is not None:
@@ -108,7 +115,11 @@ async def _check_single_printer_supplies(printer_id: int, adapter: StandardSNMPA
             "data": {
                 "printer_id": printer_id,
                 "toner_level": printer.toner_level,
-                "drum_level": printer.drum_level
+                "drum_level": printer.drum_level,
+                "hostname": printer.hostname,
+                "location": printer.location,
+                "serial_number": printer.serial_number,
+                "model": printer.model
             }
         })
             

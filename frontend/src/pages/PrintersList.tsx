@@ -45,7 +45,11 @@ const PrintersList = () => {
                     return { 
                         ...p, 
                         toner_level: lastEvent.data.toner_level !== undefined ? lastEvent.data.toner_level : p.toner_level,
-                        drum_level: lastEvent.data.drum_level !== undefined ? lastEvent.data.drum_level : p.drum_level
+                        drum_level: lastEvent.data.drum_level !== undefined ? lastEvent.data.drum_level : p.drum_level,
+                        hostname: lastEvent.data.hostname !== undefined ? lastEvent.data.hostname : p.hostname,
+                        location: lastEvent.data.location !== undefined ? lastEvent.data.location : p.location,
+                        serial_number: lastEvent.data.serial_number !== undefined ? lastEvent.data.serial_number : p.serial_number,
+                        model: lastEvent.data.model !== undefined ? lastEvent.data.model : p.model
                     };
                 }
                 return p;
