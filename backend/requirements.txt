@@ -16,5 +16,6 @@ httpx
 python-multipart
 python-jose[cryptography]
 pandas
+openpyxl
 reportlab
 apscheduler

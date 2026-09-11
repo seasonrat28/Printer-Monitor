@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -67,9 +69,31 @@
 @layer base {
   * {
     border-color: hsl(var(--border));
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.1s ease;
   }
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+  }
+  /* Dark mode native scrollbar */
+  .dark ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .dark ::-webkit-scrollbar-track {
+    background: #1f2937;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 3px;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+  /* select elements dark mode */
+  .dark select {
+    background-color: #374151;
+    color: #f9fafb;
+    border-color: #4b5563;
   }
 }

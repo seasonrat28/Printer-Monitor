@@ -1,128 +1,306 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Map, Upload, Trash2, Printer as PrinterIcon, Check, X } from 'lucide-react';
+import api from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
-// Printer type for the map
-interface PrinterPin {
+interface Printer {
     id: number;
     ip_address: string;
-    model: string;
+    hostname: string;
     status: string;
-    x: number; // percent
-    y: number; // percent
+    toner_level: number | null;
 }
 
-const STATUS_COLOR: Record<string, string> = {
-    ONLINE: '#22c55e',
-    OFFLINE: '#ef4444',
-    WARNING: '#f59e0b',
-    ERROR: '#ef4444',
-    UNKNOWN: '#94a3b8',
-};
-
-const SAMPLE_PRINTERS: PrinterPin[] = [
-    { id: 1, ip_address: '10.119.43.10', model: 'Brother MFC-L8900CDW', status: 'ONLINE', x: 20, y: 30 },
-    { id: 2, ip_address: '10.119.43.11', model: 'HP LaserJet Pro', status: 'OFFLINE', x: 55, y: 20 },
-    { id: 3, ip_address: '10.119.34.20', model: 'Canon ImageCLASS', status: 'WARNING', x: 75, y: 65 },
-    { id: 4, ip_address: '10.119.34.21', model: 'Brother HL-L2375DW', status: 'ONLINE', x: 35, y: 70 },
-];
+interface Pin {
+    id?: number;
+    printer_id: number;
+    x_percent: number;
+    y_percent: number;
+    printer?: Printer;
+}
 
 export const FloorMapPage = () => {
-    const [printers] = useState<PrinterPin[]>(SAMPLE_PRINTERS);
-    const [hovered, setHovered] = useState<PrinterPin | null>(null);
-    const [tooltip, setTooltip] = useState({ x: 0, y: 0 });
+    const [maps, setMaps] = useState<any[]>([]);
+    const [selectedMap, setSelectedMap] = useState<any>(null);
+    const [pins, setPins] = useState<Pin[]>([]);
+    const [printers, setPrinters] = useState<Printer[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { addToast } = useToast();
+    
+    const [isAddingPin, setIsAddingPin] = useState(false);
+    const [selectedPrinterToAdd, setSelectedPrinterToAdd] = useState<number | null>(null);
 
-    const handleMouseMove = (e: React.MouseEvent, printer: PrinterPin) => {
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        setTooltip({ x: e.clientX - rect.left + 12, y: e.clientY - rect.top + 12 });
-        setHovered(printer);
+    const mapContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        fetchInitialData();
+    }, []);
+
+    useEffect(() => {
+        if (selectedMap) {
+            fetchPins(selectedMap.id);
+        }
+    }, [selectedMap]);
+
+    const fetchInitialData = async () => {
+        try {
+            setLoading(true);
+            const [mapsRes, printersRes] = await Promise.all([
+                api.get('/floormaps'),
+                api.get('/printers')
+            ]);
+            setMaps(mapsRes.data);
+            setPrinters(printersRes.data);
+            if (mapsRes.data.length > 0) {
+                setSelectedMap(mapsRes.data[0]);
+            }
+        } catch (err) {
+            addToast('error', 'Error', 'Failed to load initial data');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const fetchPins = async (mapId: number) => {
+        try {
+            const res = await api.get(`/floormaps/${mapId}/pins`);
+            setPins(res.data);
+        } catch (err) {
+            addToast('error', 'Error', 'Failed to load pins');
+        }
+    };
+
+    const handleUploadMap = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const name = prompt("ชื่อแปลนอาคาร:");
+        if (!name) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await api.post(`/floormaps/upload?name=${encodeURIComponent(name)}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setMaps([...maps, res.data]);
+            setSelectedMap(res.data);
+            addToast('success', 'Success', 'Map uploaded successfully');
+        } catch (err) {
+            addToast('error', 'Error', 'Failed to upload map');
+        }
+    };
+
+    const handleMapClick = async (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isAddingPin || !selectedPrinterToAdd || !selectedMap || !mapContainerRef.current) return;
+
+        const rect = mapContainerRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const x_percent = (x / rect.width) * 100;
+        const y_percent = (y / rect.height) * 100;
+
+        try {
+            await api.post(`/floormaps/${selectedMap.id}/pins`, {
+                printer_id: selectedPrinterToAdd,
+                x_percent,
+                y_percent
+            });
+            
+            setIsAddingPin(false);
+            setSelectedPrinterToAdd(null);
+            fetchPins(selectedMap.id);
+            addToast('success', 'Success', 'Pin placed successfully');
+        } catch (err) {
+            addToast('error', 'Error', 'Failed to place pin');
+        }
+    };
+
+    const handleDeletePin = async (e: React.MouseEvent, pinId: number) => {
+        e.stopPropagation();
+        if (!window.confirm("Delete this pin?")) return;
+        
+        try {
+            await api.delete(`/floormaps/${selectedMap.id}/pins/${pinId}`);
+            setPins(pins.filter(p => p.id !== pinId));
+            addToast('success', 'Success', 'Pin deleted');
+        } catch (err) {
+            addToast('error', 'Error', 'Failed to delete pin');
+        }
+    };
+
+    if (loading) return (
+        <div className="flex items-center justify-center h-full">
+            <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    );
+
+    const apiUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold tracking-tight">Floor Plan Map</h2>
-                <div className="flex items-center gap-4 text-sm">
-                    {Object.entries(STATUS_COLOR).map(([status, color]) => (
-                        <span key={status} className="flex items-center gap-1">
-                            <span className="inline-block w-3 h-3 rounded-full" style={{ background: color }}></span>
-                            {status}
-                        </span>
-                    ))}
+                <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center space-x-2">
+                    <Map className="text-indigo-600" />
+                    <span>Interactive Floor Map</span>
+                </h2>
+                <div className="flex items-center space-x-4">
+                    <select 
+                        className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-4"
+                        value={selectedMap?.id || ''}
+                        onChange={(e) => setSelectedMap(maps.find(m => m.id === parseInt(e.target.value)))}
+                    >
+                        {maps.length === 0 && <option value="">No maps available</option>}
+                        {maps.map(m => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                    </select>
+
+                    <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md flex items-center space-x-2 transition-colors">
+                        <Upload size={18} />
+                        <span>Upload Map</span>
+                        <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleUploadMap} />
+                    </label>
                 </div>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Office Floor Plan — All Floors</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div
-                        className="relative w-full bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden"
-                        style={{ height: '520px' }}
-                        onMouseLeave={() => setHovered(null)}
-                    >
-                        {/* Grid lines to simulate floor plan */}
-                        <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(100,116,139,0.15)" strokeWidth="1"/>
-                                </pattern>
-                            </defs>
-                            <rect width="100%" height="100%" fill="url(#grid)" />
-                            {/* Room outlines */}
-                            <rect x="5%" y="5%" width="40%" height="40%" rx="4" fill="none" stroke="rgba(100,116,139,0.4)" strokeWidth="1.5" strokeDasharray="6 3"/>
-                            <rect x="50%" y="5%" width="45%" height="30%" rx="4" fill="none" stroke="rgba(100,116,139,0.4)" strokeWidth="1.5" strokeDasharray="6 3"/>
-                            <rect x="5%" y="50%" width="40%" height="45%" rx="4" fill="none" stroke="rgba(100,116,139,0.4)" strokeWidth="1.5" strokeDasharray="6 3"/>
-                            <rect x="50%" y="40%" width="45%" height="55%" rx="4" fill="none" stroke="rgba(100,116,139,0.4)" strokeWidth="1.5" strokeDasharray="6 3"/>
-                            {/* Room labels */}
-                            <text x="7%" y="12%" fill="rgba(100,116,139,0.7)" fontSize="11" fontFamily="Inter, sans-serif">IT Department</text>
-                            <text x="52%" y="12%" fill="rgba(100,116,139,0.7)" fontSize="11" fontFamily="Inter, sans-serif">Conference Room A</text>
-                            <text x="7%" y="57%" fill="rgba(100,116,139,0.7)" fontSize="11" fontFamily="Inter, sans-serif">HR / Finance</text>
-                            <text x="52%" y="47%" fill="rgba(100,116,139,0.7)" fontSize="11" fontFamily="Inter, sans-serif">Operations</text>
-                        </svg>
-
-                        {/* Printer Pins */}
-                        {printers.map((printer) => (
-                            <div
-                                key={printer.id}
-                                className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-125"
-                                style={{ left: `${printer.x}%`, top: `${printer.y}%` }}
-                                onMouseMove={(e) => handleMouseMove(e, printer)}
-                            >
-                                <div className="relative">
-                                    {/* Pulse ring for online printers */}
-                                    {printer.status === 'ONLINE' && (
-                                        <span className="absolute inset-0 rounded-full animate-ping opacity-60"
-                                            style={{ background: STATUS_COLOR[printer.status] }}></span>
-                                    )}
-                                    <div
-                                        className="relative w-5 h-5 rounded-full border-2 border-white shadow-lg"
-                                        style={{ background: STATUS_COLOR[printer.status] || '#94a3b8' }}
-                                    />
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Sidebar */}
+                <div className="lg:col-span-1 space-y-4">
+                    <Card>
+                        <CardHeader className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                            <CardTitle className="text-sm">เพิ่มปริ้นเตอร์ลงในแปลน</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                            {isAddingPin ? (
+                                <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 p-4 rounded-lg text-sm flex flex-col space-y-3">
+                                    <p>คลิกที่แผนผังอาคารเพื่อวางหมุดปริ้นเตอร์: <strong>{printers.find(p => p.id === selectedPrinterToAdd)?.hostname}</strong></p>
+                                    <Button onClick={() => setIsAddingPin(false)} variant="outline" className="w-full bg-white text-gray-700">ยกเลิก</Button>
                                 </div>
-                            </div>
-                        ))}
+                            ) : (
+                                <div className="space-y-3">
+                                    <select 
+                                        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm"
+                                        value={selectedPrinterToAdd || ''}
+                                        onChange={(e) => setSelectedPrinterToAdd(parseInt(e.target.value))}
+                                    >
+                                        <option value="">-- เลือกปริ้นเตอร์ --</option>
+                                        {printers.map(p => {
+                                            const isPinned = pins.some(pin => pin.printer_id === p.id);
+                                            return (
+                                                <option key={p.id} value={p.id} disabled={isPinned}>
+                                                    {p.hostname || p.ip_address} {isPinned ? '(Pinned)' : ''}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                    <Button 
+                                        onClick={() => setIsAddingPin(true)} 
+                                        disabled={!selectedPrinterToAdd}
+                                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center space-x-2"
+                                    >
+                                        <PrinterIcon size={16} />
+                                        <span>เตรียมวางหมุด</span>
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
-                        {/* Tooltip */}
-                        {hovered && (
-                            <div
-                                className="absolute z-10 bg-gray-900 text-white rounded-lg p-3 text-sm shadow-xl pointer-events-none"
-                                style={{ left: tooltip.x, top: tooltip.y, maxWidth: 200 }}
+                    <Card>
+                        <CardHeader className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                            <CardTitle className="text-sm">ปริ้นเตอร์ในชั้นนี้ ({pins.length})</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="divide-y divide-gray-100 dark:divide-gray-800 max-h-[400px] overflow-y-auto">
+                                {pins.map(pin => (
+                                    <div key={pin.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 flex justify-between items-center group">
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`w-3 h-3 rounded-full shadow-sm ${
+                                                pin.printer?.status === 'ONLINE' ? 'bg-emerald-500' :
+                                                pin.printer?.status === 'WARNING' ? 'bg-amber-500' :
+                                                'bg-red-500'
+                                            }`} />
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                                                {pin.printer?.hostname || pin.printer?.ip_address}
+                                            </span>
+                                        </div>
+                                        <button 
+                                            onClick={(e) => pin.id && handleDeletePin(e, pin.id)}
+                                            className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {pins.length === 0 && (
+                                    <div className="p-8 text-center text-sm text-gray-500">ไม่มีปริ้นเตอร์บนแผนผังนี้</div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Map Area */}
+                <div className="lg:col-span-3">
+                    <Card className="h-[600px] overflow-hidden flex flex-col">
+                        {selectedMap ? (
+                            <div 
+                                className={`relative flex-1 bg-gray-100 dark:bg-gray-900 overflow-hidden ${isAddingPin ? 'cursor-crosshair' : ''}`}
+                                ref={mapContainerRef}
+                                onClick={handleMapClick}
                             >
-                                <p className="font-bold">{hovered.ip_address}</p>
-                                <p className="text-gray-300 text-xs">{hovered.model}</p>
-                                <p className="mt-1 flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full inline-block" style={{ background: STATUS_COLOR[hovered.status] }}></span>
-                                    {hovered.status}
-                                </p>
+                                <img 
+                                    src={`${apiUrl}${selectedMap.image_url}`} 
+                                    alt="Floor Map"
+                                    className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                                    crossOrigin="anonymous"
+                                />
+                                
+                                {/* Render Pins */}
+                                {pins.map(pin => (
+                                    <div 
+                                        key={pin.id}
+                                        className="absolute transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer"
+                                        style={{ left: `${pin.x_percent}%`, top: `${pin.y_percent}%` }}
+                                    >
+                                        <div className={`w-8 h-8 rounded-full shadow-lg border-2 border-white flex items-center justify-center transition-transform hover:scale-110 ${
+                                            pin.printer?.status === 'ONLINE' ? 'bg-emerald-500' :
+                                            pin.printer?.status === 'WARNING' ? 'bg-amber-500' :
+                                            'bg-red-500'
+                                        }`}>
+                                            <PrinterIcon size={16} className="text-white" />
+                                        </div>
+                                        
+                                        {/* Tooltip */}
+                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-xs rounded p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
+                                            <p className="font-bold border-b border-gray-700 pb-1 mb-1">{pin.printer?.hostname}</p>
+                                            <p>{pin.printer?.ip_address}</p>
+                                            <p className={`font-semibold mt-1 ${
+                                                pin.printer?.status === 'ONLINE' ? 'text-emerald-400' :
+                                                pin.printer?.status === 'WARNING' ? 'text-amber-400' :
+                                                'text-red-400'
+                                            }`}>Status: {pin.printer?.status}</p>
+                                            {pin.printer?.toner_level !== null && (
+                                                <p className="mt-1">Toner: {pin.printer?.toner_level}%</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center text-gray-500 space-y-4">
+                                <Map size={48} className="text-gray-300 dark:text-gray-600" />
+                                <p>ยังไม่มีแผนผังอาคาร. อัพโหลดรูปภาพแปลนเพื่อเริ่มต้น</p>
                             </div>
                         )}
-                    </div>
-                    <p className="text-xs text-gray-400 mt-3 text-center">
-                        Hover over a pin to see printer details. Pin positions can be adjusted from the Printers management page.
-                    </p>
-                </CardContent>
-            </Card>
+                    </Card>
+                </div>
+            </div>
         </div>
     );
 };

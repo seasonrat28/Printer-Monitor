@@ -3,63 +3,175 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.models.printer import Printer
-from app.models.monitoring import PrinterStatusHistory, PrinterSupplies, PrinterCounters
+from app.models.monitoring import PrinterStatusHistory, PrinterSupplies, PrinterCounters, PrinterSuppliesSnapshot
 from app.snmp.standard import StandardSNMPAdapter
+from app.scrapers.apeos import ApeosHTTPScraper
+from app.core.config import settings
 
 import aioping
+
+# -----------------------------------------------------------------------
+# Adapter factory – returns the right scraper for each printer
+# -----------------------------------------------------------------------
+
+APEOS_KEYWORDS = ("apeos", "fujifilm", "fuji xerox", "fuji-xerox", "fuji_xerox")
+
+def _is_apeos(printer: Printer) -> bool:
+    """Return True if this printer should use the Apeos HTTP scraper."""
+    if getattr(printer, "scraper_type", "snmp") == "http_apeos":
+        return True
+    # Auto-detect from model / manufacturer strings stored in DB
+    for field in (printer.model or "", printer.manufacturer or ""):
+        if any(kw in field.lower() for kw in APEOS_KEYWORDS):
+            return True
+    return False
+
+def get_adapter(printer: Printer):
+    """Return the correct scraper instance for a printer."""
+    if _is_apeos(printer):
+        # The SNMP community is often 'public', but Apeos web UI password is Admin@5218
+        pwd = "Admin@5218"
+        return ApeosHTTPScraper(
+            ip=printer.ip_address,
+            password=pwd,
+            timeout=8
+        )
+    return StandardSNMPAdapter(
+        ip=printer.ip_address,
+        community=printer.snmp_community or "public",
+        version=printer.snmp_version or "v2c",
+        timeout=8
+    )
+
+# -----------------------------------------------------------------------
 
 async def ping_printers():
     db: Session = SessionLocal()
     try:
         printers = db.query(Printer).all()
-        tasks = [_ping_single_printer(p, db) for p in printers]
-        await asyncio.gather(*tasks)
-        db.commit()
+        printer_data = [(p.id, p.ip_address, p.status) for p in printers]
     except Exception as e:
-        db.rollback()
-        print(f"Error pinging printers: {e}")
+        print(f"Error getting printers for ping: {e}")
+        return
     finally:
         db.close()
+    sem = asyncio.Semaphore(8)
+    async def bounded_ping(pid, ip, status):
+        async with sem:
+            await _ping_single_printer(pid, ip, status)
+            
+    tasks = [bounded_ping(pid, ip, status) for pid, ip, status in printer_data]
+    await asyncio.gather(*tasks)
 
-async def _ping_single_printer(printer: Printer, db: Session):
+async def _ping_single_printer(printer_id: int, ip_address: str, current_status: str):
+    new_status = current_status
+    last_seen = None
+    
     try:
-        delay = await aioping.ping(printer.ip_address, timeout=2.0)
-        # Check if previous status was OFFLINE, then it's ONLINE now
-        if printer.status == "OFFLINE" or printer.status == "UNKNOWN":
-            printer.status = "ONLINE"
-        printer.last_seen = datetime.utcnow()
+        delay = await aioping.ping(ip_address, timeout=2.0)
+        if current_status == "OFFLINE" or current_status == "UNKNOWN":
+            new_status = "ONLINE"
+        last_seen = datetime.utcnow()
     except TimeoutError:
-        printer.status = "OFFLINE"
+        new_status = "OFFLINE"
     except Exception as e:
         pass
+        
+    db = SessionLocal()
+    try:
+        printer = db.query(Printer).filter(Printer.id == printer_id).first()
+        if printer:
+            printer.status = new_status
+            if last_seen:
+                printer.last_seen = last_seen
+            db.commit()
+    except Exception as e:
+        db.rollback()
+    finally:
+        db.close()
 
 async def check_snmp_status():
     db: Session = SessionLocal()
     try:
         printers = db.query(Printer).filter(Printer.snmp_enabled == True).all()
-        tasks = []
-        for p in printers:
-            adapter = StandardSNMPAdapter(ip=p.ip_address, community=p.snmp_community, version=p.snmp_version)
-            tasks.append(_check_single_printer_status(p.id, adapter, db))
-        
-        await asyncio.gather(*tasks)
-        db.commit()
+        printer_configs = [(p.id, get_adapter(p)) for p in printers]
     except Exception as e:
-        db.rollback()
-        print(f"Error checking SNMP status: {e}")
+        print(f"Error checking status: {e}")
+        return
     finally:
         db.close()
 
+    sem = asyncio.Semaphore(8)
+    async def bounded_check(pid, adapter):
+        async with sem:
+            ip = getattr(adapter, 'ip', '?')
+            print(f"Checking status for IP: {ip}", flush=True)
+            try:
+                await _check_single_printer_status(pid, adapter)
+            finally:
+                adapter.close()
+
+    tasks = [bounded_check(pid, adapter) for pid, adapter in printer_configs]
+    await asyncio.gather(*tasks)
+
+async def sync_all_printers():
+    db: Session = SessionLocal()
+    try:
+        printers = db.query(Printer).filter(Printer.snmp_enabled == True).all()
+        printer_configs = [(p.id, get_adapter(p)) for p in printers]
+    except Exception as e:
+        print(f"Error checking status/supplies: {e}")
+        return
+    finally:
+        db.close()
+
+    sem = asyncio.Semaphore(8)
+    async def bounded_check(pid, adapter):
+        async with sem:
+            ip = getattr(adapter, 'ip', '?')
+            print(f"Syncing printer IP: {ip}", flush=True)
+            try:
+                await _check_single_printer_status(pid, adapter)
+                await _check_single_printer_supplies(pid, adapter)
+            finally:
+                adapter.close()
+
+    tasks = [bounded_check(pid, adapter) for pid, adapter in printer_configs]
+    await asyncio.gather(*tasks)
+
+    # WAL checkpoint after full sync to keep WAL file small
+    try:
+        db2: Session = SessionLocal()
+        from sqlalchemy import text
+        db2.execute(text("PRAGMA wal_checkpoint(TRUNCATE)"))
+        db2.close()
+    except Exception:
+        pass
+
 from app.alerts.engine import evaluate_status_alerts, evaluate_supply_alerts
 from app.websocket.manager import manager
+from app.services.notification import send_line_notify, send_email_notify, get_department_email
+import asyncio
 
-async def _check_single_printer_status(printer_id: int, adapter: StandardSNMPAdapter, db: Session):
-    status = await adapter.get_status()
-    printer = db.query(Printer).filter(Printer.id == printer_id).first()
-    if printer and status:
-        printer.status = status
-        printer.last_seen = datetime.utcnow()
-        
+async def _check_single_printer_status(printer_id: int, adapter: StandardSNMPAdapter):
+    status, status_message = await adapter.get_status()
+    db = SessionLocal()
+    try:
+        printer = db.query(Printer).filter(Printer.id == printer_id).first()
+        if printer and status:
+            prev_status = printer.status
+            printer.status = status
+            printer.status_message = status_message
+            printer.last_seen = datetime.utcnow()
+
+            # Trigger Notification on Status Change to OFFLINE
+            if prev_status != "OFFLINE" and status == "OFFLINE":
+                msg = f"🔴 PRINTER OFFLINE\nName: {printer.hostname or printer.ip_address}\nIP: {printer.ip_address}\nLocation: {printer.location or '-'}"
+                asyncio.create_task(send_line_notify(msg))
+                dept_email = get_department_email(printer.department)
+                if dept_email:
+                    send_email_notify(f"Printer Offline: {printer.ip_address}", msg, dept_email)
+
         # Fetch metadata if it's missing (happens on first run or DB reset)
         if not printer.hostname or not printer.location or not printer.serial_number:
             sys_info = await adapter.get_system_info()
@@ -81,67 +193,164 @@ async def _check_single_printer_status(printer_id: int, adapter: StandardSNMPAda
             "data": {
                 "printer_id": printer_id,
                 "status": status,
+                "status_message": status_message,
                 "hostname": printer.hostname,
                 "location": printer.location,
                 "serial_number": printer.serial_number,
                 "model": printer.model
             }
         })
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error processing single printer status: {e}")
+    finally:
+        db.close()
+
+from typing import List
+
+async def sync_specific_printers(printer_ids: List[int]):
+    db: Session = SessionLocal()
+    try:
+        printers = db.query(Printer).filter(Printer.id.in_(printer_ids)).all()
+        printer_adapters = [(p.id, get_adapter(p)) for p in printers]
+    except Exception as e:
+        print(f"Error getting configs for specific printers: {e}")
+        return
+    finally:
+        db.close()
+        
+    async def run_adapter(pid, adapter):
+        try:
+            await _check_single_printer_status(pid, adapter)
+            await _check_single_printer_supplies(pid, adapter)
+        finally:
+            adapter.close()
+
+    tasks = [run_adapter(pid, adapter) for pid, adapter in printer_adapters]
+    if tasks:
+        await asyncio.gather(*tasks)
+
 
 async def check_snmp_supplies():
     db: Session = SessionLocal()
     try:
         printers = db.query(Printer).filter(Printer.snmp_enabled == True).all()
-        tasks = []
-        for p in printers:
-            adapter = StandardSNMPAdapter(ip=p.ip_address, community=p.snmp_community, version=p.snmp_version)
-            tasks.append(_check_single_printer_supplies(p.id, adapter, db))
-        await asyncio.gather(*tasks)
-        db.commit()
+        printer_adapters = [(p.id, get_adapter(p)) for p in printers]
     except Exception as e:
-        db.rollback()
-        print(f"Error checking SNMP supplies: {e}")
+        print(f"Error checking supplies: {e}")
+        return
     finally:
         db.close()
+    sem = asyncio.Semaphore(8)
+    async def bounded_check(pid, adapter):
+        async with sem:
+            ip = getattr(adapter, 'ip', '?')
+            print(f"Checking supplies for IP: {ip}", flush=True)
+            try:
+                await _check_single_printer_supplies(pid, adapter)
+            finally:
+                adapter.close()
 
-async def _check_single_printer_supplies(printer_id: int, adapter: StandardSNMPAdapter, db: Session):
+    tasks = [bounded_check(pid, adapter) for pid, adapter in printer_adapters]
+    await asyncio.gather(*tasks)
+
+
+async def _check_single_printer_supplies(printer_id: int, adapter: StandardSNMPAdapter):
     supplies = await adapter.get_supplies()
     counters = await adapter.get_counters()
     sys_info = await adapter.get_system_info()
-    printer = db.query(Printer).filter(Printer.id == printer_id).first()
     
-    if printer:
-        if sys_info:
-            if sys_info.get("sysName"): printer.hostname = sys_info["sysName"]
-            if sys_info.get("sysLocation"): printer.location = sys_info["sysLocation"]
-            if sys_info.get("serialNumber"): printer.serial_number = sys_info["serialNumber"]
-            if sys_info.get("model"): printer.model = sys_info["model"]
+    db = SessionLocal()
+    try:
+        printer = db.query(Printer).filter(Printer.id == printer_id).first()
+        if printer:
+            if sys_info:
+                if sys_info.get("sysName"): printer.hostname = sys_info["sysName"]
+                if sys_info.get("sysLocation"): printer.location = sys_info["sysLocation"]
+                if sys_info.get("serialNumber"): printer.serial_number = sys_info["serialNumber"]
+                if sys_info.get("model"): printer.model = sys_info["model"]
 
-        if supplies.get("toner_level") is not None:
-            printer.toner_level = supplies["toner_level"]
-        if supplies.get("drum_level") is not None:
-            printer.drum_level = supplies["drum_level"]
+            if counters and counters.get("total_pages") is not None:
+                printer.page_count = counters["total_pages"]
+
+            if supplies.get("toner_level") is not None:
+                prev_toner = printer.toner_level
+                printer.toner_level = supplies["toner_level"]
+                
+                from app.alerts.engine import _create_or_update_alert, _resolve_alerts
+                
+                if printer.toner_level <= 10:
+                    # In-app alert
+                    msg_in_app = f"Toner is critically low ({printer.toner_level}%)"
+                    await _create_or_update_alert(db, printer.id, "SUPPLY", "CRITICAL", msg_in_app)
+                    
+                    # External notification (LINE/Email) only when it crosses the threshold
+                    if prev_toner is None or prev_toner > 10:
+                        msg = f"🟡 LOW TONER ALERT ({printer.toner_level}%)\nName: {printer.hostname or printer.ip_address}\nIP: {printer.ip_address}\nLocation: {printer.location or '-'}"
+                        asyncio.create_task(send_line_notify(msg))
+                        dept_email = get_department_email(printer.department)
+                        if dept_email:
+                            send_email_notify(f"Low Toner Alert: {printer.ip_address}", msg, dept_email)
+                else:
+                    await _resolve_alerts(db, printer.id, "SUPPLY")
+
+            if supplies.get("drum_level") is not None:
+                printer.drum_level = supplies["drum_level"]
+                
+            if supplies.get("fuser_level") is not None:
+                printer.fuser_level = supplies["fuser_level"]
+            if supplies.get("laser_unit_level") is not None:
+                printer.laser_unit_level = supplies["laser_unit_level"]
+            if supplies.get("pf_kit_mp_level") is not None:
+                printer.pf_kit_mp_level = supplies["pf_kit_mp_level"]
+            if supplies.get("pf_kit_1_level") is not None:
+                printer.pf_kit_1_level = supplies["pf_kit_1_level"]
+                
+            # Broadcast supply update directly
+            await manager.broadcast({
+                "type": "SUPPLY_UPDATE",
+                "data": {
+                    "printer_id": printer_id,
+                    "toner_level": printer.toner_level,
+                    "drum_level": printer.drum_level,
+                    "fuser_level": printer.fuser_level,
+                    "laser_unit_level": printer.laser_unit_level,
+                    "pf_kit_mp_level": printer.pf_kit_mp_level,
+                    "pf_kit_1_level": printer.pf_kit_1_level,
+                    "hostname": printer.hostname,
+                    "location": printer.location,
+                    "serial_number": printer.serial_number,
+                    "model": printer.model
+                }
+            })
+                
+        if counters and "total_pages" in counters:
+            new_counter = PrinterCounters(
+                printer_id=printer_id,
+                total_pages=counters["total_pages"]
+            )
+            db.add(new_counter)
+
+        # Save supplies snapshot for history charting
+        if supplies and any(supplies.get(k) is not None for k in ["toner_level", "drum_level"]):
+            snapshot = PrinterSuppliesSnapshot(
+                printer_id=printer_id,
+                toner_level=printer.toner_level,
+                drum_level=printer.drum_level,
+                fuser_level=printer.fuser_level,
+                laser_unit_level=printer.laser_unit_level,
+                pf_kit_mp_level=printer.pf_kit_mp_level,
+                pf_kit_1_level=printer.pf_kit_1_level,
+            )
+            db.add(snapshot)
             
-        # Broadcast supply update directly
-        await manager.broadcast({
-            "type": "SUPPLY_UPDATE",
-            "data": {
-                "printer_id": printer_id,
-                "toner_level": printer.toner_level,
-                "drum_level": printer.drum_level,
-                "hostname": printer.hostname,
-                "location": printer.location,
-                "serial_number": printer.serial_number,
-                "model": printer.model
-            }
-        })
-            
-    if counters and "total_pages" in counters:
-        new_counter = PrinterCounters(
-            printer_id=printer_id,
-            total_pages=counters["total_pages"]
-        )
-        db.add(new_counter)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error processing single printer supplies: {e}")
+    finally:
+        db.close()
 
 async def simulate_demo_printers():
     import random

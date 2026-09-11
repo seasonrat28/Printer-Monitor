@@ -39,10 +39,10 @@ export const LoginPage = () => {
 
       const data = await res.json();
       login(data.access_token, username, 'ADMIN'); // In real app, fetch me to get role
+      
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Login failed');
-    } finally {
       setLoading(false);
     }
   };

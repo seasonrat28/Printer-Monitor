@@ -39,3 +39,54 @@ def update_settings(
     settings_db = db.query(SystemSetting).all()
     result = {s.key: s.value for s in settings_db}
     return {"settings": result}
+
+from app.models.settings import BlacklistIP
+from pydantic import BaseModel
+from typing import List
+import datetime
+
+class BlacklistIPCreate(BaseModel):
+    ip_address: str
+
+class BlacklistIPResponse(BaseModel):
+    id: int
+    ip_address: str
+    created_at: str | None
+    
+    class Config:
+        orm_mode = True
+
+@router.get("/blacklist", response_model=List[BlacklistIPResponse])
+def get_blacklist(db: Session = Depends(get_db), current_user: User = Depends(verify_admin)):
+    return db.query(BlacklistIP).all()
+
+@router.post("/blacklist", response_model=BlacklistIPResponse)
+def add_blacklist(item: BlacklistIPCreate, db: Session = Depends(get_db), current_user: User = Depends(verify_admin)):
+    existing = db.query(BlacklistIP).filter(BlacklistIP.ip_address == item.ip_address).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="IP already in blacklist")
+        
+    new_ip = BlacklistIP(
+        ip_address=item.ip_address,
+        created_at=datetime.datetime.utcnow().isoformat()
+    )
+    db.add(new_ip)
+    db.commit()
+    db.refresh(new_ip)
+    return new_ip
+
+@router.delete("/blacklist/all")
+def clear_blacklist(db: Session = Depends(get_db), current_user: User = Depends(verify_admin)):
+    db.query(BlacklistIP).delete()
+    db.commit()
+    return {"status": "success", "message": "Cleared blacklist"}
+
+@router.delete("/blacklist/{ip_address}")
+def remove_blacklist(ip_address: str, db: Session = Depends(get_db), current_user: User = Depends(verify_admin)):
+    item = db.query(BlacklistIP).filter(BlacklistIP.ip_address == ip_address).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="IP not found in blacklist")
+        
+    db.delete(item)
+    db.commit()
+    return {"status": "success"}

@@ -22,42 +22,51 @@ router = APIRouter()
 # ─────────────────────────────────────────────
 @router.get("/stats")
 def get_stats(db: Session = Depends(deps.get_db)):
-    total_printers = db.query(func.count(Printer.id)).scalar()
+    from app.models.printer import Printer as PrinterModel
 
-    status_counts = (
-        db.query(Printer.status, func.count(Printer.id))
-        .group_by(Printer.status)
-        .all()
-    )
-    status_map = {s: c for s, c in status_counts}
+    # Load all printers once
+    printers = db.query(PrinterModel).all()
+    total_printers = len(printers)
+    status_map = {}
+    for p in printers:
+        status_map[p.status] = status_map.get(p.status, 0) + 1
 
     # Active alerts
-    active_alerts = db.query(func.count(Alert.id)).filter(Alert.is_resolved == False).scalar()
+    active_alerts   = db.query(func.count(Alert.id)).filter(Alert.is_resolved == False).scalar()
     critical_alerts = (
         db.query(func.count(Alert.id))
         .filter(Alert.is_resolved == False, Alert.severity == "CRITICAL")
         .scalar()
     )
 
-    # Total pages printed (sum of latest counters per printer)
-    total_pages = db.query(func.sum(PrinterCounters.total_pages)).scalar() or 0
+    # Total pages printed — latest counter per printer (same logic as dashboard)
+    subq = (
+        db.query(
+            PrinterCounters.printer_id,
+            func.max(PrinterCounters.measured_at).label("max_ts")
+        )
+        .group_by(PrinterCounters.printer_id)
+        .subquery()
+    )
+    latest_rows = (
+        db.query(PrinterCounters)
+        .join(subq, (PrinterCounters.printer_id == subq.c.printer_id) &
+                    (PrinterCounters.measured_at == subq.c.max_ts))
+        .all()
+    )
+    total_pages = sum(c.total_pages for c in latest_rows if c.total_pages is not None)
 
     # Average response time
     avg_response = db.query(func.avg(PrinterStatusHistory.response_time)).scalar()
 
-    # Printers with low toner (< 20%)
-    low_toner_count = 0
-    supplies = db.query(PrinterSupplies).filter(PrinterSupplies.supply_type == "toner").all()
-    for s in supplies:
-        if s.maximum and s.maximum > 0:
-            pct = (s.level / s.maximum) * 100
-            if pct < 20:
-                low_toner_count += 1
+    # Low toner — use toner_level column (consistent with dashboard)
+    low_toner_count = sum(1 for p in printers if p.toner_level is not None and p.toner_level <= 20)
 
     return {
         "total_printers": total_printers,
         "online": status_map.get("ONLINE", 0),
         "offline": status_map.get("OFFLINE", 0),
+        "warning": status_map.get("WARNING", 0),
         "error": status_map.get("ERROR", 0),
         "unknown": status_map.get("UNKNOWN", 0),
         "active_alerts": active_alerts,
@@ -67,6 +76,7 @@ def get_stats(db: Session = Depends(deps.get_db)):
         "low_toner_printers": low_toner_count,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
+
 
 # ─────────────────────────────────────────────
 # GET /reports/excel  — Full Excel Export
@@ -106,7 +116,7 @@ def export_excel(db: Session = Depends(deps.get_db)):
         supplies = db.query(PrinterSupplies).all()
         for s in supplies:
             printer = db.query(Printer).filter(Printer.id == s.printer_id).first()
-            pct = round((s.level / s.maximum) * 100, 1) if s.maximum and s.maximum > 0 else None
+            pct = round((s.level / s.maximum) * 100, 1) if s.level is not None and s.maximum and s.maximum > 0 else None
             supply_data.append({
                 "Printer IP": printer.ip_address if printer else "",
                 "Supply": s.name,

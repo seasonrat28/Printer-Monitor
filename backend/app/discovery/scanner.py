@@ -4,13 +4,16 @@ import aioping
 from typing import List, Dict, Any
 from app.snmp.standard import StandardSNMPAdapter
 
-async def scan_network(cidr: str, snmp_community: str = "public", snmp_version: str = "v2c") -> List[Dict[str, Any]]:
+async def scan_network(cidr: str, snmp_community: str = "public", snmp_version: str = "v2c", blacklist: List[str] = None) -> List[Dict[str, Any]]:
+    if blacklist is None:
+        blacklist = []
+        
     try:
         network = ipaddress.ip_network(cidr, strict=False)
     except ValueError as e:
         raise ValueError(f"Invalid CIDR format: {e}")
     
-    ips = [str(ip) for ip in network.hosts()]
+    ips = [str(ip) for ip in network.hosts() if str(ip) not in blacklist]
     
     # 1. Ping Sweep
     ping_tasks = [_ping_host(ip) for ip in ips]

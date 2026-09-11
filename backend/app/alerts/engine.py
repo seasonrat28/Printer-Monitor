@@ -22,7 +22,10 @@ async def evaluate_supply_alerts(db: Session, printer: Printer, supply: PrinterS
 async def evaluate_status_alerts(db: Session, printer: Printer):
     if printer.status in ["OFFLINE", "ERROR", "PAPER_JAM"]:
         severity = "CRITICAL" if printer.status == "OFFLINE" else "WARNING"
-        message = f"Printer is {printer.status}"
+        if printer.status == "OFFLINE":
+            message = "Attention (Offline)"
+        else:
+            message = f"Printer is {printer.status}"
         await _create_or_update_alert(db, printer.id, "STATUS", severity, message)
     else:
         await _resolve_alerts(db, printer.id, "STATUS")

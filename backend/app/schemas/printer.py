@@ -16,6 +16,12 @@ class PrinterBase(BaseModel):
     status: Optional[str] = "UNKNOWN"
     toner_level: Optional[int] = None
     drum_level: Optional[int] = None
+    fuser_level: Optional[int] = None
+    laser_unit_level: Optional[int] = None
+    pf_kit_mp_level: Optional[int] = None
+    pf_kit_1_level: Optional[int] = None
+    page_count: Optional[int] = None
+    is_favorite: Optional[bool] = False
     snmp_enabled: Optional[bool] = True
     snmp_version: Optional[str] = "v2c"
     snmp_community: Optional[str] = "public"

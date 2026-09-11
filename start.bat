@@ -14,4 +14,4 @@ if errorlevel 1 (
     echo Check logs\launcher.log
 )
 
-pause
+ping 127.0.0.1 -n 11 > nul

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.api.endpoints import printers, auth, discovery, ws, reports, groups, users, settings
+from app.api.endpoints import printers, auth, discovery, ws, reports, groups, users, settings, floormap, alerts, logs
 from app.api.deps import get_current_active_user
 
 api_router = APIRouter()
@@ -11,3 +11,6 @@ api_router.include_router(reports.router, prefix="/reports", tags=["reports"], d
 api_router.include_router(groups.router, prefix="/groups", tags=["groups"], dependencies=[Depends(get_current_active_user)])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
+api_router.include_router(floormap.router, prefix="/floormaps", tags=["floormaps"], dependencies=[Depends(get_current_active_user)])
+api_router.include_router(alerts.router, prefix="/alerts", tags=["alerts"], dependencies=[Depends(get_current_active_user)])
+api_router.include_router(logs.router, prefix="/logs", tags=["logs"], dependencies=[Depends(get_current_active_user)])

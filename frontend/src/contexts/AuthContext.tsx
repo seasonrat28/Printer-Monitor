@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { scheduleRefresh } from '../services/api';
 
 interface User {
   username: string;
@@ -26,13 +27,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userData = { username, role };
     setUser(userData);
     localStorage.setItem('token', newToken);
+    localStorage.setItem('access_token', newToken);
     localStorage.setItem('user', JSON.stringify(userData));
+    // Start auto-refresh schedule
+    scheduleRefresh(newToken);
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
     localStorage.removeItem('user');
   };
 

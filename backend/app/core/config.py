@@ -10,12 +10,12 @@ class Settings(BaseSettings):
     # JWT Auth
     SECRET_KEY: str = "supersecretkey-change-in-production"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 720  # 12 hours
     
     # Monitoring Intervals (Seconds)
     STATUS_INTERVAL: int = 30
-    SUPPLY_INTERVAL: int = 300
-    COUNTER_INTERVAL: int = 600
+    SUPPLY_INTERVAL: int = 120   # Every 2 minutes (was 5 min)
+    COUNTER_INTERVAL: int = 300
     
     # SNMP
     SNMP_TIMEOUT: int = 2
@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = ""
     SMTP_TO_EMAIL: str = ""
+
+    # Fujifilm Apeos HTTP Scraper
+    APEOS_PASSWORD: str = "Admin@5218"
+    APEOS_HTTP_TIMEOUT: int = 8
+
 
     class Config:
         env_file = ".env"

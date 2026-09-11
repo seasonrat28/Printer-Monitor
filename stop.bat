@@ -8,4 +8,4 @@ if exist "backend\venv\Scripts\python.exe" (
     python scripts\launcher.py stop
 )
 
-pause
+ping 127.0.0.1 -n 11 > nul

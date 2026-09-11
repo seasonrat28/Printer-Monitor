@@ -34,3 +34,17 @@ class PrinterCounters(Base):
     copy_pages = Column(Integer, nullable=True)
     scan_pages = Column(Integer, nullable=True)
     measured_at = Column(DateTime, default=datetime.utcnow)
+
+class PrinterSuppliesSnapshot(Base):
+    """Periodic snapshot of toner/drum/fuser levels for historical charting."""
+    __tablename__ = "printer_supplies_snapshots"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    printer_id = Column(Integer, ForeignKey("printers.id"), nullable=False)
+    toner_level = Column(Integer, nullable=True)
+    drum_level = Column(Integer, nullable=True)
+    fuser_level = Column(Integer, nullable=True)
+    laser_unit_level = Column(Integer, nullable=True)
+    pf_kit_mp_level = Column(Integer, nullable=True)
+    pf_kit_1_level = Column(Integer, nullable=True)
+    measured_at = Column(DateTime, default=datetime.utcnow)
