@@ -1,4 +1,7 @@
 import asyncio
+
+_sync_lock = asyncio.Lock()
+import ipaddress
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
@@ -16,8 +19,17 @@ import aioping
 
 APEOS_KEYWORDS = ("apeos", "fujifilm", "fuji xerox", "fuji-xerox", "fuji_xerox")
 
+def _is_known_apeos_ip(ip: str) -> bool:
+    try:
+        address = ipaddress.ip_address(ip)
+        return address == ipaddress.ip_address("10.199.18.211") or ipaddress.ip_address("10.119.34.20") <= address <= ipaddress.ip_address("10.119.34.175")
+    except ValueError:
+        return False
+
 def _is_apeos(printer: Printer) -> bool:
     """Return True if this printer should use the Apeos HTTP scraper."""
+    if _is_known_apeos_ip(printer.ip_address):
+        return True
     if getattr(printer, "scraper_type", "snmp") == "http_apeos":
         return True
     # Auto-detect from model / manufacturer strings stored in DB
@@ -29,8 +41,7 @@ def _is_apeos(printer: Printer) -> bool:
 def get_adapter(printer: Printer):
     """Return the correct scraper instance for a printer."""
     if _is_apeos(printer):
-        # The SNMP community is often 'public', but Apeos web UI password is Admin@5218
-        pwd = "Admin@5218"
+        pwd = settings.APEOS_PASSWORD
         return ApeosHTTPScraper(
             ip=printer.ip_address,
             password=pwd,
@@ -114,7 +125,7 @@ async def check_snmp_status():
     tasks = [bounded_check(pid, adapter) for pid, adapter in printer_configs]
     await asyncio.gather(*tasks)
 
-async def sync_all_printers():
+async def _sync_all_printers_unlocked():
     db: Session = SessionLocal()
     try:
         printers = db.query(Printer).filter(Printer.snmp_enabled == True).all()
@@ -148,6 +159,11 @@ async def sync_all_printers():
     except Exception:
         pass
 
+async def sync_all_printers():
+    """Run one full sync at a time to protect SQLite and reduce duplicate work."""
+    async with _sync_lock:
+        await _sync_all_printers_unlocked()
+
 from app.alerts.engine import evaluate_status_alerts, evaluate_supply_alerts
 from app.websocket.manager import manager
 from app.services.notification import send_line_notify, send_email_notify, get_department_email
@@ -159,24 +175,22 @@ async def _check_single_printer_status(printer_id: int, adapter: StandardSNMPAda
     try:
         printer = db.query(Printer).filter(Printer.id == printer_id).first()
         if printer and status:
-            prev_status = printer.status
             printer.status = status
             printer.status_message = status_message
             printer.last_seen = datetime.utcnow()
 
-            # Trigger Notification on Status Change to OFFLINE
-            if prev_status != "OFFLINE" and status == "OFFLINE":
-                msg = f"🔴 PRINTER OFFLINE\nName: {printer.hostname or printer.ip_address}\nIP: {printer.ip_address}\nLocation: {printer.location or '-'}"
-                asyncio.create_task(send_line_notify(msg))
-                dept_email = get_department_email(printer.department)
-                if dept_email:
-                    send_email_notify(f"Printer Offline: {printer.ip_address}", msg, dept_email)
-
-        # Fetch metadata if it's missing (happens on first run or DB reset)
-        if not printer.hostname or not printer.location or not printer.serial_number:
+        # Fetch metadata if it's missing (happens on first run or DB reset) or if hostname is a default Fuji model name
+        metadata_has_markup = any(
+            "<" in (value or "") or ">" in (value or "")
+            for value in (printer.hostname, printer.location, printer.serial_number, printer.model)
+        )
+        is_fuji_default_name = bool(printer.hostname and "FUJIFILM Apeos" in printer.hostname)
+        if not printer.hostname or is_fuji_default_name or not printer.location or not printer.serial_number or metadata_has_markup:
             sys_info = await adapter.get_system_info()
             if sys_info:
-                if sys_info.get("sysName"): printer.hostname = sys_info["sysName"]
+                if sys_info.get("sysName") or is_fuji_default_name: 
+                    # If we have a new name, or if we need to clear the bad Fuji name
+                    printer.hostname = sys_info.get("sysName")
                 if sys_info.get("sysLocation"): printer.location = sys_info["sysLocation"]
                 if sys_info.get("serialNumber"): printer.serial_number = sys_info["serialNumber"]
                 if sys_info.get("model"): printer.model = sys_info["model"]

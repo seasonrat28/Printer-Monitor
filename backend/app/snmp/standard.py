@@ -5,6 +5,14 @@ from pysnmp.hlapi.asyncio import *
 from app.snmp.base import SNMPAdapter
 
 class StandardSNMPAdapter(SNMPAdapter):
+    SYSTEM_OIDS = {
+        "description": "1.3.6.1.2.1.1.1.0",
+        "name": "1.3.6.1.2.1.1.5.0",
+        "location": "1.3.6.1.2.1.1.6.0",
+        "serial": "1.3.6.1.2.1.43.5.1.1.17.1",
+        "model": "1.3.6.1.2.1.43.5.1.1.16.1",
+    }
+
     def __init__(self, ip: str, community: str = "public", version: str = "v2c", timeout: int = 2, retries: int = 1):
         super().__init__(ip, community, version)
         self.timeout = timeout
@@ -16,33 +24,31 @@ class StandardSNMPAdapter(SNMPAdapter):
             self.snmp_engine.transportDispatcher.closeDispatcher()
 
     async def _get_oid(self, oid: str) -> Optional[str]:
-        errorIndication, errorStatus, errorIndex, varBinds = await get_cmd(
-            self.snmp_engine,
-            CommunityData(self.community, mpModel=1 if self.version == "v2c" else 0),
-            await UdpTransportTarget.create((self.ip, 161)),
-            ContextData(),
-            ObjectType(ObjectIdentity(oid))
-        )
-        if errorIndication or errorStatus:
+        try:
+            errorIndication, errorStatus, errorIndex, varBinds = await get_cmd(
+                self.snmp_engine,
+                CommunityData(self.community, mpModel=1 if self.version == "v2c" else 0),
+                await UdpTransportTarget.create((self.ip, 161), timeout=self.timeout, retries=self.retries),
+                ContextData(),
+                ObjectType(ObjectIdentity(oid))
+            )
+        except (OSError, TimeoutError, asyncio.TimeoutError):
+            return None
+        except Exception:
+            return None
+        if errorIndication or errorStatus or not varBinds:
             return None
         return str(varBinds[0][1])
 
     async def get_system_info(self) -> Dict[str, Any]:
-        # sysDescr, sysName, sysLocation, prtGeneralSerialNumber, prtGeneralPrinterName
-        sysDescr = await self._get_oid("1.3.6.1.2.1.1.1.0")
-        sysName = await self._get_oid("1.3.6.1.2.1.1.5.0")
-        sysLocation = await self._get_oid("1.3.6.1.2.1.1.6.0")
-        
-        # Try to get serial number and model from prtGeneral
-        serial_number = await self._get_oid("1.3.6.1.2.1.43.5.1.1.17.1")
-        model = await self._get_oid("1.3.6.1.2.1.43.5.1.1.16.1")
+        values = {name: await self._get_oid(oid) for name, oid in self.SYSTEM_OIDS.items()}
         
         return {
-            "sysDescr": sysDescr,
-            "sysName": sysName,
-            "sysLocation": sysLocation,
-            "serialNumber": serial_number,
-            "model": model
+            "sysDescr": values["description"],
+            "sysName": values["name"],
+            "sysLocation": values["location"],
+            "serialNumber": values["serial"],
+            "model": values["model"]
         }
 
     async def get_status(self) -> tuple[str, Optional[str]]:
@@ -92,7 +98,9 @@ class StandardSNMPAdapter(SNMPAdapter):
                 errorIndication, errorStatus, errorIndex, varBinds = await next_cmd(
                     self.snmp_engine,
                     CommunityData(self.community, mpModel=1 if self.version == "v2c" else 0),
-                    await UdpTransportTarget.create((self.ip, 161)),
+                    await UdpTransportTarget.create(
+                        (self.ip, 161), timeout=self.timeout, retries=self.retries
+                    ),
                     ContextData(),
                     current_oid
                 )
@@ -125,6 +133,11 @@ class StandardSNMPAdapter(SNMPAdapter):
             max_caps = await self._walk_oid("1.3.6.1.2.1.43.11.1.1.8")
             levels = await self._walk_oid("1.3.6.1.2.1.43.11.1.1.9")
 
+            # Some HP, Canon, Brother, and Fuji Xerox firmware exposes levels
+            # but omits descriptions. Keep a generic fallback instead of failing.
+            if not descriptions:
+                descriptions = {idx: f"Generic supply {idx}" for idx in levels}
+
             toner_level = None
             drum_level = None
             fuser_level = None
@@ -133,7 +146,7 @@ class StandardSNMPAdapter(SNMPAdapter):
             pf_kit_1_level = None
 
             for idx, desc in descriptions.items():
-                desc_lower = desc.lower()
+                desc_lower = " ".join(desc.lower().replace("_", " ").split())
                 
                 # Skip waste containers
                 if "waste" in desc_lower or "receptacle" in desc_lower or "collection" in desc_lower:
@@ -141,40 +154,66 @@ class StandardSNMPAdapter(SNMPAdapter):
                     
                 try:
                     level = int(levels.get(idx, -1))
-                    max_cap = int(max_caps.get(idx, 1))
-                    
-                    if max_cap <= 0:
-                        continue
-                        
-                    percentage_exact = (level / max_cap) * 100
-                    percentage = round(percentage_exact)
+                    raw_max_cap = max_caps.get(idx)
+                    max_cap = int(raw_max_cap) if raw_max_cap is not None else 0
+
+                    # RFC 3805 uses -3 for "at least 100%" on some devices.
                     if level == -3:
-                        percentage = 100
-                    elif level < 0:
+                        percentage_exact = 100
+                    # Some HP/Canon/Brother devices expose a percentage level
+                    # but omit prtMarkerSuppliesMaxCapacity.
+                    elif max_cap <= 0 and 0 <= level <= 100:
+                        percentage_exact = level
+                    elif max_cap > 0:
+                        percentage_exact = (level / max_cap) * 100
+                    else:
+                        continue
+
+                    percentage = round(percentage_exact)
+                    if level < 0 and level != -3:
                         continue
                     
                     import math
-                    if "drum" in desc_lower or "photoconductor" in desc_lower or "imaging" in desc_lower:
+                    if any(term in desc_lower for term in (
+                        "drum", "photoconductor", "image drum", "imaging unit", "opc unit"
+                    )):
                         if drum_level is None:
                             drum_level = math.ceil(percentage_exact) if is_fuji else percentage
 
-                    elif "toner" in desc_lower or "cartridge" in desc_lower or "black" in desc_lower or "cyan" in desc_lower or "magenta" in desc_lower or "yellow" in desc_lower:
+                    elif any(term in desc_lower for term in (
+                        "toner", "cartridge", "black", "cyan", "magenta", "yellow"
+                    )):
                         if toner_level is None:
                             toner_level = math.ceil(percentage_exact / 10.0) * 10 if is_fuji else percentage
 
-                    elif "fuser" in desc_lower:
+                    elif any(term in desc_lower for term in (
+                        "fuser", "fixing unit", "fixing assembly", "fixing roller", "heater unit"
+                    )):
                         if fuser_level is None:
                             fuser_level = percentage
 
-                    elif "laser" in desc_lower:
+                    elif any(term in desc_lower for term in (
+                        "laser", "laser unit", "laser scanner", "scanner unit", "write unit"
+                    )):
                         if laser_unit_level is None:
                             laser_unit_level = percentage
 
-                    elif ("paper feed" in desc_lower or "pf kit" in desc_lower or "paper feeding" in desc_lower or "feed kit" in desc_lower):
-                        # Distinguish MP tray vs Tray 1
+                    elif any(term in desc_lower for term in (
+                        "paper feed", "paper feeding", "feed kit", "paper feed kit",
+                        "paper pickup", "pickup roller", "feed roller", "pf kit",
+                        "maintenance kit", "pf 1", "pf 2", "tray 1", "tray 2"
+                    )):
+                        # Distinguish MP tray vs Tray 1 / Tray 2 variants.
                         if "mp" in desc_lower or "multi" in desc_lower or "bypass" in desc_lower:
                             if pf_kit_mp_level is None:
                                 pf_kit_mp_level = percentage
+                        elif any(marker in desc_lower for marker in ("pf kit 1", "pf 1", "tray 1", "paper feed kit 1", "paper feeding kit 1")):
+                            if pf_kit_1_level is None:
+                                pf_kit_1_level = percentage
+                        elif any(marker in desc_lower for marker in ("pf kit 2", "pf 2", "tray 2", "paper feed kit 2", "paper feeding kit 2")):
+                            # Some models expose PF Kit 2 as the tray-1 maintenance kit; keep it in the Tray 1 slot
+                            if pf_kit_1_level is None:
+                                pf_kit_1_level = percentage
                         elif pf_kit_1_level is None:
                             pf_kit_1_level = percentage
 
@@ -198,7 +237,10 @@ class StandardSNMPAdapter(SNMPAdapter):
 
     async def get_counters(self) -> Dict[str, Any]:
         # prtMarkerLifeCount (1.3.6.1.2.1.43.10.2.1.4.1.1)
-        pages = await self._get_oid("1.3.6.1.2.1.43.10.2.1.4.1.1")
+        try:
+            pages = await self._get_oid("1.3.6.1.2.1.43.10.2.1.4.1.1")
+        except Exception:
+            pages = None
         return {
             "total_pages": int(pages) if pages and pages.isdigit() else 0
         }

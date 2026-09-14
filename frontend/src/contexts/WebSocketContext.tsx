@@ -38,15 +38,15 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
 
             // Null out handlers on the old socket so its onclose doesn't fire a reconnect
             if (wsRef.current) {
-                wsRef.current.onopen = null;
-                wsRef.current.onclose = null;
-                wsRef.current.onerror = null;
-                wsRef.current.onmessage = null;
-                if (
-                    wsRef.current.readyState === WebSocket.OPEN ||
-                    wsRef.current.readyState === WebSocket.CONNECTING
-                ) {
-                    wsRef.current.close(1000, 'reconnect');
+                const oldSocket = wsRef.current;
+                oldSocket.onclose = null;
+                oldSocket.onerror = null;
+                oldSocket.onmessage = null;
+                if (oldSocket.readyState === WebSocket.OPEN) {
+                    oldSocket.onopen = null;
+                    oldSocket.close(1000, 'reconnect');
+                } else if (oldSocket.readyState === WebSocket.CONNECTING) {
+                    oldSocket.onopen = () => oldSocket.close(1000, 'reconnect');
                 }
                 wsRef.current = null;
             }
@@ -116,11 +116,18 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
                 reconnectTimerRef.current = null;
             }
             if (wsRef.current) {
-                wsRef.current.onopen = null;
-                wsRef.current.onclose = null;
-                wsRef.current.onerror = null;
-                wsRef.current.onmessage = null;
-                wsRef.current.close(1000, 'unmount');
+                const socket = wsRef.current;
+                socket.onclose = null;
+                socket.onerror = null;
+                socket.onmessage = null;
+                // Closing a CONNECTING socket produces a browser error even
+                // when the close is intentional, especially in Strict Mode.
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.onopen = null;
+                    socket.close(1000, 'unmount');
+                } else if (socket.readyState === WebSocket.CONNECTING) {
+                    socket.onopen = () => socket.close(1000, 'unmount');
+                }
                 wsRef.current = null;
             }
         };

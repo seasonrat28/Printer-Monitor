@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Map, Upload, Trash2, Printer as PrinterIcon, Check, X } from 'lucide-react';
+import { Map, Upload, Trash2, Printer as PrinterIcon, Check, X, Edit2, Search } from 'lucide-react';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 
@@ -31,6 +31,7 @@ export const FloorMapPage = () => {
     
     const [isAddingPin, setIsAddingPin] = useState(false);
     const [selectedPrinterToAdd, setSelectedPrinterToAdd] = useState<number | null>(null);
+    const [printerSearch, setPrinterSearch] = useState('');
 
     const mapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -133,6 +134,41 @@ export const FloorMapPage = () => {
         }
     };
 
+    const handleEditMapName = async () => {
+        if (!selectedMap) return;
+        
+        const newName = prompt("แก้ไขชื่อแปลนอาคาร:", selectedMap.name);
+        if (!newName || newName === selectedMap.name) return;
+
+        try {
+            const res = await api.put(`/floormaps/${selectedMap.id}`, { name: newName });
+            
+            const updatedMaps = maps.map(m => m.id === selectedMap.id ? res.data : m);
+            setMaps(updatedMaps);
+            setSelectedMap(res.data);
+            addToast('success', 'Success', 'Map renamed successfully');
+        } catch (err) {
+            addToast('error', 'Error', 'Failed to rename map');
+        }
+    };
+
+    const handleDeleteMap = async () => {
+        if (!selectedMap) return;
+        
+        if (!window.confirm(`คุณต้องการลบแปลน "${selectedMap.name}" ใช่หรือไม่?`)) return;
+
+        try {
+            await api.delete(`/floormaps/${selectedMap.id}`);
+            
+            const updatedMaps = maps.filter(m => m.id !== selectedMap.id);
+            setMaps(updatedMaps);
+            setSelectedMap(updatedMaps.length > 0 ? updatedMaps[0] : null);
+            addToast('success', 'Success', 'Map deleted successfully');
+        } catch (err) {
+            addToast('error', 'Error', 'Failed to delete map');
+        }
+    };
+
     if (loading) return (
         <div className="flex items-center justify-center h-full">
             <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
@@ -160,7 +196,30 @@ export const FloorMapPage = () => {
                         ))}
                     </select>
 
-                    <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md flex items-center space-x-2 transition-colors">
+                    {selectedMap && (
+                        <div className="flex items-center space-x-2">
+                            <Button 
+                                onClick={handleEditMapName}
+                                variant="outline" 
+                                size="icon"
+                                className="h-10 w-10 text-gray-500 hover:text-indigo-600"
+                                title="เปลี่ยนชื่อแปลน"
+                            >
+                                <Edit2 size={18} />
+                            </Button>
+                            <Button 
+                                onClick={handleDeleteMap}
+                                variant="outline" 
+                                size="icon"
+                                className="h-10 w-10 text-gray-500 hover:text-red-600"
+                                title="ลบแปลน"
+                            >
+                                <Trash2 size={18} />
+                            </Button>
+                        </div>
+                    )}
+
+                    <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md flex items-center space-x-2 transition-colors h-10">
                         <Upload size={18} />
                         <span>Upload Map</span>
                         <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={handleUploadMap} />
@@ -183,13 +242,30 @@ export const FloorMapPage = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-3">
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <Search className="h-4 w-4 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 pl-9 pr-3 text-sm focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                                            placeholder="ค้นหาปริ้นเตอร์..."
+                                            value={printerSearch}
+                                            onChange={(e) => setPrinterSearch(e.target.value)}
+                                        />
+                                    </div>
                                     <select 
                                         className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm"
                                         value={selectedPrinterToAdd || ''}
                                         onChange={(e) => setSelectedPrinterToAdd(parseInt(e.target.value))}
                                     >
                                         <option value="">-- เลือกปริ้นเตอร์ --</option>
-                                        {printers.map(p => {
+                                        {printers.filter(p => {
+                                            const search = printerSearch.toLowerCase();
+                                            const hn = p.hostname || '';
+                                            const ip = p.ip_address || '';
+                                            return hn.toLowerCase().includes(search) || ip.toLowerCase().includes(search);
+                                        }).map(p => {
                                             const isPinned = pins.some(pin => pin.printer_id === p.id);
                                             return (
                                                 <option key={p.id} value={p.id} disabled={isPinned}>

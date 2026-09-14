@@ -12,6 +12,13 @@ import type { Printer } from '../types';
 let isInitialSyncDone = false;
 let cachedPrinters: Printer[] = [];
 let cachedSummary: any = null;
+const COLOR_PRINTER_IPS = new Set(['10.119.43.199']);
+
+const isColorPrinter = (printer: Printer) => {
+    if (COLOR_PRINTER_IPS.has(printer.ip_address)) return true;
+    const identity = `${printer.manufacturer || ''} ${printer.model || ''}`.toLowerCase();
+    return /\b(color|colour|cmyk|cyan|magenta|bizhub c|imagepress|workcentre.*c|versalink c|docucentre.*c|apeosport.*c)\b/i.test(identity);
+};
 
 const PrintersList = () => {
     const [printers, setPrinters] = useState<Printer[]>(cachedPrinters);
@@ -29,6 +36,7 @@ const PrintersList = () => {
     const [supplyFilter, setSupplyFilter] = useState('ALL');
     const [departmentFilter, setDepartmentFilter] = useState('ALL');
     const [sortBy, setSortBy] = useState('ip_asc');
+    const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
     const [isSmartFilterOpen, setIsSmartFilterOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
@@ -482,6 +490,10 @@ const PrintersList = () => {
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold tracking-tight">Printers Directory</h2>
                 <div className="flex space-x-3">
+                    <div className="flex items-center rounded-md border border-slate-300 bg-white p-1 dark:border-slate-600 dark:bg-[#1e1e1e]" aria-label="View mode">
+                        <button onClick={() => setViewMode('cards')} className={`rounded px-3 py-1.5 text-xs font-medium ${viewMode === 'cards' ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : 'text-slate-600 dark:text-slate-300'}`}>Cards</button>
+                        <button onClick={() => setViewMode('table')} className={`rounded px-3 py-1.5 text-xs font-medium ${viewMode === 'table' ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : 'text-slate-600 dark:text-slate-300'}`}>Table</button>
+                    </div>
                     <button
                         onClick={handleRefresh}
                         className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm"
@@ -659,10 +671,8 @@ const PrintersList = () => {
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">ไม่พบเครื่องปริ้นเตอร์</h3>
                     <p className="text-gray-500 dark:text-gray-400">ลองเปลี่ยนคำค้นหา หรือเพิ่มเครื่องปริ้นใหม่</p>
                 </div>
-            ) : (
-                <div
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
-                >
+            ) : viewMode === 'cards' ? (
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {filteredPrinters.map(printer => (
                         <PrinterCard
                             key={printer.id}
@@ -673,7 +683,71 @@ const PrintersList = () => {
                         />
                     ))}
                 </div>
+            ) : (
+                <div className="overflow-x-auto rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#1e1e1e]">
+                    <table className="min-w-245 w-full text-left text-sm">
+                        <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-[#121212] dark:text-slate-400">
+                            <tr>
+                                <th className="px-3 py-2 font-semibold">Printer</th>
+                                <th className="px-3 py-2 font-semibold">Status</th>
+                                <th className="px-3 py-2 font-semibold">Location</th>
+                                <th className="w-72 px-3 py-2 font-semibold">Supplies</th>
+                                <th className="px-3 py-2 font-semibold">Last seen</th>
+                                <th className="px-3 py-2 text-right font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {filteredPrinters.map(printer => {
+                                const colorPrinter = isColorPrinter(printer);
+                                const supplies = colorPrinter
+                                    ? [['K', printer.toner_black_level ?? printer.toner_level, 'bg-slate-700'], ['C', printer.toner_cyan_level, 'bg-cyan-600'], ['M', printer.toner_magenta_level, 'bg-rose-600'], ['Y', printer.toner_yellow_level, 'bg-amber-500']] as const
+                                    : [['Toner', printer.toner_level, 'bg-slate-700'], ['Drum', printer.drum_level, 'bg-amber-500']] as const;
+                                const statusClass = printer.status === 'ONLINE'
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                    : printer.status === 'OFFLINE'
+                                        ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                        : 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300';
+                                return (
+                                    <tr key={printer.id} className="hover:bg-slate-50 dark:hover:bg-[#242424]">
+                                        <td className="px-3 py-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`h-2 w-2 rounded-full ${printer.status === 'ONLINE' ? 'bg-emerald-500' : printer.status === 'OFFLINE' ? 'bg-slate-400' : 'bg-orange-500'}`} />
+                                                <div className="min-w-0">
+                                                    <div className="truncate font-medium text-slate-900 dark:text-slate-100">{printer.hostname || printer.ip_address}</div>
+                                                    <div className="text-xs text-slate-500">{printer.ip_address} {printer.serial_number ? `| ${printer.serial_number}` : ''}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-2"><span className={`inline-flex rounded px-2 py-1 text-[11px] font-semibold ${statusClass}`}>{printer.status || 'UNKNOWN'}</span></td>
+                                        <td className="max-w-40 truncate px-3 py-2 text-slate-600 dark:text-slate-300">{printer.location || '-'}</td>
+                                        <td className="px-3 py-2">
+                                            <div className="space-y-1">
+                                                {supplies.map(([label, level, color]) => (
+                                                    <div key={label} className="flex items-center gap-2">
+                                                        <span className="w-10 shrink-0 truncate text-[10px] font-semibold text-slate-500">{label}</span>
+                                                        <div className="h-1.5 flex-1 bg-slate-200 dark:bg-slate-700"><div className={`h-full ${color}`} style={{ width: `${Math.max(0, Math.min(100, level ?? 0))}%` }} /></div>
+                                                        <span className="w-8 text-right text-[10px] text-slate-500">{level ?? '-'}%</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-2 text-xs text-slate-500">{printer.last_seen ? new Date(printer.last_seen.endsWith('Z') ? printer.last_seen : printer.last_seen + 'Z').toLocaleString('en-GB') : 'Never'}</td>
+                                        <td className="px-3 py-2 text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <button onClick={(e) => toggleFavorite(printer, e)} className="rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300" title="Toggle favorite">{printer.is_favorite ? '★' : '☆'}</button>
+                                                <button onClick={() => openHistory(printer)} className="rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300">History</button>
+                                                <button onClick={() => handleDelete(printer.id)} className="rounded border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300">Delete</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             )}
+
+
 
             {isAddModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 dark:bg-black/70 transition-opacity">
@@ -822,8 +896,8 @@ const PrintersList = () => {
 
             {/* History Modal */}
             {isHistoryModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/75 transition-opacity backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-4xl border border-gray-200 dark:border-gray-700 flex flex-col h-[80vh]">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/75 transition-opacity">
+                    <div className="bg-white dark:bg-gray-800 rounded-md text-left overflow-hidden shadow-md transform transition-all w-full max-w-4xl border border-gray-200 dark:border-gray-700 flex flex-col h-[80vh]">
 
                         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
                             <div>
@@ -902,8 +976,8 @@ const PrintersList = () => {
 
             {/* Smart Filter Modal */}
             {isSmartFilterOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/75 transition-opacity backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-2xl border border-gray-300 dark:border-gray-600">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/75 transition-opacity">
+                    <div className="bg-white dark:bg-gray-800 rounded-md text-left overflow-hidden shadow-md transform transition-all w-full max-w-2xl border border-gray-300 dark:border-gray-600">
                         <div className="flex justify-between items-center px-4 py-3 bg-gray-50 border-b border-gray-200">
                             <h3 className="text-sm font-bold text-gray-700" id="modal-title">
                                 New smart filter
@@ -1022,8 +1096,8 @@ const PrintersList = () => {
             />
             {/* History Modal */}
             {isHistoryModalOpen && selectedPrinterHistory && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/75 transition-opacity backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-4xl border border-gray-300 dark:border-gray-600 flex flex-col max-h-[90vh]">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/75 transition-opacity">
+                    <div className="bg-white dark:bg-gray-800 rounded-md text-left overflow-hidden shadow-md transform transition-all w-full max-w-4xl border border-gray-300 dark:border-gray-600 flex flex-col max-h-[90vh]">
                         <div className="flex justify-between items-center px-6 py-4 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700">
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">

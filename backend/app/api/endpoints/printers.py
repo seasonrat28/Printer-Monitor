@@ -19,6 +19,7 @@ from app.models.floormap import PrinterPin
 from app.models.group import printer_group_association
 from app.models.monitoring import PrinterCounters, PrinterStatusHistory, PrinterSupplies, PrinterSuppliesSnapshot
 from app.monitoring.tasks import check_snmp_status, check_snmp_supplies, sync_specific_printers
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -26,7 +27,7 @@ router = APIRouter()
 async def test_apeos_html(ip: str):
     from app.scrapers.apeos import ApeosHTTPScraper
     from fastapi.responses import HTMLResponse
-    scraper = ApeosHTTPScraper(ip, password="111")
+    scraper = ApeosHTTPScraper(ip, password=settings.APEOS_PASSWORD)
     html = await scraper._fetch_info_page()
     if html:
         # Also save to data folder in docker just in case
@@ -39,15 +40,12 @@ async def test_apeos_html(ip: str):
     return {"status": "error", "msg": "failed to fetch"}
 
 @router.post("/sync")
-async def force_sync_printers(background_tasks: BackgroundTasks):
+async def force_sync_printers():
     from app.websocket.manager import manager
-    
-    async def run_sync():
-        from app.monitoring.tasks import sync_all_printers
-        await sync_all_printers()
-        await manager.broadcast({"type": "SYNC_COMPLETE"})
-            
-    background_tasks.add_task(run_sync)
+
+    from app.monitoring.tasks import sync_all_printers
+    await sync_all_printers()
+    await manager.broadcast({"type": "SYNC_COMPLETE"})
     return {"status": "success", "message": "Synchronized all printers"}
 
 @router.get("/dashboard/summary")

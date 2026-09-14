@@ -112,7 +112,7 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
                     <span className="opacity-70">{getIcon(label)}</span>
                     <span>{label}</span>
                 </span>
-                <span className="text-xl font-bold text-gray-400 my-1">OFFLINE</span>
+                <span className="text-xl font-bold text-gray-400 my-1">{status === 'OFFLINE' ? 'OFFLINE' : 'N/A'}</span>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
                     <div className="h-1.5 rounded-full w-0"></div>
                 </div>
@@ -158,8 +158,8 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center space-x-2 w-full">
                         <PrinterIcon className="text-gray-400 dark:text-gray-500" size={20} />
-                        <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg truncate flex-1" title={printer.hostname || printer.model || printer.ip_address}>
-                            {printer.hostname || printer.model || printer.ip_address}
+                        <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg truncate flex-1" title={printer.hostname || printer.ip_address}>
+                            {printer.hostname || printer.ip_address}
                         </h3>
                         <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(printer.status)}`}>
                             {printer.status}
@@ -216,13 +216,16 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
                 {/* Progress Bars */}
                 <div className="flex items-center justify-between space-x-6 px-2 mb-4">
                     {renderProgressBar("TONER", printer.toner_level, printer.status)}
-                    {/* Vertical Divider */}
                     <div className="h-10 w-px bg-gray-200 dark:bg-gray-600"></div>
                     {renderProgressBar("DRUM", printer.drum_level, printer.status)}
                 </div>
 
-                {/* Additional Parts (Apeos specific) */}
-                {(printer.fuser_level !== undefined && printer.fuser_level !== null) && (
+                {[
+                    printer.fuser_level,
+                    printer.laser_unit_level,
+                    printer.pf_kit_mp_level,
+                    printer.pf_kit_1_level,
+                ].some((value) => value !== undefined && value !== null) && (
                     <div className="grid grid-cols-2 gap-y-4 gap-x-6 px-2 mb-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                         {renderProgressBar("FUSER", printer.fuser_level, printer.status)}
                         {renderProgressBar("LASER", printer.laser_unit_level, printer.status)}

@@ -7,6 +7,10 @@ export interface Printer {
     status: string;
     last_seen: string;
     toner_level?: number;
+    toner_black_level?: number;
+    toner_cyan_level?: number;
+    toner_magenta_level?: number;
+    toner_yellow_level?: number;
     drum_level?: number;
     fuser_level?: number;
     laser_unit_level?: number;

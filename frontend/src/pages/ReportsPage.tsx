@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Download, FileText, FileSpreadsheet, Clock, RefreshCw } from 'lucide-react';
@@ -7,8 +7,6 @@ import { printerService } from '../services/api';
 import api from '../services/api';
 import { useWebSocket } from '../contexts/WebSocketContext';
 
-const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1`;
-
 export const ReportsPage = () => {
     const [summary, setSummary] = useState<any>({
         status_summary: { total: 0, online: 0, offline: 0, warning: 0 },
@@ -16,6 +14,7 @@ export const ReportsPage = () => {
     });
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
+    const [downloading, setDownloading] = useState<'pdf' | 'excel' | 'image' | null>(null);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [secondsAgo, setSecondsAgo] = useState(0);
     const { lastEvent } = useWebSocket();
@@ -76,11 +75,11 @@ export const ReportsPage = () => {
         setSyncing(true);
         try {
             await api.post('/printers/sync');
-            setTimeout(fetchSummary, 1500);
+            await fetchSummary();
         } catch (err) {
             console.error('Sync failed', err);
         } finally {
-            setTimeout(() => setSyncing(false), 3000);
+            setSyncing(false);
         }
     };
 
@@ -90,25 +89,62 @@ export const ReportsPage = () => {
         return `${Math.floor(secs / 60)}m ago`;
     };
 
-    const download = (endpoint: string) => {
-        const token = localStorage.getItem('access_token');
-        fetch(`${API_BASE}/reports/${endpoint}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-            .then(r => r.blob())
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = endpoint === 'excel'
-                    ? `printers_${new Date().toISOString().slice(0, 10)}.xlsx`
+    const download = async (endpoint: 'pdf' | 'excel' | 'image') => {
+        if (downloading) return;
+        setDownloading(endpoint);
+        try {
+            const response = await api.get(`/reports/${endpoint}`, { responseType: 'blob' });
+            let blob = response.data as Blob;
+            if (blob.size === 0) throw new Error('The report file is empty.');
+
+            if (endpoint === 'image') {
+                const svgUrl = URL.createObjectURL(blob);
+                try {
+                    const image = new Image();
+                    image.src = svgUrl;
+                    await new Promise<void>((resolve, reject) => {
+                        image.onload = () => resolve();
+                        image.onerror = () => reject(new Error('ไม่สามารถสร้างภาพรายงานได้'));
+                    });
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = image.naturalWidth;
+                    canvas.height = image.naturalHeight;
+                    const context = canvas.getContext('2d');
+                    if (!context) throw new Error('Browser ไม่รองรับการสร้างภาพ');
+                    context.fillStyle = '#ffffff';
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    context.drawImage(image, 0, 0);
+                    blob = await new Promise<Blob>((resolve, reject) => {
+                        canvas.toBlob(result => result ? resolve(result) : reject(new Error('ไม่สามารถบันทึก PNG ได้')), 'image/png');
+                    });
+                } finally {
+                    URL.revokeObjectURL(svgUrl);
+                }
+            }
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = endpoint === 'excel'
+                ? `printers_${new Date().toISOString().slice(0, 10)}.xlsx`
+                : endpoint === 'image'
+                    ? `printers_${new Date().toISOString().slice(0, 10)}.png`
                     : `printers_${new Date().toISOString().slice(0, 10)}.pdf`;
-                a.click();
-                URL.revokeObjectURL(url);
-            });
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+            console.error('Report download failed', error);
+            const message = error instanceof Error ? error.message : 'ไม่สามารถบันทึกรายงานได้';
+            alert(`ไม่สามารถบันทึกรายงานได้\n${message}`);
+        } finally {
+            setDownloading(null);
+        }
     };
 
-    const { total, online, offline, warning } = summary.status_summary;
+    const { total, online, offline } = summary.status_summary;
     const metrics = summary.metrics || {};
 
     return (
@@ -157,7 +193,7 @@ export const ReportsPage = () => {
             )}
 
             {/* Export Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -176,9 +212,10 @@ export const ReportsPage = () => {
                         </ul>
                         <Button
                             onClick={() => download('excel')}
+                            disabled={downloading !== null}
                             className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2"
                         >
-                            <Download size={16} /> Download Excel (.xlsx)
+                            <Download size={16} /> {downloading === 'excel' ? 'กำลังสร้างรายงาน...' : 'Download Excel (.xlsx)'}
                         </Button>
                     </CardContent>
                 </Card>
@@ -201,9 +238,36 @@ export const ReportsPage = () => {
                         </ul>
                         <Button
                             onClick={() => download('pdf')}
+                            disabled={downloading !== null}
                             className="w-full mt-2 bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2"
                         >
-                            <Download size={16} /> Download PDF
+                            <Download size={16} /> {downloading === 'pdf' ? 'กำลังสร้างรายงาน...' : 'Download PDF'}
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <FileText className="text-sky-600" size={20} />
+                            Image Export
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Image report with the same inventory table as PDF.
+                        </p>
+                        <ul className="text-sm text-gray-600 dark:text-gray-300 list-disc list-inside space-y-1">
+                            <li>Status and Last Seen</li>
+                            <li>Toner, Drum and Fuser %</li>
+                            <li>PNG image matching the PDF layout</li>
+                        </ul>
+                        <Button
+                            onClick={() => download('image')}
+                            disabled={downloading !== null}
+                            className="w-full mt-2 bg-sky-600 hover:bg-sky-700 text-white flex items-center justify-center gap-2"
+                        >
+                            <Download size={16} /> {downloading === 'image' ? 'กำลังสร้างรูปภาพ...' : 'Download Image (.png)'}
                         </Button>
                     </CardContent>
                 </Card>

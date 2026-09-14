@@ -319,6 +319,7 @@ def start():
     print_and_log("")
     print_and_log("Opening browser...")
     print_and_log("========================================")
+    time.sleep(2)
     webbrowser.open(frontend_url)
 
 def stop():

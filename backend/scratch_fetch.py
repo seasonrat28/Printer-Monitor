@@ -2,7 +2,7 @@ import asyncio
 from app.scrapers.apeos import ApeosHTTPScraper
 
 async def main():
-    scraper = ApeosHTTPScraper("10.119.34.20", password="111")
+    scraper = ApeosHTTPScraper("10.119.34.20", password="Admin@5218")
     html = await scraper._fetch_info_page()
     if html:
         with open("apeos_info.html", "w", encoding="utf-8") as f:

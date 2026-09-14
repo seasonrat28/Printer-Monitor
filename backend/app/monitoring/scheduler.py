@@ -5,8 +5,24 @@ from app.monitoring.tasks import ping_printers, sync_all_printers
 scheduler = AsyncIOScheduler()
 
 def start_scheduler():
-    scheduler.add_job(ping_printers, 'interval', seconds=settings.STATUS_INTERVAL)
-    scheduler.add_job(sync_all_printers, 'interval', seconds=settings.SUPPLY_INTERVAL)
+    scheduler.add_job(
+        ping_printers,
+        'interval',
+        seconds=settings.STATUS_INTERVAL,
+        id='printer_status_poll',
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=30,
+    )
+    scheduler.add_job(
+        sync_all_printers,
+        'interval',
+        seconds=settings.SUPPLY_INTERVAL,
+        id='printer_supply_sync',
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=60,
+    )
     
     if settings.DEMO_MODE:
         from app.monitoring.tasks import simulate_demo_printers

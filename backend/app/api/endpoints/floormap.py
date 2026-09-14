@@ -109,3 +109,37 @@ def delete_pin(map_id: int, pin_id: int, db: Session = Depends(get_db)):
         db.delete(pin)
         db.commit()
     return {"status": "success"}
+
+@router.put("/{map_id}", response_model=FloorMapResponse)
+def update_floormap(map_id: int, floormap_req: FloorMapCreate, db: Session = Depends(get_db)):
+    db_map = db.query(FloorMap).filter(FloorMap.id == map_id).first()
+    if not db_map:
+        raise HTTPException(status_code=404, detail="Map not found")
+    
+    db_map.name = floormap_req.name
+    db.commit()
+    db.refresh(db_map)
+    return db_map
+
+@router.delete("/{map_id}")
+def delete_floormap(map_id: int, db: Session = Depends(get_db)):
+    db_map = db.query(FloorMap).filter(FloorMap.id == map_id).first()
+    if not db_map:
+        raise HTTPException(status_code=404, detail="Map not found")
+    
+    # Try to delete the file
+    try:
+        filename = db_map.image_url.split('/')[-1]
+        filepath = os.path.join(UPLOAD_DIR, filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    except Exception as e:
+        print(f"Error deleting file: {e}")
+
+    # Delete pins associated with the map
+    db.query(PrinterPin).filter(PrinterPin.floor_map_id == map_id).delete()
+    
+    # Delete the map itself
+    db.delete(db_map)
+    db.commit()
+    return {"status": "success"}

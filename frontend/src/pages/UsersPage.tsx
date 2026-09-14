@@ -114,7 +114,7 @@ export const UsersPage = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
             User Management
           </h1>
           <p className="text-gray-500 mt-1">Manage system access and roles.</p>
@@ -205,8 +205,8 @@ export const UsersPage = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 border border-gray-100 dark:border-gray-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-md shadow-md w-full max-w-md p-6 border border-gray-100 dark:border-gray-700">
             <h2 className="text-xl font-bold mb-4">{editingUser ? 'Edit User' : 'Add User'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

@@ -19,6 +19,7 @@ import asyncio
 import re
 import ssl
 import logging
+import html as html_lib
 import urllib.parse
 from typing import Dict, Any, Optional, Tuple
 
@@ -145,7 +146,12 @@ class ApeosHTTPScraper:
         """
         info: Dict[str, Any] = {}
 
-        # Location from status.html (no auth)
+        def clean_field(value: str) -> str:
+            value = html_lib.unescape(value)
+            value = re.sub(r"<[^>]+>", " ", value)
+            return re.sub(r"\s+", " ", value).strip()
+
+        # Location and Node Name from status.html (no auth)
         try:
             status_html = await self._fetch_http("/home/status.html")
             if status_html:
@@ -154,28 +160,57 @@ class ApeosHTTPScraper:
                     status_html
                 )
                 if m:
-                    info["sysLocation"] = m.group(1).strip().replace("&nbsp;", " ")
+                    info["sysLocation"] = clean_field(m.group(1))
+                    
+                # Try to find Node Name or Machine Name on status page
+                m_name = re.search(
+                    r'(?:Node|Machine|Host)\s*Name.*?<span[^>]*>[^<]*</span>(.*?)(?:</li>|</div>)',
+                    status_html, re.IGNORECASE | re.DOTALL
+                )
+                if m_name:
+                    info["sysName"] = clean_field(m_name.group(1))
         except Exception as e:
-            logger.warning(f"[Apeos {self.ip}] get_system_info (location) error: {e}")
+            logger.warning(f"[Apeos {self.ip}] get_system_info (status page) error: {e}")
 
         # Model, serial from authenticated info page
         try:
             info_html = await self._fetch_info_page()
             if info_html:
                 # Model Name
-                m = re.search(r'<dt>Model&#32;Name</dt><dd>(.*?)</dd>', info_html)
+                m = re.search(r'<dt[^>]*>\s*Model(?:&#32;|\s)+Name\s*</dt>\s*<dd[^>]*>(.*?)</dd>', info_html, re.IGNORECASE | re.DOTALL)
                 if m:
-                    info["model"] = m.group(1).replace("&nbsp;", " ").strip()
+                    info["model"] = clean_field(m.group(1))
 
                 # Serial no.
-                m = re.search(r'<dt>Serial&#32;no\.</dt><dd>(\S+)</dd>', info_html)
+                m = re.search(r'<dt[^>]*>\s*Serial(?:&#32;|\s)+no\.?\s*</dt>\s*<dd[^>]*>(.*?)</dd>', info_html, re.IGNORECASE | re.DOTALL)
                 if m:
-                    info["serialNumber"] = m.group(1).strip()
+                    info["serialNumber"] = clean_field(m.group(1))
 
-                # sysName – not available; leave None
-                info["sysName"] = None
+                # Machine Name / Host Name / Node Name from info page
+                m = re.search(r'<dt[^>]*>\s*(?:Machine|Host|Node)(?:&#32;|\s)+Name\s*</dt>\s*<dd[^>]*>(.*?)</dd>', info_html, re.IGNORECASE | re.DOTALL)
+                if m:
+                    info["sysName"] = clean_field(m.group(1))
+                else:
+                    info["sysName"] = None
         except Exception as e:
             logger.warning(f"[Apeos {self.ip}] get_system_info (info page) error: {e}")
+
+        # If sysName is still missing, try nodename.html page as specified
+        if not info.get("sysName"):
+            try:
+                nodename_html = await self._fetch_https("/net/wired/nodename.html", cookie=self._cookie)
+                if nodename_html:
+                    # Look for input field with the name or just grab the first text input value
+                    m = re.search(r'<input[^>]*type="text"[^>]*value="([^"]+)"', nodename_html, re.IGNORECASE)
+                    if m:
+                        info["sysName"] = m.group(1).strip()
+                    else:
+                        # Fallback: any input with value on this page that isn't hidden/submit
+                        m2 = re.search(r'<input[^>]*(?:name="NodeName"|id="NodeName")[^>]*value="([^"]+)"', nodename_html, re.IGNORECASE)
+                        if m2:
+                            info["sysName"] = m2.group(1).strip()
+            except Exception as e:
+                logger.warning(f"[Apeos {self.ip}] get_system_info (nodename page) error: {e}")
 
         return info
 
@@ -195,10 +230,15 @@ class ApeosHTTPScraper:
         try:
             html = await self._fetch_info_page()
             if html is None:
-                return {"toner_level": None, "drum_level": None}
+                return {
+                    "toner_level": None, "drum_level": None, "fuser_level": None,
+                    "laser_unit_level": None, "pf_kit_mp_level": None, "pf_kit_1_level": None,
+                }
                 
             # Normalize HTML space entities
             html = html.replace('&#32;', ' ')
+            text_html = re.sub(r'<[^>]+>', ' ', html)
+            text_html = re.sub(r'\s+', ' ', text_html)
 
             supplies: Dict[str, Optional[int]] = {
                 "toner_level": None,
@@ -212,12 +252,20 @@ class ApeosHTTPScraper:
             # --- Direct % items (Toner, Drum) ---
             # Format: <dt>Toner**</dt><dd>90%</dd>
             for key, pat in [
-                ("toner_level", r'<dt>Toner[*\s]*</dt>\s*<dd>(\d+)%'),
-                ("drum_level",  r'<dt>Drum(?:\s+Unit)?[*\s]*</dt>\s*<dd>(\d+)%'),
+                ("toner_level", r'<dt[^>]*>\s*Toner[*\s]*</dt>\s*<dd[^>]*>\s*(\d+)%'),
+                ("drum_level",  r'<dt[^>]*>\s*Drum(?:\s+Unit)?[*\s]*</dt>\s*<dd[^>]*>\s*(\d+)%'),
             ]:
                 m = re.search(pat, html, re.IGNORECASE)
                 if m:
                     supplies[key] = int(m.group(1))
+
+            # Fallback for firmware that renders the same fields in tables or
+            # adds markup between the label and value.
+            for key, label in [("toner_level", "Toner"), ("drum_level", "Drum")]:
+                if supplies[key] is None:
+                    m = re.search(r'\b' + label + r'(?:\s+Unit)?\b.{0,180}?(\d+)\s*%', text_html, re.IGNORECASE)
+                    if m:
+                        supplies[key] = int(m.group(1))
 
             # --- Page-count items with (% of Life Remaining) on the next dt/dd ---
             # Format: <dt>Fuser Unit</dt><dd>167195 Page(s)</dd>
@@ -230,11 +278,15 @@ class ApeosHTTPScraper:
             ]:
                 # Find the <dt> for this item, then grab the (XX%) in the following <dd>
                 m = re.search(
-                    r'<dt>' + name_pat + r'[*\s]*</dt>.{0,300}?<dd>\((\d+)%\)</dd>',
+                    r'<dt[^>]*>\s*' + name_pat + r'\s*[*\s]*</dt>.{0,500}?<dd[^>]*>\s*\(?\s*(\d+)\s*%\s*\)?\s*</dd>',
                     html, re.IGNORECASE | re.DOTALL
                 )
                 if m:
                     supplies[key] = int(m.group(1))
+                else:
+                    m = re.search(r'\b' + name_pat + r'\b.{0,240}?(\d+)\s*%', text_html, re.IGNORECASE)
+                    if m:
+                        supplies[key] = int(m.group(1))
 
             return supplies
         except Exception as e:
@@ -294,7 +346,11 @@ class ApeosHTTPScraper:
 
         url = f"{self._https}/home/status.html"
         try:
-            async with httpx.AsyncClient(verify=self._ssl_ctx) as client:
+            async with httpx.AsyncClient(
+                verify=self._ssl_ctx,
+                follow_redirects=True,
+                timeout=self.timeout
+            ) as client:
                 # 1. Fetch the page to get the CSRF token and password field name
                 resp1 = await client.get(url, timeout=self.timeout)
                 if resp1.status_code != 200:
@@ -331,15 +387,29 @@ class ApeosHTTPScraper:
                     timeout=self.timeout
                 )
                 cookie = resp2.cookies.get("AuthCookie")
+                if not cookie:
+                    cookie = client.cookies.get("AuthCookie")
+                if not cookie:
+                    for set_cookie in resp2.headers.get_list("set-cookie"):
+                        match = re.search(r"(?:^|;)\s*AuthCookie=([^;]+)", set_cookie)
+                        if match:
+                            cookie = match.group(1)
+                            break
                 
                 if cookie:
                     self._cookie = cookie
                     return cookie
                 else:
-                    logger.error(f"[Apeos {self.ip}] AuthCookie not found in response")
+                    logger.error(
+                        "[Apeos %s] AuthCookie not found (status=%s, location=%s, cookies=%s)",
+                        self.ip,
+                        resp2.status_code,
+                        resp2.headers.get("location", "-"),
+                        sorted(client.cookies.keys())
+                    )
                     return None
         except Exception as e:
-            logger.error(f"[Apeos {self.ip}] Login error: {e}")
+            logger.error("[Apeos %s] Login error: %r", self.ip, e)
             return None
 
     async def _fetch_http(self, path: str) -> Optional[str]:

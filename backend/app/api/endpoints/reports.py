@@ -9,13 +9,17 @@ from app.models.alert import Alert
 import pandas as pd
 from io import BytesIO
 from datetime import datetime, timezone
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from xml.sax.saxutils import escape as xml_escape
 
 router = APIRouter()
+
+def _report_text(value) -> str:
+    return xml_escape(str(value if value is not None else "N/A"))
 
 # ─────────────────────────────────────────────
 # GET /reports/stats  — Aggregated Statistics
@@ -82,7 +86,10 @@ def get_stats(db: Session = Depends(deps.get_db)):
 # GET /reports/excel  — Full Excel Export
 # ─────────────────────────────────────────────
 @router.get("/excel")
-def export_excel(db: Session = Depends(deps.get_db)):
+async def export_excel(db: Session = Depends(deps.get_db)):
+    # Export the latest committed snapshot. Use Reports > Sync Now when a
+    # fresh network poll is needed; exporting must remain fast and reliable.
+    db.expire_all()
     printers = db.query(Printer).all()
     output = BytesIO()
 
@@ -106,6 +113,12 @@ def export_excel(db: Session = Depends(deps.get_db)):
                 "Floor": p.floor or "",
                 "Status": p.status,
                 "Last Seen": p.last_seen.strftime("%Y-%m-%d %H:%M") if p.last_seen else "",
+                "Toner %": p.toner_level,
+                "Drum %": p.drum_level,
+                "Fuser %": p.fuser_level,
+                "Laser %": p.laser_unit_level,
+                "PF Kit MP %": p.pf_kit_mp_level,
+                "PF Kit 1 %": p.pf_kit_1_level,
                 "Total Pages": latest_counter.total_pages if latest_counter else 0,
             })
         df_printers = pd.DataFrame(printer_data)
@@ -158,10 +171,13 @@ def export_excel(db: Session = Depends(deps.get_db)):
 # GET /reports/pdf  — Formatted PDF Export
 # ─────────────────────────────────────────────
 @router.get("/pdf")
-def export_pdf(db: Session = Depends(deps.get_db)):
+async def export_pdf(db: Session = Depends(deps.get_db)):
+    # Export the latest committed snapshot. Do not block file generation on a
+    # full network sync of every printer.
+    db.expire_all()
     printers = db.query(Printer).all()
     output = BytesIO()
-    doc = SimpleDocTemplate(output, pagesize=A4, leftMargin=15*mm, rightMargin=15*mm, topMargin=20*mm, bottomMargin=15*mm)
+    doc = SimpleDocTemplate(output, pagesize=landscape(A4), leftMargin=12*mm, rightMargin=12*mm, topMargin=15*mm, bottomMargin=12*mm)
     styles = getSampleStyleSheet()
 
     title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=18, textColor=colors.HexColor('#1e3a5f'))
@@ -177,7 +193,7 @@ def export_pdf(db: Session = Depends(deps.get_db)):
     story.append(Paragraph("Printer Inventory", heading_style))
     story.append(Spacer(1, 3*mm))
 
-    header = ["IP Address", "Model", "Location", "Status", "Last Seen"]
+    header = ["IP Address", "Model", "Location", "Status", "Last Seen", "Toner %", "Drum %", "Fuser %", "Laser %", "PF MP %", "PF 1 %"]
     table_data = [header]
     for p in printers:
         table_data.append([
@@ -186,6 +202,12 @@ def export_pdf(db: Session = Depends(deps.get_db)):
             p.location or "N/A",
             p.status,
             p.last_seen.strftime("%d/%m/%Y %H:%M") if p.last_seen else "N/A",
+            f"{p.toner_level}%" if p.toner_level is not None else "N/A",
+            f"{p.drum_level}%" if p.drum_level is not None else "N/A",
+            f"{p.fuser_level}%" if p.fuser_level is not None else "N/A",
+            f"{p.laser_unit_level}%" if p.laser_unit_level is not None else "N/A",
+            f"{p.pf_kit_mp_level}%" if p.pf_kit_mp_level is not None else "N/A",
+            f"{p.pf_kit_1_level}%" if p.pf_kit_1_level is not None else "N/A",
         ])
 
     STATUS_BG = {
@@ -196,7 +218,7 @@ def export_pdf(db: Session = Depends(deps.get_db)):
         "UNKNOWN": colors.HexColor('#f1f5f9'),
     }
 
-    col_widths = [38*mm, 60*mm, 40*mm, 25*mm, 35*mm]
+    col_widths = [28*mm, 48*mm, 45*mm, 23*mm, 32*mm, 15*mm, 15*mm, 15*mm, 15*mm, 15*mm, 15*mm]
     t = Table(table_data, colWidths=col_widths, repeatRows=1)
     style_cmds = [
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a5f')),
@@ -260,3 +282,51 @@ def export_pdf(db: Session = Depends(deps.get_db)):
         'Content-Disposition': f'attachment; filename="printer_monitor_{datetime.now().strftime("%Y%m%d")}.pdf"'
     }
     return Response(content=output.getvalue(), media_type="application/pdf", headers=headers)
+
+# GET /reports/image - Printable SVG image of the same inventory report
+@router.get("/image")
+def export_image(db: Session = Depends(deps.get_db)):
+    printers = db.query(Printer).all()
+    row_height = 32
+    header_height = 74
+    width = 2200
+    height = header_height + (len(printers) * row_height) + 80
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#ffffff"/>',
+        '<style>text{font-family:Arial,sans-serif;fill:#172b4d}.head{font-weight:700;fill:#ffffff}.small{font-size:15px}.body{font-size:16px}</style>',
+        '<text x="32" y="38" font-size="26" font-weight="700">Enterprise Printer Monitor - Report</text>',
+        f'<text x="32" y="62" class="small">Generated: {_report_text(datetime.now().strftime("%Y-%m-%d %H:%M"))}</text>',
+        '<rect x="24" y="82" width="2152" height="36" fill="#1e3a5f"/>',
+    ]
+    columns = [(36, 'IP Address'), (210, 'Model'), (620, 'Location'), (1030, 'Status'), (1190, 'Last Seen'), (1430, 'Toner %'), (1540, 'Drum %'), (1650, 'Fuser %'), (1760, 'Laser %'), (1870, 'PF MP %'), (1980, 'PF 1 %')]
+    column_lines = [24, 198, 608, 1018, 1178, 1418, 1528, 1638, 1748, 1858, 1968, 2152]
+    for x, label in columns:
+        parts.append(f'<text x="{x}" y="106" class="head small">{label}</text>')
+
+    status_colors = {'ONLINE': '#dcfce7', 'WARNING': '#fef9c3', 'OFFLINE': '#fee2e2', 'ERROR': '#fee2e2'}
+    for index, printer in enumerate(printers):
+        y = header_height + index * row_height
+        bg = '#ffffff' if index % 2 == 0 else '#f8fafc'
+        parts.append(f'<rect x="24" y="{y}" width="2152" height="{row_height}" fill="{bg}" stroke="#cbd5e1"/>')
+        status = printer.status or 'UNKNOWN'
+        parts.append(f'<rect x="1030" y="{y}" width="145" height="{row_height}" fill="{status_colors.get(status, "#f1f5f9")}"/>')
+        values = [
+            (36, printer.ip_address), (210, printer.model), (620, printer.location),
+            (1030, status), (1190, printer.last_seen.strftime('%d/%m/%Y %H:%M') if printer.last_seen else 'N/A'),
+            (1430, f'{printer.toner_level}%' if printer.toner_level is not None else 'N/A'),
+            (1540, f'{printer.drum_level}%' if printer.drum_level is not None else 'N/A'),
+            (1650, f'{printer.fuser_level}%' if printer.fuser_level is not None else 'N/A'),
+            (1760, f'{printer.laser_unit_level}%' if printer.laser_unit_level is not None else 'N/A'),
+            (1870, f'{printer.pf_kit_mp_level}%' if printer.pf_kit_mp_level is not None else 'N/A'),
+            (1980, f'{printer.pf_kit_1_level}%' if printer.pf_kit_1_level is not None else 'N/A'),
+        ]
+        for x, value in values:
+            parts.append(f'<text x="{x}" y="{y + 22}" class="body">{_report_text(value)}</text>')
+        for x in column_lines:
+            parts.append(f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y + row_height}" stroke="#cbd5e1" stroke-width="1"/>')
+    for x in column_lines:
+        parts.append(f'<line x1="{x}" y1="82" x2="{x}" y2="{header_height + (len(printers) * row_height)}" stroke="#cbd5e1" stroke-width="1"/>')
+    parts.append('</svg>')
+    headers = {'Content-Disposition': f'attachment; filename="printer_monitor_{datetime.now().strftime("%Y%m%d")}.svg"'}
+    return Response(content=''.join(parts), media_type='image/svg+xml', headers=headers)

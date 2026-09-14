@@ -4,8 +4,8 @@ import { alertService } from '../services/api';
 import { useWebSocket } from '../contexts/WebSocketContext';
 
 interface Alert {
-    id: int;
-    printer_id: int;
+    id: number;
+    printer_id: number;
     alert_type: string;
     severity: string;
     message: string;

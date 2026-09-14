@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import and_, desc, not_
 
 from app.api import deps
 from app.models.alert import Alert
@@ -21,6 +21,8 @@ def get_alerts(
     Retrieve alerts.
     """
     query = db.query(Alert).join(Printer)
+    # Offline is a normal connectivity state for this dashboard, not a user alert.
+    query = query.filter(not_(and_(Alert.alert_type == "STATUS", Alert.message.ilike("%offline%"))))
     
     if is_resolved is not None:
         query = query.filter(Alert.is_resolved == is_resolved)

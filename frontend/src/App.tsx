@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, NavLink, useNavigate } from 'react-router-dom';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -18,7 +18,6 @@ import { ToastProvider } from './contexts/ToastContext';
 const MainLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [isInitialSyncing, setIsInitialSyncing] = useState(false);
 
   // Persist dark mode across refreshes
   useEffect(() => {
@@ -35,38 +34,6 @@ const MainLayout = () => {
     localStorage.setItem('darkMode', String(isDark));
   };
 
-  useEffect(() => {
-    const performInitialSync = async () => {
-      if (!sessionStorage.getItem('hasSynced')) {
-        setIsInitialSyncing(true);
-        try {
-          const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-          const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/printers/sync`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          if (res.status === 401) {
-            // Token expired after backend restart — force re-login
-            sessionStorage.removeItem('hasSynced');
-            logout();
-            navigate('/login');
-            return;
-          }
-          sessionStorage.setItem('hasSynced', 'true');
-        } catch (err) {
-          // Network error — continue without sync, data will load via WebSocket
-          console.warn("Initial sync skipped (network error):", err);
-        } finally {
-          setIsInitialSyncing(false);
-        }
-      }
-    };
-    performInitialSync();
-  }, []);
-
-
   const handleLogout = () => {
     sessionStorage.removeItem('hasSynced');
     logout();
@@ -76,18 +43,22 @@ const MainLayout = () => {
   // No blocking screen, let the initial sync happen in the background
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="flex flex-col h-screen bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-slate-100">
       {/* Top Header Row - spans full width */}
-      <div className="flex h-16 flex-shrink-0">
+      <div className="flex h-16 shrink-0">
         {/* Sidebar Logo */}
-        <div className="w-64 bg-white dark:bg-gray-800 border-r border-b border-gray-200 dark:border-gray-700 flex items-center px-6">
-          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-            BRAdmin Next
-          </h1>
+        <div className="w-64 bg-[#10243e] border-r border-[#1d3858] flex items-center px-6">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300">Operations</p>
+            <h1 className="text-xl font-semibold tracking-tight text-white">BRAdmin Next</h1>
+          </div>
         </div>
         {/* Main Header */}
         <header className="flex-1 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-8 justify-between">
-          <div className="flex-1"></div>
+          <div className="flex items-center gap-3">
+            <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Monitoring active</span>
+          </div>
           <div className="flex items-center space-x-4">
             <button 
                 onClick={toggleDarkMode}
@@ -113,41 +84,42 @@ const MainLayout = () => {
       {/* Body Row */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar Nav */}
-        <aside className="w-64 shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-y-auto">
+        <aside className="w-64 shrink-0 bg-[#10243e] border-r border-[#1d3858] flex flex-col overflow-y-auto">
           <nav className="flex-1 p-4 space-y-2">
-            <Link to="/" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <LayoutDashboard size={20} className="text-gray-500" />
+            <p className="px-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Workspace</p>
+            <NavLink to="/" end className={({ isActive }) => `flex items-center space-x-3 rounded-md border-l-2 px-4 py-3 transition-colors ${isActive ? 'border-sky-300 bg-[#18395d] text-white' : 'border-transparent text-slate-300 hover:bg-[#163452] hover:text-white'}`}>
+              <LayoutDashboard size={19} />
               <span className="font-medium">Dashboard</span>
-            </Link>
-            <Link to="/printers" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <Printer size={20} className="text-gray-500" />
+            </NavLink>
+            <NavLink to="/printers" className={({ isActive }) => `flex items-center space-x-3 rounded-md border-l-2 px-4 py-3 transition-colors ${isActive ? 'border-sky-300 bg-[#18395d] text-white' : 'border-transparent text-slate-300 hover:bg-[#163452] hover:text-white'}`}>
+              <Printer size={19} />
               <span className="font-medium">Printers</span>
-            </Link>
-            <Link to="/reports" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            </NavLink>
+            <Link to="/reports" className="flex items-center space-x-3 px-4 py-3 rounded-md text-slate-300 hover:bg-[#163452] hover:text-white transition-colors">
               <FileText size={20} className="text-gray-500" />
               <span className="font-medium">Reports</span>
             </Link>
-            <Link to="/map" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <Link to="/map" className="flex items-center space-x-3 px-4 py-3 rounded-md text-slate-300 hover:bg-[#163452] hover:text-white transition-colors">
               <Map size={20} className="text-gray-500" />
               <span className="font-medium">Floor Map</span>
             </Link>
-            <Link to="/groups" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <Link to="/groups" className="flex items-center space-x-3 px-4 py-3 rounded-md text-slate-300 hover:bg-[#163452] hover:text-white transition-colors">
               <Users size={20} className="text-gray-500" />
               <span className="font-medium">Groups</span>
             </Link>
             {user?.role === 'ADMIN' && (
               <>
-                <Link to="/users" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <Link to="/users" className="flex items-center space-x-3 px-4 py-3 rounded-md text-slate-300 hover:bg-[#163452] hover:text-white transition-colors">
                   <Shield size={20} className="text-gray-500" />
                   <span className="font-medium">Users</span>
                 </Link>
-                <Link to="/logs" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <Link to="/logs" className="flex items-center space-x-3 px-4 py-3 rounded-md text-slate-300 hover:bg-[#163452] hover:text-white transition-colors">
                   <Terminal size={20} className="text-gray-500" />
                   <span className="font-medium">System Logs</span>
                 </Link>
               </>
             )}
-            <Link to="/settings" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <Link to="/settings" className="flex items-center space-x-3 px-4 py-3 rounded-md text-slate-300 hover:bg-[#163452] hover:text-white transition-colors">
               <Settings size={20} className="text-gray-500" />
               <span className="font-medium">Settings</span>
             </Link>

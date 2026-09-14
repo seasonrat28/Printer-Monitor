@@ -1,0 +1,22 @@
+# Environment and local secrets
+.env
+backend/.env
+frontend/.env
+
+# Python environments and caches
+venv/
+backend/venv/
+__pycache__/
+*.py[cod]
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Runtime output
+logs/*.log
+runtime/pids.json
+runtime/ports.json
+frontend/node_modules/
+backend/uploads/
