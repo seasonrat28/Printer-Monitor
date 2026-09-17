@@ -38,7 +38,7 @@ export const LoginPage = () => {
       }
 
       const data = await res.json();
-      login(data.access_token, username, 'ADMIN'); // In real app, fetch me to get role
+      login(data.access_token, username, data.role || 'VIEWER', data.display_name);
       
       navigate('/');
     } catch (err: any) {

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.models.base import Base
@@ -38,4 +38,16 @@ class Printer(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     alerts = relationship("Alert", back_populates="printer", cascade="all, delete-orphan")
+    maintenance_logs = relationship("MaintenanceLog", back_populates="printer", cascade="all, delete-orphan")
 
+
+class MaintenanceLog(Base):
+    __tablename__ = "maintenance_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    printer_id = Column(Integer, ForeignKey('printers.id'), index=True)
+    description = Column(String, nullable=False)
+    performed_by = Column(String, nullable=True)
+    date = Column(DateTime, default=datetime.utcnow)
+    
+    printer = relationship("Printer", back_populates="maintenance_logs")

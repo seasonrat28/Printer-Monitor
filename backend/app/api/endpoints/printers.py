@@ -414,3 +414,53 @@ async def debug_snmp(ip: str):
             engine.transportDispatcher.closeDispatcher()
             
     return results
+
+from pydantic import BaseModel
+from datetime import datetime
+from app.models.printer import MaintenanceLog
+
+class MaintenanceLogCreate(BaseModel):
+    description: str
+    performed_by: str | None = None
+
+class MaintenanceLogResponse(BaseModel):
+    id: int
+    printer_id: int
+    description: str
+    performed_by: str | None
+    date: datetime
+
+    class Config:
+        orm_mode = True
+
+@router.get("/{printer_id}/maintenance", response_model=List[MaintenanceLogResponse])
+def get_maintenance_logs(printer_id: int, db: Session = Depends(get_db)):
+    return db.query(MaintenanceLog).filter(MaintenanceLog.printer_id == printer_id).order_by(MaintenanceLog.date.desc()).all()
+
+@router.post("/{printer_id}/maintenance", response_model=MaintenanceLogResponse)
+def add_maintenance_log(printer_id: int, log_in: MaintenanceLogCreate, db: Session = Depends(get_db)):
+    db_printer = db.query(PrinterModel).filter(PrinterModel.id == printer_id).first()
+    if not db_printer:
+        raise HTTPException(status_code=404, detail="Printer not found")
+        
+    new_log = MaintenanceLog(
+        printer_id=printer_id,
+        description=log_in.description,
+        performed_by=log_in.performed_by,
+        date=datetime.utcnow()
+    )
+    db.add(new_log)
+    db.commit()
+    db.refresh(new_log)
+    return new_log
+
+@router.delete("/{printer_id}/maintenance/{log_id}")
+def delete_maintenance_log(printer_id: int, log_id: int, db: Session = Depends(get_db)):
+    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == log_id, MaintenanceLog.printer_id == printer_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+    
+    db.delete(log)
+    db.commit()
+    return {"status": "success"}
+

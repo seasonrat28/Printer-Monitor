@@ -24,6 +24,17 @@ def start_scheduler():
         misfire_grace_time=60,
     )
     
+    from app.monitoring.tasks import cleanup_old_logs
+    scheduler.add_job(
+        cleanup_old_logs,
+        'interval',
+        days=1,
+        id='cleanup_old_logs',
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=3600,
+    )
+    
     if settings.DEMO_MODE:
         from app.monitoring.tasks import simulate_demo_printers
         scheduler.add_job(simulate_demo_printers, 'interval', seconds=30)

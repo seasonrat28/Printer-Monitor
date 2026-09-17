@@ -7,6 +7,11 @@ class UserBase(BaseModel):
     display_name: Optional[str] = None
     role: Optional[str] = "VIEWER"
     is_active: Optional[bool] = True
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    position: Optional[str] = None
+    affiliation: Optional[str] = None
+    location: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str

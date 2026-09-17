@@ -10,5 +10,9 @@ class AuditLog(Base):
     entity_type = Column(String)         # e.g., 'Printer', 'Group'
     entity_id = Column(Integer, nullable=True)
     user_id = Column(Integer, nullable=True)
+    ip_address = Column(String, nullable=True)
+    status = Column(String, default="SUCCESS") # SUCCESS, FAILED
+    old_value = Column(String, nullable=True) # JSON string
+    new_value = Column(String, nullable=True) # JSON string
     details = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

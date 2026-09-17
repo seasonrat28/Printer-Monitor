@@ -5,8 +5,10 @@ import { Input } from '../components/ui/input';
 import { Save, Ban, Trash2, Shield, Settings as SettingsIcon } from 'lucide-react';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const SettingsPage = () => {
+    const { user: currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState<'blacklist' | 'advanced'>('blacklist');
     const { addToast } = useToast();
 
@@ -35,8 +37,10 @@ export const SettingsPage = () => {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (currentUser?.role === 'ADMIN') {
+            fetchData();
+        }
+    }, [currentUser]);
 
     const fetchData = async () => {
         try {
@@ -105,14 +109,24 @@ export const SettingsPage = () => {
         }
     };
 
-    if (loading) return (
+    if (loading && currentUser?.role === 'ADMIN') return (
         <div className="flex items-center justify-center h-full">
             <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
     );
 
+    if (currentUser?.role !== 'ADMIN') {
+        return (
+            <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+                <Shield size={64} className="text-gray-300 dark:text-gray-700" />
+                <h2 className="text-xl font-medium text-gray-500">Access Denied</h2>
+                <p className="text-gray-400">You must be an administrator to view this page.</p>
+            </div>
+        );
+    }
+
     return (
-        <div className="space-y-6 max-w-5xl mx-auto">
+        <div className="space-y-6">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h2>
                 {activeTab === 'advanced' && (
@@ -161,7 +175,7 @@ export const SettingsPage = () => {
                                     <p className="text-sm text-gray-500">IP ในรายการนี้จะไม่ถูกแสกนเข้าระบบ</p>
                                 </div>
                             </CardHeader>
-                            <CardContent className="p-6">
+                            <CardContent className="p-6 pt-8">
                                 {/* Add IP Form */}
                                 <form onSubmit={handleAddBlacklist} className="flex space-x-3 mb-8">
                                     <Input 
@@ -195,13 +209,15 @@ export const SettingsPage = () => {
                                     )}
                                 </div>
 
-                                <Button 
-                                    onClick={handleClearBlacklist} 
-                                    disabled={blacklist.length === 0}
-                                    className="w-full bg-red-600 hover:bg-red-700 text-white py-6 text-lg font-bold"
-                                >
-                                    ล้างทั้งหมด
-                                </Button>
+                                <div className="flex justify-end">
+                                    <Button 
+                                        onClick={handleClearBlacklist} 
+                                        disabled={blacklist.length === 0}
+                                        className="bg-red-600 hover:bg-red-700 text-white"
+                                    >
+                                        ล้างทั้งหมด
+                                    </Button>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>

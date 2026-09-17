@@ -148,7 +148,7 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
 
     return (
         <div
-            className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-lg dark:shadow-gray-900/50 transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] group flex flex-col relative overflow-hidden border-2 animate-in fade-in zoom-in duration-500 ${getStatusCardBorder(printer.status)}`}
+            className={`bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-lg dark:shadow-gray-900/50 transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] group flex flex-col relative overflow-hidden border-2 animate-in fade-in zoom-in duration-500 ${getStatusCardBorder(printer.status)}`}
         >
 
             {/* Card Content */}

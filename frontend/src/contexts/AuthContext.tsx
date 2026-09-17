@@ -4,12 +4,13 @@ import { scheduleRefresh } from '../services/api';
 interface User {
   username: string;
   role: string;
+  display_name?: string;
 }
 
 interface AuthContextType {
   token: string | null;
   user: User | null;
-  login: (token: string, username: string, role: string) => void;
+  login: (token: string, username: string, role: string, display_name?: string) => void;
   logout: () => void;
 }
 
@@ -22,9 +23,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const login = (newToken: string, username: string, role: string) => {
+  const login = (newToken: string, username: string, role: string, display_name?: string) => {
     setToken(newToken);
-    const userData = { username, role };
+    const userData = { username, role, display_name };
     setUser(userData);
     localStorage.setItem('token', newToken);
     localStorage.setItem('access_token', newToken);

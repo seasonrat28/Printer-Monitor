@@ -69,12 +69,16 @@
 @layer base {
   * {
     border-color: hsl(var(--border));
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.1s ease;
+    transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out, color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;
   }
   body {
-    background-color: hsl(var(--background));
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, #f0f4f8 100%);
     color: hsl(var(--foreground));
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  .dark body {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
   }
   /* Dark mode native scrollbar */
   .dark ::-webkit-scrollbar {

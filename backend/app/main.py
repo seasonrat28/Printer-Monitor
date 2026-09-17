@@ -1,13 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-import logging
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+from app.core.logger import logger
 
 app = FastAPI(
     title="Enterprise Printer Monitoring API",
@@ -24,6 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+# Rate Limiting
+from app.core.middleware import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware, max_requests=300, window=60)
+
 
 @app.get("/health")
 async def health_check():
@@ -221,7 +220,7 @@ from app.api.api import api_router
 from app.db.session import engine, SessionLocal
 from app.models.base import Base
 from app.models.user import User
-from app.models.printer import Printer
+from app.models.printer import Printer, MaintenanceLog
 from app.models.monitoring import PrinterStatusHistory, PrinterSupplies, PrinterCounters, PrinterSuppliesSnapshot
 from app.models.alert import Alert
 from app.models.group import PrinterGroup
@@ -236,11 +235,36 @@ Base.metadata.create_all(bind=engine)
 
 @app.on_event("startup")
 async def startup_event():
-    # Initialize DB with default user
+    # Run schema migrations
+    from app.db.session import engine
+    from app.models.audit import AuditLog
+    try:
+        AuditLog.__table__.drop(engine, checkfirst=True)
+        AuditLog.__table__.create(engine)
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_status_printer_checked ON printer_status_history (printer_id, checked_at DESC)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_counters_printer_measured ON printer_counters (printer_id, measured_at DESC)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_snapshot_printer_measured ON printer_supplies_snapshots (printer_id, id DESC)"))
+
+    except Exception as e:
+        logger.error(f"Migration error: {e}")
+
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created/verified")
     db = SessionLocal()
     try:
         from sqlalchemy import text
         
+        # Migration: User Profile fields
+        for col in ["email", "phone", "position", "affiliation", "location"]:
+            try:
+                db.execute(text(f"ALTER TABLE users ADD COLUMN {col} VARCHAR"))
+                db.commit()
+                logger.info(f"Added {col} column to users table")
+            except Exception:
+                db.rollback()
+
         # Migration: is_favorite column
         try:
             db.execute(text("ALTER TABLE printers ADD COLUMN is_favorite BOOLEAN DEFAULT 0"))

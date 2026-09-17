@@ -150,7 +150,7 @@ export const ReportsPage = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center bg-white dark:bg-gray-800/40 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700/50">
                 <div>
                     <h2 className="text-xl font-bold tracking-tight text-gray-800 dark:text-gray-200">Reports & Analytics</h2>
                     {lastUpdated && (

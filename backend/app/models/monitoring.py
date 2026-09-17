@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Index
 from datetime import datetime
 from app.models.base import Base
 
@@ -11,6 +11,10 @@ class PrinterStatusHistory(Base):
     error_message = Column(String, nullable=True)
     response_time = Column(Float, nullable=True) # in ms
     checked_at = Column(DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        Index('idx_status_printer_checked', printer_id, checked_at.desc()),
+    )
 
 class PrinterSupplies(Base):
     __tablename__ = "printer_supplies"
@@ -34,6 +38,10 @@ class PrinterCounters(Base):
     copy_pages = Column(Integer, nullable=True)
     scan_pages = Column(Integer, nullable=True)
     measured_at = Column(DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        Index('idx_counters_printer_measured', printer_id, measured_at.desc()),
+    )
 
 class PrinterSuppliesSnapshot(Base):
     """Periodic snapshot of toner/drum/fuser levels for historical charting."""
@@ -43,6 +51,10 @@ class PrinterSuppliesSnapshot(Base):
     printer_id = Column(Integer, ForeignKey("printers.id"), nullable=False)
     toner_level = Column(Integer, nullable=True)
     drum_level = Column(Integer, nullable=True)
+    
+    __table_args__ = (
+        Index('idx_snapshot_printer_measured', printer_id, id.desc()),
+    )
     fuser_level = Column(Integer, nullable=True)
     laser_unit_level = Column(Integer, nullable=True)
     pf_kit_mp_level = Column(Integer, nullable=True)

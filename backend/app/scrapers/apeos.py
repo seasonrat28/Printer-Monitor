@@ -349,7 +349,8 @@ class ApeosHTTPScraper:
             async with httpx.AsyncClient(
                 verify=self._ssl_ctx,
                 follow_redirects=True,
-                timeout=self.timeout
+                timeout=self.timeout,
+                trust_env=False
             ) as client:
                 # 1. Fetch the page to get the CSRF token and password field name
                 resp1 = await client.get(url, timeout=self.timeout)
@@ -415,7 +416,7 @@ class ApeosHTTPScraper:
     async def _fetch_http(self, path: str) -> Optional[str]:
         """GET from http://{ip}{path} (no auth, no TLS)."""
         try:
-            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, trust_env=False) as client:
                 resp = await client.get(
                     self._http + path,
                     headers={"User-Agent": "Mozilla/5.0"}
@@ -437,7 +438,8 @@ class ApeosHTTPScraper:
             async with httpx.AsyncClient(
                 verify=False,
                 timeout=self.timeout,
-                follow_redirects=True
+                follow_redirects=True,
+                trust_env=False
             ) as client:
                 resp = await client.get(
                     self._https + path,

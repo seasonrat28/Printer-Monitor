@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { printerService } from '../services/api';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { Search, Filter, Plus, Upload, Download, RefreshCw, Bell, AlertTriangle, Info, XCircle, X, CheckCircle2, History, Trash2 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
 import api from '../services/api';
 import PrinterCard from '../components/PrinterCard';
 import { NotificationsPanel } from '../components/NotificationsPanel';
@@ -102,13 +102,17 @@ const PrintersList = () => {
     // History Modal State
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyTab, setHistoryTab] = useState<'stats' | 'maintenance'>('stats');
+    const [newMaintenanceDesc, setNewMaintenanceDesc] = useState('');
+    const [newMaintenanceUser, setNewMaintenanceUser] = useState('');
+    const [submittingMaintenance, setSubmittingMaintenance] = useState(false);
     const [selectedPrinterHistory, setSelectedPrinterHistory] = useState<any>(null);
-    const [historyData, setHistoryData] = useState<{ status_history: any[], counters_history: any[], supplies_history: any[] }>({ status_history: [], counters_history: [], supplies_history: [] });
+    const [historyData, setHistoryData] = useState<{ status_history: any[], counters_history: any[], supplies_history: any[], maintenance_logs: any[] }>({ status_history: [], counters_history: [], supplies_history: [], maintenance_logs: [] });
 
     const toggleFavorite = useCallback(async (printer: Printer, e: React.MouseEvent) => {
         e.stopPropagation();
         try {
-            const res = await api.put(`/printers/${printer.id}/favorite`);
+            const res = await api.patch(`/printers/${printer.id}/toggle-favorite`);
             setPrinters(prev => {
                 const next = prev.map(p => p.id === printer.id ? { ...p, is_favorite: res.data.is_favorite } : p);
                 cachedPrinters = next;
@@ -125,34 +129,81 @@ const PrintersList = () => {
         setHistoryLoading(true);
         try {
             const res = await api.get(`/printers/${printer.id}/history?days=30`);
-            const formattedCounters = res.data.counters_history.map((c: any) => {
+            const countersMap: Record<string, any> = {};
+            res.data.counters_history.forEach((c: any) => {
                 const dateStr = c.measured_at.endsWith('Z') ? c.measured_at : c.measured_at + 'Z';
-                return {
-                    date: new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                const d = new Date(dateStr);
+                // Group by hour: "16 Sep, 14"
+                const hourKey = d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit' });
+                countersMap[hourKey] = {
+                    date: d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
                     pages: c.total_pages
                 };
             });
-            const formattedSupplies = res.data.supplies_history.map((s: any) => {
+            const formattedCounters = Object.values(countersMap);
+
+            const suppliesMap: Record<string, any> = {};
+            res.data.supplies_history.forEach((s: any) => {
                 const dateStr = s.measured_at.endsWith('Z') ? s.measured_at : s.measured_at + 'Z';
-                return {
-                    date: new Date(dateStr).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
+                const d = new Date(dateStr);
+                const hourKey = d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit' });
+                suppliesMap[hourKey] = {
+                    date: d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
                     toner: s.toner_level,
                     drum: s.drum_level
                 };
             });
-            const uniqueCounters = formattedCounters.reduce((acc: any[], current: any) => {
-                const x = acc.find((item: any) => item.date === current.date);
-                if (!x) return acc.concat([current]);
-                x.pages = current.pages;
-                return acc;
-            }, []);
-            setHistoryData({ status_history: res.data.status_history, counters_history: uniqueCounters, supplies_history: formattedSupplies });
+            const formattedSupplies = Object.values(suppliesMap);
+            
+            const maintenanceRes = await api.get(`/printers/${printer.id}/maintenance`);
+            
+            setHistoryData({ 
+                status_history: res.data.status_history, 
+                counters_history: formattedCounters, 
+                supplies_history: formattedSupplies,
+                maintenance_logs: maintenanceRes.data
+            });
         } catch (err) {
             console.error("Failed to load history", err);
         } finally {
             setHistoryLoading(false);
         }
     }, []);
+
+    const handleAddMaintenance = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newMaintenanceDesc.trim()) return;
+        setSubmittingMaintenance(true);
+        try {
+            const res = await api.post(`/printers/${selectedPrinterHistory.id}/maintenance`, {
+                description: newMaintenanceDesc,
+                performed_by: newMaintenanceUser || undefined
+            });
+            setHistoryData(prev => ({
+                ...prev,
+                maintenance_logs: [res.data, ...prev.maintenance_logs]
+            }));
+            setNewMaintenanceDesc('');
+            setNewMaintenanceUser('');
+        } catch (err) {
+            console.error("Failed to add maintenance log", err);
+        } finally {
+            setSubmittingMaintenance(false);
+        }
+    };
+    
+    const handleDeleteMaintenance = async (logId: number) => {
+        if (!window.confirm("Delete this log?")) return;
+        try {
+            await api.delete(`/printers/${selectedPrinterHistory.id}/maintenance/${logId}`);
+            setHistoryData(prev => ({
+                ...prev,
+                maintenance_logs: prev.maintenance_logs.filter(l => l.id !== logId)
+            }));
+        } catch (err) {
+            console.error("Failed to delete log", err);
+        }
+    };
 
     useEffect(() => {
         let isSyncingReq = true;
@@ -648,7 +699,7 @@ const PrintersList = () => {
                 </button>
                 <button
                     onClick={() => setIsSmartFilterOpen(true)}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white"
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800/40"
                 >
                     <Plus size={14} />
                     <span>New smart filter</span>
@@ -684,9 +735,9 @@ const PrintersList = () => {
                     ))}
                 </div>
             ) : (
-                <div className="overflow-x-auto rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#1e1e1e]">
+                <div className="overflow-x-auto rounded-md border border-slate-200 bg-white dark:border-gray-700/50 dark:bg-gray-800/40 backdrop-blur-sm">
                     <table className="min-w-245 w-full text-left text-sm">
-                        <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-[#121212] dark:text-slate-400">
+                        <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 dark:border-gray-700/50 dark:bg-gray-800/50 dark:text-slate-300">
                             <tr>
                                 <th className="px-3 py-2 font-semibold">Printer</th>
                                 <th className="px-3 py-2 font-semibold">Status</th>
@@ -700,21 +751,21 @@ const PrintersList = () => {
                             {filteredPrinters.map(printer => {
                                 const colorPrinter = isColorPrinter(printer);
                                 const supplies = colorPrinter
-                                    ? [['K', printer.toner_black_level ?? printer.toner_level, 'bg-slate-700'], ['C', printer.toner_cyan_level, 'bg-cyan-600'], ['M', printer.toner_magenta_level, 'bg-rose-600'], ['Y', printer.toner_yellow_level, 'bg-amber-500']] as const
-                                    : [['Toner', printer.toner_level, 'bg-slate-700'], ['Drum', printer.drum_level, 'bg-amber-500']] as const;
+                                    ? [['K', printer.toner_black_level ?? printer.toner_level, 'bg-slate-700 dark:bg-slate-300'], ['C', printer.toner_cyan_level, 'bg-cyan-600 dark:bg-cyan-400'], ['M', printer.toner_magenta_level, 'bg-rose-600 dark:bg-rose-400'], ['Y', printer.toner_yellow_level, 'bg-amber-500 dark:bg-amber-400']] as const
+                                    : [['Toner', printer.toner_level, 'bg-slate-700 dark:bg-slate-300'], ['Drum', printer.drum_level, 'bg-amber-500 dark:bg-amber-400']] as const;
                                 const statusClass = printer.status === 'ONLINE'
-                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
                                     : printer.status === 'OFFLINE'
                                         ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                                        : 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300';
+                                        : 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300';
                                 return (
-                                    <tr key={printer.id} className="hover:bg-slate-50 dark:hover:bg-[#242424]">
+                                    <tr key={printer.id} className="hover:bg-slate-50 dark:hover:bg-gray-700/30 transition-colors">
                                         <td className="px-3 py-2">
                                             <div className="flex items-center gap-2">
                                                 <span className={`h-2 w-2 rounded-full ${printer.status === 'ONLINE' ? 'bg-emerald-500' : printer.status === 'OFFLINE' ? 'bg-slate-400' : 'bg-orange-500'}`} />
                                                 <div className="min-w-0">
                                                     <div className="truncate font-medium text-slate-900 dark:text-slate-100">{printer.hostname || printer.ip_address}</div>
-                                                    <div className="text-xs text-slate-500">{printer.ip_address} {printer.serial_number ? `| ${printer.serial_number}` : ''}</div>
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400">{printer.ip_address} {printer.serial_number ? `| ${printer.serial_number}` : ''}</div>
                                                 </div>
                                             </div>
                                         </td>
@@ -724,9 +775,9 @@ const PrintersList = () => {
                                             <div className="space-y-1">
                                                 {supplies.map(([label, level, color]) => (
                                                     <div key={label} className="flex items-center gap-2">
-                                                        <span className="w-10 shrink-0 truncate text-[10px] font-semibold text-slate-500">{label}</span>
-                                                        <div className="h-1.5 flex-1 bg-slate-200 dark:bg-slate-700"><div className={`h-full ${color}`} style={{ width: `${Math.max(0, Math.min(100, level ?? 0))}%` }} /></div>
-                                                        <span className="w-8 text-right text-[10px] text-slate-500">{level ?? '-'}%</span>
+                                                        <span className="w-10 shrink-0 truncate text-[10px] font-semibold text-slate-500 dark:text-slate-400">{label}</span>
+                                                        <div className="h-1.5 flex-1 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden"><div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(0, Math.min(100, level ?? 0))}%` }} /></div>
+                                                        <span className="w-8 text-right text-[10px] text-slate-500 dark:text-slate-400">{level ?? '-'}%</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -912,29 +963,72 @@ const PrintersList = () => {
                             </button>
                         </div>
 
+                        <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 px-6">
+                            <button
+                                onClick={() => setHistoryTab('stats')}
+                                className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${historyTab === 'stats' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                            >สถิติการใช้งาน</button>
+                            <button
+                                onClick={() => setHistoryTab('maintenance')}
+                                className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${historyTab === 'maintenance' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                            >ประวัติซ่อมบำรุง</button>
+                        </div>
+
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
                             {historyLoading ? (
                                 <div className="flex flex-col items-center justify-center h-64 space-y-4">
                                     <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                                     <p className="text-gray-500">กำลังโหลดประวัติ...</p>
                                 </div>
-                            ) : (
+                            ) : historyTab === 'stats' ? (
                                 <>
+                                    {/* Toner and Drum Level Chart */}
+                                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+                                        <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 uppercase tracking-wider">ปริมาณหมึกและดรัม (Toner & Drum Level)</h4>
+                                        {historyData.supplies_history.length > 0 ? (
+                                            <div className="h-64 w-full">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={historyData.supplies_history}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+                                                        <XAxis dataKey="date" stroke="#6B7280" fontSize={12} />
+                                                        <YAxis stroke="#6B7280" fontSize={12} width={60} domain={[0, 100]} />
+                                                        <RechartsTooltip
+                                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                                        />
+                                                        <Legend verticalAlign="top" height={36}/>
+                                                        <Line type="monotone" dataKey="toner" stroke="#EAB308" strokeWidth={2} dot={false} activeDot={{ r: 4 }} name="Toner (%)" isAnimationActive={false} />
+                                                        <Line type="monotone" dataKey="drum" stroke="#10B981" strokeWidth={2} dot={false} activeDot={{ r: 4 }} name="Drum (%)" isAnimationActive={false} />
+                                                        <Brush dataKey="date" height={30} stroke="#9CA3AF" fill="#f8fafc" travellerWidth={10} />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        ) : (
+                                            <div className="h-40 flex items-center justify-center text-gray-400 text-sm">ไม่มีข้อมูลหมึกและดรัมย้อนหลัง</div>
+                                        )}
+                                    </div>
+
                                     {/* Print Volume Chart */}
                                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
                                         <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 uppercase tracking-wider">ปริมาณการพิมพ์ (Total Pages)</h4>
                                         {historyData.counters_history.length > 0 ? (
                                             <div className="h-64 w-full">
                                                 <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={historyData.counters_history}>
+                                                    <AreaChart data={historyData.counters_history}>
+                                                        <defs>
+                                                            <linearGradient id="colorPages" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3}/>
+                                                                <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
+                                                            </linearGradient>
+                                                        </defs>
                                                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
                                                         <XAxis dataKey="date" stroke="#6B7280" fontSize={12} />
                                                         <YAxis stroke="#6B7280" fontSize={12} width={60} />
                                                         <RechartsTooltip
                                                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                                                         />
-                                                        <Line type="monotone" dataKey="pages" stroke="#4F46E5" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} name="แผ่น" />
-                                                    </LineChart>
+                                                        <Area type="monotone" dataKey="pages" stroke="#4F46E5" strokeWidth={2} fill="url(#colorPages)" isAnimationActive={false} />
+                                                        <Brush dataKey="date" height={30} stroke="#4F46E5" fill="#f8fafc" travellerWidth={10} />
+                                                    </AreaChart>
                                                 </ResponsiveContainer>
                                             </div>
                                         ) : (
@@ -968,6 +1062,73 @@ const PrintersList = () => {
                                         </div>
                                     </div>
                                 </>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                                        <h4 className="text-sm font-bold mb-3">เพิ่มบันทึกซ่อมบำรุง</h4>
+                                        <form onSubmit={handleAddMaintenance} className="flex gap-3">
+                                            <input
+                                                type="text"
+                                                placeholder="รายละเอียด เช่น เติมหมึกดำ, แก้กระดาษติด..."
+                                                value={newMaintenanceDesc}
+                                                onChange={(e) => setNewMaintenanceDesc(e.target.value)}
+                                                className="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                                required
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="ผู้ดำเนินการ (ไม่บังคับ)"
+                                                value={newMaintenanceUser}
+                                                onChange={(e) => setNewMaintenanceUser(e.target.value)}
+                                                className="w-48 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={submittingMaintenance}
+                                                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm font-medium shadow-sm transition-colors disabled:opacity-50 flex items-center space-x-2"
+                                            >
+                                                <Plus size={16} />
+                                                <span>บันทึก</span>
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+                                        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                                            <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">รายการซ่อมบำรุง</h4>
+                                            <span className="text-xs bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 px-2 py-0.5 rounded-full font-medium">{historyData.maintenance_logs.length} รายการ</span>
+                                        </div>
+                                        <div className="divide-y divide-gray-100 dark:divide-gray-800 max-h-[400px] overflow-y-auto">
+                                            {historyData.maintenance_logs.length > 0 ? (
+                                                historyData.maintenance_logs.map((log: any) => (
+                                                    <div key={log.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors group">
+                                                        <div className="flex justify-between items-start">
+                                                            <div className="flex-1 space-y-1">
+                                                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{log.description}</p>
+                                                                <div className="flex items-center text-xs text-gray-500 space-x-4">
+                                                                    <span>{new Date(log.date.endsWith('Z') ? log.date : log.date + 'Z').toLocaleString('en-GB')}</span>
+                                                                    {log.performed_by && <span>โดย: {log.performed_by}</span>}
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleDeleteMaintenance(log.id)}
+                                                                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                                title="Delete log"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="p-8 flex flex-col items-center justify-center text-gray-400 space-y-2">
+                                                    <History size={32} className="opacity-20" />
+                                                    <p className="text-sm">ยังไม่มีประวัติการซ่อมบำรุง</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -1094,81 +1255,7 @@ const PrintersList = () => {
                 isOpen={isNotificationsOpen}
                 onClose={() => setIsNotificationsOpen(false)}
             />
-            {/* History Modal */}
-            {isHistoryModalOpen && selectedPrinterHistory && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/75 transition-opacity">
-                    <div className="bg-white dark:bg-gray-800 rounded-md text-left overflow-hidden shadow-md transform transition-all w-full max-w-4xl border border-gray-300 dark:border-gray-600 flex flex-col max-h-[90vh]">
-                        <div className="flex justify-between items-center px-6 py-4 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700">
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
-                                    <History className="mr-2" size={20} />
-                                    ประวัติการใช้งาน: {selectedPrinterHistory.hostname || selectedPrinterHistory.ip_address}
-                                </h3>
-                                <p className="text-xs text-gray-500 mt-1">Location: {selectedPrinterHistory.location || '-'} | Serial No: {selectedPrinterHistory.serial_number || '-'}</p>
-                            </div>
-                            <button onClick={() => setIsHistoryModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors bg-gray-100 dark:bg-gray-700 p-2 rounded-full">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-                            {historyLoading ? (
-                                <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                                    <RefreshCw className="animate-spin text-indigo-500" size={32} />
-                                    <p className="text-gray-500">กำลังโหลดข้อมูลประวัติ...</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    {/* Supplies Chart (Phase 2) */}
-                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                        <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
-                                            <span className="mr-2">🧪</span> ประวัติปริมาณหมึกและดรัม (Toner & Drum Level)
-                                        </h4>
-                                        <div className="h-64 w-full">
-                                            {historyData.supplies_history.length > 0 ? (
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={historyData.supplies_history} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                                        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                                                        <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
-                                                        <RechartsTooltip />
-                                                        <Line type="monotone" dataKey="toner" stroke="#4f46e5" strokeWidth={2} name="Toner (%)" dot={{ r: 2 }} />
-                                                        <Line type="monotone" dataKey="drum" stroke="#f59e0b" strokeWidth={2} name="Drum (%)" dot={{ r: 2 }} />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
-                                            ) : (
-                                                <div className="h-full flex items-center justify-center text-gray-400 text-sm">ไม่มีข้อมูลประวัติการเปลี่ยนหมึก</div>
-                                            )}
-                                        </div>
-                                    </div>
 
-                                    {/* Page Count Chart */}
-                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                        <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
-                                            <span className="mr-2">📄</span> ประวัติจำนวนแผ่นที่พิมพ์ (Page Count)
-                                        </h4>
-                                        <div className="h-64 w-full">
-                                            {historyData.counters_history.length > 0 ? (
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={historyData.counters_history} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                                        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                                                        <YAxis tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
-                                                        <RechartsTooltip />
-                                                        <Line type="monotone" dataKey="pages" stroke="#10b981" strokeWidth={2} name="Pages" dot={{ r: 2 }} />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
-                                            ) : (
-                                                <div className="h-full flex items-center justify-center text-gray-400 text-sm">ไม่มีข้อมูลจำนวนแผ่นที่พิมพ์</div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

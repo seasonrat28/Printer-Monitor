@@ -15,7 +15,13 @@ def get_password_hash(password):
 
 def verify_admin(current_user: User = Depends(get_current_active_user)):
     if current_user.role != "ADMIN":
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+        raise HTTPException(status_code=403, detail="สิทธิ์ของคุณไม่เพียงพอ (เฉพาะผู้ดูแลระบบไอทีเท่านั้น)")
+    return current_user
+
+@router.get("/me", response_model=UserResponse)
+def get_current_user_profile(
+    current_user: User = Depends(get_current_active_user)
+):
     return current_user
 
 @router.get("/", response_model=List[UserResponse])

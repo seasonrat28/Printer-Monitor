@@ -1,11 +1,19 @@
 
 > frontend@0.0.0 dev
-> vite --host 0.0.0.0 --port 9122
+> vite --host 0.0.0.0 --port 9121
 
 
-  [32m[1mVITE[22m v8.2.2[39m  [2mready in [0m[1m228[22m[2m[0m ms[22m
+  [32m[1mVITE[22m v8.2.2[39m  [2mready in [0m[1m209[22m[2m[0m ms[22m
 
-  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m9122[22m/[39m
-  [32m➜[39m  [1mNetwork[22m: [36mhttp://10.171.200.43:[1m9122[22m/[39m  [2mWi-Fi[22m
-  [32m➜[39m  [1mNetwork[22m: [36mhttp://10.119.43.25:[1m9122[22m/[39m   [2mEthernet[22m
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m9121[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://10.171.200.43:[1m9121[22m/[39m  [2mWi-Fi[22m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://10.119.43.25:[1m9121[22m/[39m   [2mEthernet[22m
 [2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m14:31:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/PrintersList.tsx, /src/index.css[22m
+[2m14:38:31[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m14:41:01[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m14:44:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m14:45:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m14:47:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/ProfilePage.tsx, /src/index.css[22m
+[2m14:48:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/ProfilePage.tsx, /src/index.css[22m
+[2m14:57:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/UsersPage.tsx, /src/index.css[22m

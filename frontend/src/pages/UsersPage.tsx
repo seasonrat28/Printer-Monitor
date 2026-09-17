@@ -9,6 +9,11 @@ interface User {
   display_name: string | null;
   role: string;
   is_active: boolean;
+  email?: string | null;
+  phone?: string | null;
+  position?: string | null;
+  affiliation?: string | null;
+  location?: string | null;
   created_at: string;
 }
 
@@ -19,13 +24,18 @@ export const UsersPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  
+
   const [formData, setFormData] = useState({
     username: '',
     display_name: '',
     role: 'VIEWER',
     password: '',
-    is_active: true
+    is_active: true,
+    email: '',
+    phone: '',
+    position: '',
+    affiliation: '',
+    location: ''
   });
 
   const fetchUsers = async () => {
@@ -58,7 +68,7 @@ export const UsersPage = () => {
         // @ts-ignore
         delete data.password;
       }
-      
+
       if (editingUser) {
         await api.put(`/users/${editingUser.id}`, data);
       } else {
@@ -66,7 +76,7 @@ export const UsersPage = () => {
       }
       setShowModal(false);
       setEditingUser(null);
-      setFormData({ username: '', display_name: '', role: 'VIEWER', password: '', is_active: true });
+      setFormData({ username: '', display_name: '', role: 'VIEWER', password: '', is_active: true, email: '', phone: '', position: '', affiliation: '', location: '' });
       fetchUsers();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to save user');
@@ -91,11 +101,16 @@ export const UsersPage = () => {
         display_name: u.display_name || '',
         role: u.role,
         password: '',
-        is_active: u.is_active
+        is_active: u.is_active,
+        email: u.email || '',
+        phone: u.phone || '',
+        position: u.position || '',
+        affiliation: u.affiliation || '',
+        location: u.location || ''
       });
     } else {
       setEditingUser(null);
-      setFormData({ username: '', display_name: '', role: 'VIEWER', password: '', is_active: true });
+      setFormData({ username: '', display_name: '', role: 'VIEWER', password: '', is_active: true, email: '', phone: '', position: '', affiliation: '', location: '' });
     }
     setShowModal(true);
   };
@@ -141,9 +156,9 @@ export const UsersPage = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 dark:border-gray-700/50 overflow-hidden">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700/50">
               <tr>
                 <th className="px-6 py-4 font-medium text-gray-500">User</th>
                 <th className="px-6 py-4 font-medium text-gray-500">Role</th>
@@ -167,9 +182,10 @@ export const UsersPage = () => {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                      ${u.role === 'ADMIN' ? 'bg-red-50 text-red-700 border-red-200' : 
-                        u.role === 'OPERATOR' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
-                        'bg-gray-50 text-gray-700 border-gray-200'}
+                      ${u.role === 'ADMIN' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800' :
+                        u.role === 'ENGINEER' ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-800' :
+                          u.role === 'OPERATOR' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800' :
+                            'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}
                     `}>
                       {u.role}
                     </span>
@@ -186,8 +202,8 @@ export const UsersPage = () => {
                       <button onClick={() => openModal(u)} className="p-2 text-gray-400 hover:text-blue-500 transition-colors">
                         <Edit2 size={18} />
                       </button>
-                      <button 
-                        onClick={() => handleDelete(u.id)} 
+                      <button
+                        onClick={() => handleDelete(u.id)}
                         disabled={currentUser?.username === u.username}
                         className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-30 disabled:hover:text-gray-400"
                         title={currentUser?.username === u.username ? "Cannot delete yourself" : "Delete"}
@@ -206,59 +222,112 @@ export const UsersPage = () => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-md shadow-md w-full max-w-md p-6 border border-gray-100 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-md shadow-md w-full max-w-2xl p-6 border border-gray-100 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">{editingUser ? 'Edit User' : 'Add User'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Username</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.username}
-                  onChange={e => setFormData({...formData, username: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="admin"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Display Name (Optional)</label>
-                <input
-                  type="text"
-                  value={formData.display_name}
-                  onChange={e => setFormData({...formData, display_name: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="John Doe"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Role</label>
-                <select
-                  value={formData.role}
-                  onChange={e => setFormData({...formData, role: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="VIEWER">VIEWER</option>
-                  <option value="OPERATOR">OPERATOR</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Password {editingUser && '(Leave blank to keep current)'}</label>
-                <input
-                  type="password"
-                  required={!editingUser}
-                  value={formData.password}
-                  onChange={e => setFormData({...formData, password: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="********"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Username <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={e => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="admin"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Display Name</label>
+                  <input
+                    type="text"
+                    value={formData.display_name}
+                    onChange={e => setFormData({ ...formData, display_name: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Role</label>
+                  <select
+                    value={formData.role}
+                    onChange={e => setFormData({ ...formData, role: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="VIEWER">VIEWER</option>
+                    <option value="OPERATOR">OPERATOR</option>
+                    <option value="ENGINEER">ENGINEER</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Password {editingUser && <span className="text-xs text-gray-400 font-normal">(Leave blank to keep current)</span>}</label>
+                  <input
+                    type="password"
+                    required={!editingUser}
+                    value={formData.password}
+                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="********"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="user@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. 081-234-5678"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Position</label>
+                  <input
+                    type="text"
+                    value={formData.position}
+                    onChange={e => setFormData({ ...formData, position: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. System Administrator"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Affiliation / Department</label>
+                  <input
+                    type="text"
+                    value={formData.affiliation}
+                    onChange={e => setFormData({ ...formData, affiliation: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. IT Department"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Location</label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={e => setFormData({ ...formData, location: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. Main Office, Floor 3"
+                  />
+                </div>
               </div>
               <div className="flex items-center space-x-2 pt-2">
                 <input
                   type="checkbox"
                   id="isActive"
                   checked={formData.is_active}
-                  onChange={e => setFormData({...formData, is_active: e.target.checked})}
+                  onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
                 <label htmlFor="isActive" className="text-sm font-medium">Account is Active</label>

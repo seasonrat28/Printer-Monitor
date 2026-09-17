@@ -5,7 +5,7 @@ import ipaddress
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
-from app.models.printer import Printer
+from app.models.printer import Printer, MaintenanceLog
 from app.models.monitoring import PrinterStatusHistory, PrinterSupplies, PrinterCounters, PrinterSuppliesSnapshot
 from app.snmp.standard import StandardSNMPAdapter
 from app.scrapers.apeos import ApeosHTTPScraper
@@ -22,7 +22,7 @@ APEOS_KEYWORDS = ("apeos", "fujifilm", "fuji xerox", "fuji-xerox", "fuji_xerox")
 def _is_known_apeos_ip(ip: str) -> bool:
     try:
         address = ipaddress.ip_address(ip)
-        return address == ipaddress.ip_address("10.199.18.211") or ipaddress.ip_address("10.119.34.20") <= address <= ipaddress.ip_address("10.119.34.175")
+        return address == ipaddress.ip_address("10.119.18.211") or ipaddress.ip_address("10.119.34.20") <= address <= ipaddress.ip_address("10.119.34.175")
     except ValueError:
         return False
 
@@ -45,13 +45,13 @@ def get_adapter(printer: Printer):
         return ApeosHTTPScraper(
             ip=printer.ip_address,
             password=pwd,
-            timeout=8
+            timeout=3
         )
     return StandardSNMPAdapter(
         ip=printer.ip_address,
         community=printer.snmp_community or "public",
         version=printer.snmp_version or "v2c",
-        timeout=8
+        timeout=3
     )
 
 # -----------------------------------------------------------------------
@@ -305,12 +305,29 @@ async def _check_single_printer_supplies(printer_id: int, adapter: StandardSNMPA
                         asyncio.create_task(send_line_notify(msg))
                         dept_email = get_department_email(printer.department)
                         if dept_email:
-                            send_email_notify(f"Low Toner Alert: {printer.ip_address}", msg, dept_email)
+                            asyncio.create_task(send_email_notify(f"Low Toner Alert: {printer.ip_address}", msg, dept_email, printer_ip=printer.ip_address))
                 else:
                     await _resolve_alerts(db, printer.id, "SUPPLY")
+                
+                # Auto-detect Toner Replacement
+                if prev_toner is not None and printer.toner_level > prev_toner + 20:
+                    db.add(MaintenanceLog(
+                        printer_id=printer.id,
+                        description=f"Auto-detected: Toner Replaced (from {prev_toner}% to {printer.toner_level}%)",
+                        performed_by="System (Auto)"
+                    ))
 
             if supplies.get("drum_level") is not None:
+                prev_drum = printer.drum_level
                 printer.drum_level = supplies["drum_level"]
+                
+                # Auto-detect Drum Replacement
+                if prev_drum is not None and printer.drum_level > prev_drum + 20:
+                    db.add(MaintenanceLog(
+                        printer_id=printer.id,
+                        description=f"Auto-detected: Drum Replaced (from {prev_drum}% to {printer.drum_level}%)",
+                        performed_by="System (Auto)"
+                    ))
                 
             if supplies.get("fuser_level") is not None:
                 printer.fuser_level = supplies["fuser_level"]
@@ -428,3 +445,27 @@ async def simulate_demo_printers():
     finally:
         db.close()
 
+async def cleanup_old_logs():
+    """Delete logs (Audit, Status, Counters, Supplies) older than 30 days to save DB space."""
+    from datetime import datetime, timedelta
+    from app.models.audit import AuditLog
+    from app.models.monitoring import PrinterStatusHistory, PrinterCounters, PrinterSuppliesSnapshot
+    
+    db: Session = SessionLocal()
+    try:
+        cutoff = datetime.utcnow() - timedelta(days=30)
+        
+        # Delete old audit logs
+        db.query(AuditLog).filter(AuditLog.created_at < cutoff).delete(synchronize_session=False)
+        
+        # Delete old monitoring histories
+        db.query(PrinterStatusHistory).filter(PrinterStatusHistory.checked_at < cutoff).delete(synchronize_session=False)
+        db.query(PrinterCounters).filter(PrinterCounters.measured_at < cutoff).delete(synchronize_session=False)
+        db.query(PrinterSuppliesSnapshot).filter(PrinterSuppliesSnapshot.measured_at < cutoff).delete(synchronize_session=False)
+        
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error cleaning up old logs: {e}")
+    finally:
+        db.close()

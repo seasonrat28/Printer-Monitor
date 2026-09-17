@@ -21,6 +21,14 @@ router = APIRouter()
 def _report_text(value) -> str:
     return xml_escape(str(value if value is not None else "N/A"))
 
+def format_local_time(dt: datetime, fmt: str) -> str:
+    if not dt:
+        return ""
+    # Assuming dt is naive UTC from the database
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone().strftime(fmt)
+
 # ─────────────────────────────────────────────
 # GET /reports/stats  — Aggregated Statistics
 # ─────────────────────────────────────────────
@@ -112,7 +120,7 @@ async def export_excel(db: Session = Depends(deps.get_db)):
                 "Department": p.department or "",
                 "Floor": p.floor or "",
                 "Status": p.status,
-                "Last Seen": p.last_seen.strftime("%Y-%m-%d %H:%M") if p.last_seen else "",
+                "Last Updated": format_local_time(p.last_seen, "%Y-%m-%d %H:%M") if p.last_seen else "",
                 "Toner %": p.toner_level,
                 "Drum %": p.drum_level,
                 "Fuser %": p.fuser_level,
@@ -138,7 +146,7 @@ async def export_excel(db: Session = Depends(deps.get_db)):
                 "Maximum": s.maximum,
                 "Percent %": pct,
                 "Status": "CRITICAL" if pct and pct <= 10 else ("LOW" if pct and pct <= 20 else "OK"),
-                "Updated": s.updated_at.strftime("%Y-%m-%d %H:%M") if s.updated_at else "",
+                "Updated": format_local_time(s.updated_at, "%Y-%m-%d %H:%M") if s.updated_at else "",
             })
         df_supplies = pd.DataFrame(supply_data)
         df_supplies.to_excel(writer, index=False, sheet_name='Supplies')
@@ -153,7 +161,7 @@ async def export_excel(db: Session = Depends(deps.get_db)):
                 "Type": a.alert_type,
                 "Severity": a.severity,
                 "Message": a.message,
-                "Created": a.created_at.strftime("%Y-%m-%d %H:%M") if a.created_at else "",
+                "Created": format_local_time(a.created_at, "%Y-%m-%d %H:%M") if a.created_at else "",
             })
         df_alerts = pd.DataFrame(alert_data)
         df_alerts.to_excel(writer, index=False, sheet_name='Active Alerts')
@@ -193,7 +201,7 @@ async def export_pdf(db: Session = Depends(deps.get_db)):
     story.append(Paragraph("Printer Inventory", heading_style))
     story.append(Spacer(1, 3*mm))
 
-    header = ["IP Address", "Model", "Location", "Status", "Last Seen", "Toner %", "Drum %", "Fuser %", "Laser %", "PF MP %", "PF 1 %"]
+    header = ["IP Address", "Model", "Location", "Status", "Last Updated", "Toner %", "Drum %", "Fuser %", "Laser %", "PF MP %", "PF 1 %"]
     table_data = [header]
     for p in printers:
         table_data.append([
@@ -201,7 +209,7 @@ async def export_pdf(db: Session = Depends(deps.get_db)):
             p.model or "N/A",
             p.location or "N/A",
             p.status,
-            p.last_seen.strftime("%d/%m/%Y %H:%M") if p.last_seen else "N/A",
+            format_local_time(p.last_seen, "%d/%m/%Y %H:%M") if p.last_seen else "N/A",
             f"{p.toner_level}%" if p.toner_level is not None else "N/A",
             f"{p.drum_level}%" if p.drum_level is not None else "N/A",
             f"{p.fuser_level}%" if p.fuser_level is not None else "N/A",
@@ -299,7 +307,7 @@ def export_image(db: Session = Depends(deps.get_db)):
         f'<text x="32" y="62" class="small">Generated: {_report_text(datetime.now().strftime("%Y-%m-%d %H:%M"))}</text>',
         '<rect x="24" y="82" width="2152" height="36" fill="#1e3a5f"/>',
     ]
-    columns = [(36, 'IP Address'), (210, 'Model'), (620, 'Location'), (1030, 'Status'), (1190, 'Last Seen'), (1430, 'Toner %'), (1540, 'Drum %'), (1650, 'Fuser %'), (1760, 'Laser %'), (1870, 'PF MP %'), (1980, 'PF 1 %')]
+    columns = [(36, 'IP Address'), (210, 'Model'), (620, 'Location'), (1030, 'Status'), (1190, 'Last Updated'), (1430, 'Toner %'), (1540, 'Drum %'), (1650, 'Fuser %'), (1760, 'Laser %'), (1870, 'PF MP %'), (1980, 'PF 1 %')]
     column_lines = [24, 198, 608, 1018, 1178, 1418, 1528, 1638, 1748, 1858, 1968, 2152]
     for x, label in columns:
         parts.append(f'<text x="{x}" y="106" class="head small">{label}</text>')
@@ -313,7 +321,7 @@ def export_image(db: Session = Depends(deps.get_db)):
         parts.append(f'<rect x="1030" y="{y}" width="145" height="{row_height}" fill="{status_colors.get(status, "#f1f5f9")}"/>')
         values = [
             (36, printer.ip_address), (210, printer.model), (620, printer.location),
-            (1030, status), (1190, printer.last_seen.strftime('%d/%m/%Y %H:%M') if printer.last_seen else 'N/A'),
+            (1030, status), (1190, format_local_time(printer.last_seen, '%d/%m/%Y %H:%M') if printer.last_seen else 'N/A'),
             (1430, f'{printer.toner_level}%' if printer.toner_level is not None else 'N/A'),
             (1540, f'{printer.drum_level}%' if printer.drum_level is not None else 'N/A'),
             (1650, f'{printer.fuser_level}%' if printer.fuser_level is not None else 'N/A'),
