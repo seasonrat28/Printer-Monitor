@@ -1,0 +1,40 @@
+export interface Printer {
+    id: number;
+    ip_address: string;
+    hostname: string;
+    model: string;
+    manufacturer: string;
+    status: string;
+    last_seen: string;
+    toner_level?: number;
+    toner_black_level?: number;
+    toner_cyan_level?: number;
+    toner_magenta_level?: number;
+    toner_yellow_level?: number;
+    toner_photo_black_level?: number;
+    toner_matte_black_level?: number;
+    toner_red_level?: number;
+    drum_level?: number;
+    drum_black_level?: number;
+    drum_cyan_level?: number;
+    drum_magenta_level?: number;
+    drum_yellow_level?: number;
+    fuser_level?: number;
+    laser_unit_level?: number;
+    pf_kit_mp_level?: number;
+    pf_kit_1_level?: number;
+    location?: string;
+    serial_number?: string;
+    status_message?: string;
+    is_favorite?: boolean;
+    page_count?: number;
+    borrowed_by?: string;
+    department?: string;
+    asset_status?: string;
+    purchase_date?: string;
+    warranty_expiry?: string;
+    lease_provider?: string;
+    lease_start_date?: string;
+    lease_end_date?: string;
+}
+

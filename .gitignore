@@ -1,0 +1,89 @@
+# Environment and local secrets
+.env
+backend/.env
+frontend/.env
+
+# Python environments and caches
+venv/
+backend/venv/
+__pycache__/
+*.py[cod]
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Runtime output
+logs/
+*.log
+*.log.*
+runtime/pids.json
+runtime/ports.json
+frontend/node_modules/
+backend/uploads/
+frontend/dist_electron/
+frontend/dist/
+# Environment and local secrets
+.env
+backend/.env
+frontend/.env
+
+# Python environments and caches
+venv/
+backend/venv/
+__pycache__/
+*.py[cod]
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Runtime output
+logs/
+*.log
+*.log.*
+runtime/pids.json
+runtime/ports.json
+frontend/node_modules/
+backend/uploads/
+frontend/dist_electron/
+frontend/dist/
+
+# Dependencies & Build artifacts
+backend/offline_packages/
+frontend/electron/
+frontend/dist_electron/
+
+# Private scripts
+push_github.bat
+build_app.bat
+cleanup.py
+do_cleanup.py
+cleanup_files.bat
+deploy.bat
+fix_db.bat
+migrate.bat
+backend/scratch_fetch.py
+backend/explore_apeos.py
+scripts/debugging/
+
+# Scratch & Debug files
+check_*.py
+fetch_*.py
+fix_*.py
+force_*.py
+debug_*.py
+list_*.py
+run_*.bat
+epson_*.html
+hp_*.txt
+debug_*.txt
+migrate_*.py
+test_*.py
+scratch_*.py

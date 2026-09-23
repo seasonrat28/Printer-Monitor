@@ -1,0 +1,356 @@
+import React, { useState, useEffect } from 'react';
+import { UserCog, Plus, Edit2, Trash2, Shield } from 'lucide-react';
+import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+
+interface User {
+  id: number;
+  username: string;
+  display_name: string | null;
+  role: string;
+  is_active: boolean;
+  email?: string | null;
+  phone?: string | null;
+  position?: string | null;
+  affiliation?: string | null;
+  location?: string | null;
+  created_at: string;
+}
+
+export const UsersPage = () => {
+  const { user: currentUser } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  const [formData, setFormData] = useState({
+    username: '',
+    display_name: '',
+    role: 'VIEWER',
+    password: '',
+    is_active: true,
+    email: '',
+    phone: '',
+    position: '',
+    affiliation: '',
+    location: ''
+  });
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/users');
+      setUsers(res.data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to fetch users. You must be an ADMIN.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser?.role === 'ADMIN') {
+      fetchUsers();
+    } else {
+      setError('Access denied. ADMIN role required.');
+      setLoading(false);
+    }
+  }, [currentUser]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const data = { ...formData };
+      if (editingUser && !data.password) {
+        // @ts-ignore
+        delete data.password;
+      }
+
+      if (editingUser) {
+        await api.put(`/users/${editingUser.id}`, data);
+      } else {
+        await api.post('/users', data);
+      }
+      setShowModal(false);
+      setEditingUser(null);
+      setFormData({ username: '', display_name: '', role: 'VIEWER', password: '', is_active: true, email: '', phone: '', position: '', affiliation: '', location: '' });
+      fetchUsers();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to save user');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      await api.delete(`/users/${id}`);
+      fetchUsers();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to delete user');
+    }
+  };
+
+  const openModal = (u?: User) => {
+    if (u) {
+      setEditingUser(u);
+      setFormData({
+        username: u.username,
+        display_name: u.display_name || '',
+        role: u.role,
+        password: '',
+        is_active: u.is_active,
+        email: u.email || '',
+        phone: u.phone || '',
+        position: u.position || '',
+        affiliation: u.affiliation || '',
+        location: u.location || ''
+      });
+    } else {
+      setEditingUser(null);
+      setFormData({ username: '', display_name: '', role: 'VIEWER', password: '', is_active: true, email: '', phone: '', position: '', affiliation: '', location: '' });
+    }
+    setShowModal(true);
+  };
+
+  if (currentUser?.role !== 'ADMIN') {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+        <Shield size={64} className="text-gray-300 dark:text-gray-700" />
+        <h2 className="text-xl font-medium text-gray-500">Access Denied</h2>
+        <p className="text-gray-400">You must be an administrator to view this page.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            User Management
+          </h1>
+          <p className="text-gray-500 mt-1">Manage system access and roles.</p>
+        </div>
+        <button
+          onClick={() => openModal()}
+          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+        >
+          <Plus size={20} />
+          <span>Add User</span>
+        </button>
+      </div>
+
+      {error && (
+        <div className="p-4 bg-red-100 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-16 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-lg"></div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 dark:border-gray-700/50 overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700/50">
+              <tr>
+                <th className="px-6 py-4 font-medium text-gray-500">User</th>
+                <th className="px-6 py-4 font-medium text-gray-500">Role</th>
+                <th className="px-6 py-4 font-medium text-gray-500">Status</th>
+                <th className="px-6 py-4 font-medium text-gray-500 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              {users.map(u => (
+                <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <td className="px-6 py-4 font-medium">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                        <UserCog size={16} className="text-indigo-600 dark:text-indigo-400" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">{u.username}</div>
+                        <div className="text-xs text-gray-500 font-normal">{u.display_name}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
+                      ${u.role === 'ADMIN' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800' :
+                        u.role === 'ENGINEER' ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-800' :
+                          u.role === 'OPERATOR' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800' :
+                            'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}
+                    `}>
+                      {u.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium 
+                      ${u.is_active ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}
+                    `}>
+                      {u.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end space-x-2">
+                      <button onClick={() => openModal(u)} className="p-2 text-gray-400 hover:text-blue-500 transition-colors">
+                        <Edit2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(u.id)}
+                        disabled={currentUser?.username === u.username}
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-30 disabled:hover:text-gray-400"
+                        title={currentUser?.username === u.username ? "Cannot delete yourself" : "Delete"}
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-md shadow-md w-full max-w-2xl p-6 border border-gray-100 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">{editingUser ? 'Edit User' : 'Add User'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Username <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={e => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="admin"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Display Name</label>
+                  <input
+                    type="text"
+                    value={formData.display_name}
+                    onChange={e => setFormData({ ...formData, display_name: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Role</label>
+                  <select
+                    value={formData.role}
+                    onChange={e => setFormData({ ...formData, role: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="VIEWER">VIEWER</option>
+                    <option value="OPERATOR">OPERATOR</option>
+                    <option value="ENGINEER">ENGINEER</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Password {editingUser && <span className="text-xs text-gray-400 font-normal">(Leave blank to keep current)</span>}</label>
+                  <input
+                    type="password"
+                    required={!editingUser}
+                    value={formData.password}
+                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="********"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="user@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. 081-234-5678"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Position</label>
+                  <input
+                    type="text"
+                    value={formData.position}
+                    onChange={e => setFormData({ ...formData, position: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. System Administrator"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Affiliation / Department</label>
+                  <input
+                    type="text"
+                    value={formData.affiliation}
+                    onChange={e => setFormData({ ...formData, affiliation: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. IT Department"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Location</label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={e => setFormData({ ...formData, location: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. Main Office, Floor 3"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={formData.is_active}
+                  onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <label htmlFor="isActive" className="text-sm font-medium">Account is Active</label>
+              </div>
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  {editingUser ? 'Save Changes' : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
