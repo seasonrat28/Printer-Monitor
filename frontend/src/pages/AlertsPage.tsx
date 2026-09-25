@@ -218,12 +218,12 @@ export const AlertsPage = () => {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 mb-1">
                                                 <Clock size={12} className="text-slate-400" />
-                                                Created: {format(new Date(alert.created_at), 'MMM d, yyyy HH:mm')}
+                                                Created: {format(new Date(alert.created_at.endsWith('Z') ? alert.created_at : alert.created_at + 'Z'), 'MMM d, yyyy HH:mm')}
                                             </div>
                                             {alert.resolved_at && (
                                                 <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
                                                     <CheckCircle2 size={10} />
-                                                    Resolved: {format(new Date(alert.resolved_at), 'MMM d, yyyy HH:mm')}
+                                                    Resolved: {format(new Date(alert.resolved_at.endsWith('Z') ? alert.resolved_at : alert.resolved_at + 'Z'), 'MMM d, yyyy HH:mm')}
                                                 </div>
                                             )}
                                         </td>
