@@ -317,10 +317,46 @@ def get_printer_history(printer_id: int, days: int = 30, db: Session = Depends(g
         status_history = db.query(PrinterStatusHistory).filter(
             PrinterStatusHistory.printer_id == printer_id,
             PrinterStatusHistory.checked_at >= cutoff
-        ).order_by(PrinterStatusHistory.checked_at.desc()).limit(50).all()
+        ).order_by(PrinterStatusHistory.checked_at.asc()).all()
     except Exception:
         db.rollback()
         status_history = []
+        
+    uptime_hours = 0.0
+    downtime_hours = 0.0
+    daily_stats = {}
+    
+    if len(status_history) > 1:
+        for i in range(len(status_history) - 1):
+            curr = status_history[i]
+            nxt = status_history[i+1]
+            diff_hours = (nxt.checked_at - curr.checked_at).total_seconds() / 3600.0
+            
+            # Cap the diff at 24 hours just in case there's a huge gap in monitoring
+            if diff_hours > 24:
+                diff_hours = 24
+                
+            date_str = curr.checked_at.strftime('%Y-%m-%d')
+            if date_str not in daily_stats:
+                daily_stats[date_str] = {'uptime': 0.0, 'downtime': 0.0}
+                
+            if curr.status in ('ONLINE', 'WARNING'):
+                uptime_hours += diff_hours
+                daily_stats[date_str]['uptime'] += diff_hours
+            elif curr.status == 'OFFLINE':
+                downtime_hours += diff_hours
+                daily_stats[date_str]['downtime'] += diff_hours
+
+    daily_uptime = []
+    for d in sorted(daily_stats.keys()):
+        daily_uptime.append({
+            'date': d,
+            'uptime_hours': round(daily_stats[d]['uptime'], 2),
+            'downtime_hours': round(daily_stats[d]['downtime'], 2)
+        })
+
+    # We also still want to return the recent status events for the timeline, maybe just the last 50
+    recent_status = sorted(status_history, key=lambda s: s.checked_at, reverse=True)[:50]
     
     # Get counters history
     try:
@@ -343,7 +379,12 @@ def get_printer_history(printer_id: int, days: int = 30, db: Session = Depends(g
         supplies_history = []
     
     return {
-        "status_history": [{"status": s.status, "checked_at": s.checked_at.isoformat()} for s in status_history],
+        "uptime_stats": {
+            "uptime_hours": round(uptime_hours, 1),
+            "downtime_hours": round(downtime_hours, 1),
+            "daily": daily_uptime
+        },
+        "status_history": [{"status": s.status, "checked_at": s.checked_at.isoformat()} for s in recent_status],
         "counters_history": [{"total_pages": c.total_pages, "measured_at": c.measured_at.isoformat()} for c in counters_history],
         "supplies_history": [{
             "toner_level": s.toner_level,

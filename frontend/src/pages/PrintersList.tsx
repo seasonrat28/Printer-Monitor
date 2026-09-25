@@ -132,12 +132,12 @@ const PrintersList = () => {
     // History Modal State
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
-    const [historyTab, setHistoryTab] = useState<'stats' | 'maintenance' | 'meter' | 'docs'>('stats');
+    const [historyTab, setHistoryTab] = useState<'stats' | 'maintenance' | 'meter' | 'docs' | 'uptime'>('stats');
     const [newMaintenanceDesc, setNewMaintenanceDesc] = useState('');
     const [newMaintenanceUser, setNewMaintenanceUser] = useState('');
     const [submittingMaintenance, setSubmittingMaintenance] = useState(false);
     const [selectedPrinterHistory, setSelectedPrinterHistory] = useState<any>(null);
-    const [historyData, setHistoryData] = useState<{ status_history: any[], counters_history: any[], supplies_history: any[], maintenance_logs: any[], meter_history: any[], attachments: any[] }>({ status_history: [], counters_history: [], supplies_history: [], maintenance_logs: [], meter_history: [], attachments: [] });
+    const [historyData, setHistoryData] = useState<{ uptime_stats?: { uptime_hours: number, downtime_hours: number, daily: { date: string, uptime_hours: number, downtime_hours: number }[] }, status_history: any[], counters_history: any[], supplies_history: any[], maintenance_logs: any[], meter_history: any[], attachments: any[] }>({ status_history: [], counters_history: [], supplies_history: [], maintenance_logs: [], meter_history: [], attachments: [] });
 
     // Borrow Modal State
     const [isBorrowModalOpen, setIsBorrowModalOpen] = useState(false);
@@ -222,6 +222,7 @@ const PrintersList = () => {
             const attachmentsRes = await api.get(`/printers/${printer.id}/attachments`);
 
             setHistoryData({
+                uptime_stats: res.data.uptime_stats,
                 status_history: res.data.status_history,
                 counters_history: formattedCounters,
                 supplies_history: formattedSupplies,
@@ -962,7 +963,19 @@ const PrintersList = () => {
                             {filteredPrinters.map(printer => {
                                 const colorPrinter = isColorPrinter(printer);
                                 const baseSupplies = colorPrinter
-                                    ? [['K', printer.toner_black_level ?? printer.toner_level, 'bg-slate-700 dark:bg-slate-300'], ['C', printer.toner_cyan_level, 'bg-cyan-600 dark:bg-cyan-400'], ['M', printer.toner_magenta_level, 'bg-rose-600 dark:bg-rose-400'], ['Y', printer.toner_yellow_level, 'bg-amber-500 dark:bg-amber-400']] as [string, number | undefined | null, string][]
+                                    ? [
+                                        ['PK', (printer as any).toner_photo_black_level, 'bg-gray-900 dark:bg-gray-200'],
+                                        ['MK', (printer as any).toner_matte_black_level, 'bg-gray-600 dark:bg-gray-400'],
+                                        ['C', printer.toner_cyan_level, 'bg-cyan-600 dark:bg-cyan-400'], 
+                                        ['M', printer.toner_magenta_level, 'bg-rose-600 dark:bg-rose-400'], 
+                                        ['Y', printer.toner_yellow_level, 'bg-amber-500 dark:bg-amber-400'], 
+                                        ['K', printer.toner_black_level ?? printer.toner_level, 'bg-slate-700 dark:bg-slate-300'],
+                                        ['R', (printer as any).toner_red_level, 'bg-red-600 dark:bg-red-400'],
+                                        ['dC', printer.drum_cyan_level, 'bg-cyan-600 dark:bg-cyan-400'],
+                                        ['dM', printer.drum_magenta_level, 'bg-rose-600 dark:bg-rose-400'],
+                                        ['dY', printer.drum_yellow_level, 'bg-amber-500 dark:bg-amber-400'],
+                                        ['dK', printer.drum_black_level, 'bg-slate-700 dark:bg-slate-300']
+                                      ] as [string, number | undefined | null, string][]
                                     : [['Toner', printer.toner_level, 'bg-slate-700 dark:bg-slate-300'], ['Drum', printer.drum_level, 'bg-amber-500 dark:bg-amber-400']] as [string, number | undefined | null, string][];
 
                                 const supplies = [
@@ -992,14 +1005,23 @@ const PrintersList = () => {
                                         <td className="px-3 py-2"><span className={`inline-flex rounded px-2 py-1 text-[11px] font-semibold ${statusClass}`}>{printer.status || 'UNKNOWN'}</span></td>
                                         <td className="max-w-40 truncate px-3 py-2 text-slate-600 dark:text-slate-300" title={printer.location || '-'}>{printer.location || '-'}</td>
                                         <td className="px-3 py-2">
-                                            <div className="space-y-1">
-                                                {supplies.map(([label, level, color]) => (
-                                                    <div key={label} className="flex items-center gap-2">
-                                                        <span className="w-10 shrink-0 truncate text-[10px] font-semibold text-slate-500 dark:text-slate-400">{label}</span>
-                                                        <div className="h-1.5 flex-1 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden"><div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(0, Math.min(100, level ?? 0))}%` }} /></div>
-                                                        <span className="w-8 text-right text-[10px] text-slate-500 dark:text-slate-400">{level ?? '-'}%</span>
+                                            <div className="flex items-end gap-2">
+                                                {supplies.map(([label, level, color]) => {
+                                                    let shortLabel = label;
+                                                    if (label === 'PF Kit MP') shortLabel = 'P1';
+                                                    else if (label === 'PF Kit 1') shortLabel = 'P2';
+                                                    else if (['PK', 'MK', 'dC', 'dM', 'dY', 'dK'].includes(label)) shortLabel = label;
+                                                    else if (!['K', 'C', 'M', 'Y', 'R'].includes(label)) shortLabel = label.substring(0, 1);
+                                                    
+                                                    return (
+                                                    <div key={label} className="flex flex-col items-center group cursor-help" title={`${label}: ${level ?? '-'}%`}>
+                                                        <span className="text-[8px] font-medium text-slate-400 leading-none mb-1 opacity-0 group-hover:opacity-100 transition-opacity absolute -mt-4">{level ?? '-'}</span>
+                                                        <div className="w-2 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden h-7 flex flex-col justify-end">
+                                                            <div className={`w-full rounded-full ${color} transition-all duration-500`} style={{ height: `${Math.max(0, Math.min(100, level ?? 0))}%` }} />
+                                                        </div>
+                                                        <span className="text-[9px] font-bold text-slate-500 leading-none mt-1">{shortLabel}</span>
                                                     </div>
-                                                ))}
+                                                )})}
                                             </div>
                                         </td>
                                         <td className="px-3 py-2 text-xs text-slate-500">{printer.last_seen ? new Date(printer.last_seen.endsWith('Z') ? printer.last_seen : printer.last_seen + 'Z').toLocaleString('en-GB') : 'Never'}</td>
@@ -1181,7 +1203,15 @@ const PrintersList = () => {
                                     <History size={20} className="text-indigo-600" />
                                     <span>ประวัติการใช้งาน: {selectedPrinterHistory?.hostname || selectedPrinterHistory?.ip_address}</span>
                                 </h3>
-                                <p className="text-sm text-gray-500 mt-1">สถิติย้อนหลัง 30 วัน</p>
+                                <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                                    <span>สถิติย้อนหลัง 30 วัน</span>
+                                    {historyData.uptime_stats && (
+                                        <div className="flex items-center gap-3">
+                                            <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> เปิดใช้งาน (Uptime): {historyData.uptime_stats.uptime_hours} ชม.</span>
+                                            <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-gray-400"></div> ปิดเครื่อง (Downtime): {historyData.uptime_stats.downtime_hours} ชม.</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <button onClick={() => setIsHistoryModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                                 <X size={24} />
@@ -1205,6 +1235,10 @@ const PrintersList = () => {
                                 onClick={() => setHistoryTab('maintenance')}
                                 className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${historyTab === 'maintenance' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                             >ประวัติซ่อมบำรุง</button>
+                            <button
+                                onClick={() => setHistoryTab('uptime')}
+                                className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors ${historyTab === 'uptime' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                            >สถานะการทำงาน</button>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -1212,6 +1246,49 @@ const PrintersList = () => {
                                 <div className="flex flex-col items-center justify-center h-64 space-y-4">
                                     <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                                     <p className="text-gray-500">กำลังโหลดประวัติ...</p>
+                                </div>
+                            ) : historyTab === 'uptime' ? (
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 uppercase tracking-wider">สถิติการใช้งานรายวัน (Daily Uptime)</h4>
+                                    {historyData.uptime_stats?.daily && historyData.uptime_stats.daily.length > 0 ? (
+                                        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+                                            <table className="min-w-full text-left text-sm">
+                                                <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 text-gray-500">
+                                                    <tr>
+                                                        <th className="px-4 py-3 font-semibold">วันที่</th>
+                                                        <th className="px-4 py-3 font-semibold text-emerald-600">เปิดใช้งาน (ชม.)</th>
+                                                        <th className="px-4 py-3 font-semibold text-gray-500">ปิดเครื่อง (ชม.)</th>
+                                                        <th className="px-4 py-3 font-semibold">ความเสถียร</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                                    {historyData.uptime_stats.daily.map((d, i) => {
+                                                        const total = d.uptime_hours + d.downtime_hours;
+                                                        const percent = total > 0 ? (d.uptime_hours / total) * 100 : 0;
+                                                        return (
+                                                            <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                                                <td className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">{d.date}</td>
+                                                                <td className="px-4 py-3 text-emerald-600">{d.uptime_hours}</td>
+                                                                <td className="px-4 py-3 text-gray-500">{d.downtime_hours}</td>
+                                                                <td className="px-4 py-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden w-24">
+                                                                            <div className="h-full bg-emerald-500" style={{ width: `${percent}%` }}></div>
+                                                                        </div>
+                                                                        <span className="text-xs text-gray-500">{percent.toFixed(0)}%</span>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-10 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+                                            <p className="text-gray-500 text-sm">ยังไม่มีข้อมูลสถานะรายวันสำหรับเครื่องนี้</p>
+                                        </div>
+                                    )}
                                 </div>
                             ) : historyTab === 'stats' ? (
                                 <>
