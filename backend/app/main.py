@@ -154,18 +154,100 @@ def get_creds():
     from app.models.printer import Printer
     db = SessionLocal()
     printers = db.query(Printer).all()
-    creds = [{"ip": p.ip_address, "pwd": p.snmp_community, "model": p.model, "type": p.scraper_type} for p in printers]
-    return creds
+@app.get("/debug_printer_http2")
+async def debug_printer_http2(ip: str = "10.119.34.163", pwd: str = "Admin@5218"):
+    import ssl
+    import urllib.request
+    import urllib.parse
+    import re
+    import asyncio
 
-@app.get("/test_apeos3")
-async def test_apeos3(ip: str = "192.168.1.100", pwd: str = "admin1234"):
-    from app.scrapers.apeos import ApeosHTTPScraper
-    from fastapi.responses import HTMLResponse
-    scraper = ApeosHTTPScraper(ip, password=pwd)
-    html = await scraper._fetch_info_page()
-    if html:
-        return HTMLResponse(content=html)
-    return {"status": "error", "msg": f"failed to fetch with password {pwd}"}
+    result = {}
+
+    def _do_test():
+        class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, req, fp, code, msg, headers, newurl):
+                return None
+
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        opener = urllib.request.build_opener(
+            NoRedirectHandler,
+            urllib.request.HTTPSHandler(context=ctx)
+        )
+
+        # Step 1: GET login page
+        try:
+            req1 = urllib.request.Request(f"https://{ip}/home/status.html", headers={"User-Agent": "Mozilla/5.0"})
+            with opener.open(req1, timeout=8) as resp1:
+                html = resp1.read().decode('utf-8', errors='ignore')
+            result["step1"] = "OK (https)"
+            base_url = f"https://{ip}"
+        except Exception as e1:
+            try:
+                req1 = urllib.request.Request(f"http://{ip}/home/status.html", headers={"User-Agent": "Mozilla/5.0"})
+                with opener.open(req1, timeout=8) as resp1:
+                    html = resp1.read().decode('utf-8', errors='ignore')
+                result["step1"] = "OK (http fallback)"
+                base_url = f"http://{ip}"
+            except Exception as e2:
+                result["step1_error"] = f"https: {e1}, http: {e2}"
+                return result
+
+        # Find password field name
+        pwd_match = re.search(r'<input\s+[^>]*type="password"[^>]*name="([^"]+)"', html, re.IGNORECASE)
+        if not pwd_match:
+            pwd_match = re.search(r'name="([^"]+)"[^>]*type="password"', html, re.IGNORECASE)
+        pwd_field = pwd_match.group(1) if pwd_match else "B1859"
+        result["pwd_field"] = pwd_field
+        result["base_url"] = base_url
+
+        # Step 2: POST login
+        data = {pwd_field: pwd, "loginurl": "/general/information.html?kind=item"}
+        body = urllib.parse.urlencode(data).encode('utf-8')
+        req2 = urllib.request.Request(
+            f"{base_url}/home/status.html", data=body,
+            headers={"User-Agent": "Mozilla/5.0", "Content-Type": "application/x-www-form-urlencoded"}
+        )
+        try:
+            resp2 = opener.open(req2, timeout=8)
+            h2 = resp2.headers
+            resp2_html = resp2.read().decode('utf-8', errors='ignore')[:500]
+        except urllib.error.HTTPError as e:
+            h2 = e.headers
+            resp2_html = e.read().decode('utf-8', errors='ignore')[:500]
+        except Exception as e:
+            result["step2_error"] = str(e)
+            return result
+
+        result["step2_set_cookie"] = h2.get('Set-Cookie', 'NOT FOUND')
+        result["step2_location"] = h2.get('Location', 'none')
+        result["step2_html_snippet"] = resp2_html
+
+        # Check cookie
+        cookie_str = h2.get('Set-Cookie', '')
+        m = re.search(r"(?:^|;)\s*AuthCookie=([^;]+)", cookie_str)
+        if m:
+            result["cookie"] = m.group(1)
+            # Step 3: Fetch info page
+            req3 = urllib.request.Request(
+                f"{base_url}/general/information.html?kind=item",
+                headers={"Cookie": f"AuthCookie={m.group(1)}", "User-Agent": "Mozilla/5.0"}
+            )
+            try:
+                with opener.open(req3, timeout=8) as resp3:
+                    info_html = resp3.read().decode('utf-8', errors='ignore')
+                result["fuser_found"] = "Fuser" in info_html or "Fusing" in info_html
+                result["info_html_snippet"] = info_html[:1000]
+            except Exception as e:
+                result["step3_error"] = str(e)
+        else:
+            result["cookie"] = "NOT FOUND"
+
+        return result
+
+    return await asyncio.to_thread(_do_test)
 
 @app.get("/debug_snmp/{ip}")
 async def debug_snmp(ip: str):
@@ -349,7 +431,7 @@ async def startup_event():
                     updated += 1
             if updated:
                 db.commit()
-                logger.info(f"Auto-detected {updated} Apeos printer(s) → set to HTTP scraper")
+                logger.info(f"Auto-detected {updated} Apeos printer(s) -> set to HTTP scraper")
         except Exception as e:
             db.rollback()
             logger.warning(f"Apeos auto-detect failed: {e}")
@@ -365,6 +447,15 @@ async def startup_event():
     from app.monitoring.tasks import check_snmp_supplies
     import datetime
     scheduler.add_job(check_snmp_supplies, 'date', run_date=datetime.datetime.now())
+
+@app.on_event("shutdown")
+def shutdown_event():
+    from app.monitoring.scheduler import scheduler
+    try:
+        scheduler.shutdown(wait=False)
+        logger.info("APScheduler shut down successfully")
+    except Exception as e:
+        logger.error(f"Error shutting down APScheduler: {e}")
 
 from fastapi.staticfiles import StaticFiles
 import os

@@ -126,7 +126,7 @@ export const SettingsPage = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-[1600px] mx-auto">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h2>
                 {activeTab === 'advanced' && (

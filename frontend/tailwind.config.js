@@ -8,7 +8,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'Sarabun', 'sans-serif'],
+        sans: ['Inter', 'Noto Sans Thai', 'sans-serif'],
       }
     },
   },

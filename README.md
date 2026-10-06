@@ -4,8 +4,8 @@
 
 ## คุณสมบัติหลัก (Features)
 - 📊 **Dashboard 실시간:** ดูสถานะหมึกพิมพ์ กระดาษ และสถานะเครือข่ายของเครื่องพิมพ์แบบ Real-time
-- 🔍 **SNMP Polling:** ดึงข้อมูลจากเครื่องพิมพ์ทุกรุ่นที่รองรับมาตรฐาน SNMP
-- 🔔 **Alerts & Notifications:** แจ้งเตือนผ่าน LINE Notify / Email เมื่อหมึกใกล้หมดหรือเครื่องพิมพ์มีปัญหา
+- 🔍 **Web Scraping:** ดึงข้อมูลจากเครื่องพิมพ์ผ่านหน้าเว็บ (HTTP) แทนระบบ SNMP ดั้งเดิม
+- 🔔 **Alerts & Notifications:** แจ้งเตือนผ่านหน้า Dashboard เมื่อหมึกใกล้หมด (Toner ดำ, Drum เทา) หรือเครื่องพิมพ์มีปัญหา
 - 📁 **CSV Import/Export:** นำเข้าและส่งออกข้อมูลเครื่องพิมพ์เพื่อความสะดวกในการจัดการ
 - 🌓 **Dark Mode:** รองรับโหมดกลางคืนเพื่อถนอมสายตา
 - 🔒 **Role-Based Access Control:** ควบคุมสิทธิ์การใช้งาน (Admin / Viewer)
@@ -21,17 +21,15 @@
 
 This project does not require PowerShell to start, ensuring compatibility with strict Endpoint Security systems (like Sangfor).
 
-- **Start:** `start.bat`
-- **Stop:** `stop.bat`
-- **Restart:** `restart.bat`
-- **Status:** `status.bat`
+- **Start All (CMD Window):** `start_all.bat` (รันทั้ง 2 ระบบในหน้าต่างเดียว)
+- **Start Hidden (No Window):** `start_hidden.vbs` (รันระบบซ่อนอยู่เบื้องหลัง)
+- **Stop All:** `stop_all.bat` (สั่งปิดการทำงานทั้งหมด)
 
 ### Production Network Details
-- **Monitoring Server:** `192.168.1.100`
-- **Printer Networks:** `192.168.1.0/24`, `192.168.2.0/24`
-- **SNMP:** `UDP 161`
-- **Backend:** Port Range `9100-9120`
-- **Frontend:** Port Range `9121-9140`
+- **Monitoring Server:** `10.119.43.25`
+- **Data Source:** `HTTP (Web Interface)`
+- **Backend API:** `Port 8000`
+- **Frontend App:** `Port 4173`
 
 ### Troubleshooting: Endpoint Security Block
 If the launcher fails or the processes (`python.exe`, `node.exe`) are blocked by your antivirus/Sangfor endpoint security, please contact your organization administrator to whitelist or approve the application according to the security policy.

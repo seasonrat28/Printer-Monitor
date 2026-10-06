@@ -9,7 +9,9 @@ import { PrinterCard } from '../components/PrinterCard';
 import { EditPrinterModal } from '../components/EditPrinterModal';
 import { NotificationsPanel } from '../components/NotificationsPanel';
 import { MetricGrid } from '../components/MetricGrid';
+import { AutoDiscoveryModal } from '../components/AutoDiscoveryModal';
 import type { Printer } from '../types';
+import toast from 'react-hot-toast';
 
 let isInitialSyncDone = false;
 let cachedPrinters: Printer[] = [];
@@ -149,6 +151,7 @@ const PrintersList = () => {
     // Edit Modal State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingPrinter, setEditingPrinter] = useState<Printer | null>(null);
+    const [isAutoDiscoveryModalOpen, setIsAutoDiscoveryModalOpen] = useState(false);
 
     const toggleFavorite = useCallback(async (printer: Printer, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -192,11 +195,11 @@ const PrintersList = () => {
                 // We keep overwriting so the last reading of the day is kept
                 dailyCounters[dayKey] = c.total_pages;
             });
-            
+
             const meterHistory = [];
             const days = Object.keys(dailyCounters);
             for (let i = 1; i < days.length; i++) {
-                const prevDay = days[i-1];
+                const prevDay = days[i - 1];
                 const currDay = days[i];
                 const increment = dailyCounters[currDay] - dailyCounters[prevDay];
                 meterHistory.push({
@@ -440,12 +443,12 @@ const PrintersList = () => {
         if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบเครื่องพิมพ์ทั้งหมดในระบบ? ข้อมูลประวัติทั้งหมดจะหายไปด้วย!")) {
             try {
                 await api.delete('/printers/');
-                alert("ลบเครื่องพิมพ์ทั้งหมดเรียบร้อยแล้ว");
+                toast.success("ลบเครื่องพิมพ์ทั้งหมดเรียบร้อยแล้ว");
                 fetchPrinters();
                 fetchSummary();
             } catch (error: any) {
                 console.error("Failed to delete all printers", error);
-                alert("ไม่สามารถลบเครื่องพิมพ์ทั้งหมดได้: " + (error.response?.data?.detail || error.message));
+                toast.error("ไม่สามารถลบเครื่องพิมพ์ทั้งหมดได้: " + (error.response?.data?.detail || error.message));
             }
         }
     };
@@ -459,11 +462,11 @@ const PrintersList = () => {
 
         try {
             await api.post('/printers/import/csv', formData);
-            alert('Printers imported successfully!');
+            toast.success('Printers imported successfully!');
             fetchPrinters();
             fetchSummary();
         } catch (err: any) {
-            alert(err.response?.data?.detail || 'Failed to import printers');
+            toast.error(err.response?.data?.detail || 'Failed to import printers');
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
@@ -490,14 +493,14 @@ const PrintersList = () => {
         try {
             setIsSubmitting(true);
             const response = await api.post('/printers/bulk', { raw_ips: rawIps });
-            alert(response.data.message);
+            toast.success(response.data.message);
             setIsAddModalOpen(false);
             setRawIps('');
             setSelectedFileName('');
             fetchPrinters();
             fetchSummary();
         } catch (err: any) {
-            alert(err.response?.data?.detail || 'Failed to add printers');
+            toast.error(err.response?.data?.detail || 'Failed to add printers');
         } finally {
             setIsSubmitting(false);
         }
@@ -654,7 +657,7 @@ const PrintersList = () => {
     );
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-[1600px] mx-auto">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold tracking-tight">Printers Directory</h2>
                 <div className="flex space-x-3">
@@ -696,6 +699,13 @@ const PrintersList = () => {
                     </button>
                     {user?.role === 'ADMIN' && (
                         <>
+                            <button
+                                onClick={() => setIsAutoDiscoveryModalOpen(true)}
+                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg flex items-center space-x-2 hover:bg-emerald-700 transition-colors shadow-sm"
+                            >
+                                <Search size={16} />
+                                <span>Scan Network</span>
+                            </button>
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
                                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center space-x-2 hover:bg-indigo-700 transition-colors shadow-sm"
@@ -966,17 +976,17 @@ const PrintersList = () => {
                                     ? [
                                         ['PK', (printer as any).toner_photo_black_level, 'bg-gray-900 dark:bg-gray-200'],
                                         ['MK', (printer as any).toner_matte_black_level, 'bg-gray-600 dark:bg-gray-400'],
-                                        ['C', printer.toner_cyan_level, 'bg-cyan-600 dark:bg-cyan-400'], 
-                                        ['M', printer.toner_magenta_level, 'bg-rose-600 dark:bg-rose-400'], 
-                                        ['Y', printer.toner_yellow_level, 'bg-amber-500 dark:bg-amber-400'], 
+                                        ['C', printer.toner_cyan_level, 'bg-cyan-600 dark:bg-cyan-400'],
+                                        ['M', printer.toner_magenta_level, 'bg-rose-600 dark:bg-rose-400'],
+                                        ['Y', printer.toner_yellow_level, 'bg-amber-500 dark:bg-amber-400'],
                                         ['K', printer.toner_black_level ?? printer.toner_level, 'bg-slate-700 dark:bg-slate-300'],
                                         ['R', (printer as any).toner_red_level, 'bg-red-600 dark:bg-red-400'],
                                         ['dC', printer.drum_cyan_level, 'bg-cyan-600 dark:bg-cyan-400'],
                                         ['dM', printer.drum_magenta_level, 'bg-rose-600 dark:bg-rose-400'],
                                         ['dY', printer.drum_yellow_level, 'bg-amber-500 dark:bg-amber-400'],
                                         ['dK', printer.drum_black_level, 'bg-slate-700 dark:bg-slate-300']
-                                      ] as [string, number | undefined | null, string][]
-                                    : [['Toner', printer.toner_level, 'bg-slate-700 dark:bg-slate-300'], ['Drum', printer.drum_level, 'bg-amber-500 dark:bg-amber-400']] as [string, number | undefined | null, string][];
+                                    ] as [string, number | undefined | null, string][]
+                                    : [['Toner', printer.toner_level ?? printer.toner_black_level, 'bg-slate-700 dark:bg-slate-300'], ['Drum', printer.drum_level ?? printer.drum_black_level, 'bg-amber-500 dark:bg-amber-400']] as [string, number | undefined | null, string][];
 
                                 const supplies = [
                                     ...baseSupplies,
@@ -1012,16 +1022,17 @@ const PrintersList = () => {
                                                     else if (label === 'PF Kit 1') shortLabel = 'P2';
                                                     else if (['PK', 'MK', 'dC', 'dM', 'dY', 'dK'].includes(label)) shortLabel = label;
                                                     else if (!['K', 'C', 'M', 'Y', 'R'].includes(label)) shortLabel = label.substring(0, 1);
-                                                    
+
                                                     return (
-                                                    <div key={label} className="flex flex-col items-center group cursor-help" title={`${label}: ${level ?? '-'}%`}>
-                                                        <span className="text-[8px] font-medium text-slate-400 leading-none mb-1 opacity-0 group-hover:opacity-100 transition-opacity absolute -mt-4">{level ?? '-'}</span>
-                                                        <div className="w-2 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden h-7 flex flex-col justify-end">
-                                                            <div className={`w-full rounded-full ${color} transition-all duration-500`} style={{ height: `${Math.max(0, Math.min(100, level ?? 0))}%` }} />
+                                                        <div key={label} className="flex flex-col items-center group cursor-help" title={`${label}: ${level ?? '-'}%`}>
+                                                            <span className="text-[8px] font-medium text-slate-400 leading-none mb-1 opacity-0 group-hover:opacity-100 transition-opacity absolute -mt-4">{level ?? '-'}</span>
+                                                            <div className="w-2 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden h-7 flex flex-col justify-end">
+                                                                <div className={`w-full rounded-full ${color} transition-all duration-500`} style={{ height: `${Math.max(0, Math.min(100, level ?? 0))}%` }} />
+                                                            </div>
+                                                            <span className="text-[9px] font-bold text-slate-500 leading-none mt-1">{shortLabel}</span>
                                                         </div>
-                                                        <span className="text-[9px] font-bold text-slate-500 leading-none mt-1">{shortLabel}</span>
-                                                    </div>
-                                                )})}
+                                                    )
+                                                })}
                                             </div>
                                         </td>
                                         <td className="px-3 py-2 text-xs text-slate-500">{printer.last_seen ? new Date(printer.last_seen.endsWith('Z') ? printer.last_seen : printer.last_seen + 'Z').toLocaleString('en-GB') : 'Never'}</td>
@@ -1384,7 +1395,7 @@ const PrintersList = () => {
                                                         <XAxis dataKey="date" stroke="#6B7280" fontSize={12} tickLine={false} axisLine={false} />
                                                         <YAxis stroke="#6B7280" fontSize={12} width={60} tickLine={false} axisLine={false} />
                                                         <RechartsTooltip
-                                                            cursor={{fill: 'rgba(99, 102, 241, 0.1)'}}
+                                                            cursor={{ fill: 'rgba(99, 102, 241, 0.1)' }}
                                                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                                                         />
                                                         <Bar dataKey="pages" fill="#6366F1" radius={[4, 4, 0, 0]} name="Pages Printed" />
@@ -1397,7 +1408,7 @@ const PrintersList = () => {
                                             </div>
                                         )}
                                     </div>
-                                    
+
                                     <div className="grid grid-cols-1 gap-4 mt-4">
                                         <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800 flex flex-col items-center justify-center">
                                             <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">Total Page Count</span>
@@ -1416,16 +1427,16 @@ const PrintersList = () => {
                                                 <label className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-md text-xs font-medium flex items-center space-x-1 transition-colors">
                                                     <Upload className="w-3.5 h-3.5" />
                                                     <span>อัปโหลดไฟล์</span>
-                                                    <input 
-                                                        type="file" 
-                                                        className="hidden" 
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
                                                         onChange={async (e) => {
                                                             const file = e.target.files?.[0];
                                                             if (!file) return;
-                                                            
+
                                                             const formData = new FormData();
                                                             formData.append("file", file);
-                                                            
+
                                                             try {
                                                                 const res = await api.post(`/printers/${selectedPrinterHistory.id}/attachments`, formData, {
                                                                     headers: { "Content-Type": "multipart/form-data" }
@@ -1452,9 +1463,9 @@ const PrintersList = () => {
                                                                 <Download className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                                                             </div>
                                                             <div className="flex flex-col min-w-0">
-                                                                <a 
-                                                                    href={api.defaults.baseURL?.replace('/api/v1', '') + doc.file_path} 
-                                                                    target="_blank" 
+                                                                <a
+                                                                    href={api.defaults.baseURL?.replace('/api/v1', '') + doc.file_path}
+                                                                    target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="font-medium text-sm text-indigo-600 dark:text-indigo-400 hover:underline truncate"
                                                                 >
@@ -1668,6 +1679,15 @@ const PrintersList = () => {
                 onClose={() => setIsEditModalOpen(false)}
                 printer={editingPrinter}
                 onSaved={fetchPrinters}
+            />
+            
+            <AutoDiscoveryModal 
+                isOpen={isAutoDiscoveryModalOpen}
+                onClose={() => setIsAutoDiscoveryModalOpen(false)}
+                onSuccess={() => {
+                    fetchPrinters();
+                    fetchSummary();
+                }}
             />
 
         </div>

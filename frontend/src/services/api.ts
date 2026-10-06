@@ -77,6 +77,13 @@ let isRedirecting = false;
 api.interceptors.response.use(
     (response) => response,
     (error) => {
+        // Detect network errors (Server offline / CORS failed / connection refused)
+        if (error.code === 'ERR_NETWORK' && window.location.pathname !== '/offline' && !isRedirecting) {
+            isRedirecting = true;
+            window.location.href = '/offline';
+            return Promise.reject(error);
+        }
+        
         if (error.response?.status === 401 && !isRedirecting) {
             isRedirecting = true;
             localStorage.removeItem('token');

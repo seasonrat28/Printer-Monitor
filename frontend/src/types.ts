@@ -36,5 +36,6 @@ export interface Printer {
     lease_provider?: string;
     lease_start_date?: string;
     lease_end_date?: string;
+    scraper_type?: string;
 }
 

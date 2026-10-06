@@ -95,26 +95,39 @@ export const MetricGrid: React.FC<MetricGridProps> = ({
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {cards.map((card, idx) => (
-                <div 
-                    key={idx} 
-                    className="group relative rounded-xl border border-slate-200/80 bg-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:border-gray-700/50 dark:bg-gray-800/40 overflow-hidden"
-                >
+            {cards.map((card, idx) => {
+                // Determine gradient based on card label
+                let gradientClass = 'from-slate-500 to-slate-700'; // Default
+                if (card.label === 'Pages Printed') gradientClass = 'from-violet-500 to-indigo-600';
+                else if (card.label === 'Online') gradientClass = 'from-emerald-400 to-emerald-600';
+                else if (card.label === 'Active Alerts' || card.label === 'Low Toner Printers') gradientClass = 'from-amber-400 to-orange-500';
+                else if (card.label === 'Critical Alerts') gradientClass = 'from-red-400 to-red-600';
+                else if (card.label === 'Total Printers') gradientClass = 'from-blue-500 to-blue-700';
+                else if (card.label === 'Offline') gradientClass = 'from-slate-400 to-slate-600';
+                else if (card.label === 'Avg Response') gradientClass = 'from-cyan-400 to-cyan-600';
+
+                return (
                     <div 
-                        className="absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl transition-all duration-500 group-hover:scale-150 group-hover:opacity-40" 
-                        style={{ backgroundColor: card.glowColor }} 
-                    />
-                    <div className="flex items-center space-x-4 p-5 relative z-10">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${card.iconBg} ${card.accent}`}>
-                            {card.icon}
+                        key={idx} 
+                        className={`group relative rounded-xl border-none overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg bg-gradient-to-br ${gradientClass} text-white shadow-md`}
+                    >
+                        {/* Background Icon */}
+                        <div className="absolute top-0 right-0 p-3 opacity-20 pointer-events-none">
+                            {React.cloneElement(card.icon as React.ReactElement<any>, { size: 48 })}
                         </div>
-                        <div className="flex-1">
-                            <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{card.label}</h3>
-                            <div className={`text-2xl font-black tracking-tight transition-colors duration-300 ${card.accent}`}>{card.value}</div>
+                        
+                        <div className="flex items-center space-x-4 p-5 relative z-10">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 bg-white/20 text-white">
+                                {card.icon}
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-white/80">{card.label}</h3>
+                                <div className="text-2xl font-black tracking-tight transition-colors duration-300 text-white">{card.value}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 };

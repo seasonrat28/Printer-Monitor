@@ -98,7 +98,7 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
         }
     };
 
-    const renderProgressBar = (label: string, level?: number, status?: string) => {
+    const renderProgressBar = (label: string, level?: number, status?: string, isHorizontal: boolean = false) => {
         const getIcon = (l: string) => {
             if (l === 'TONER') return '✒️';
             if (l === 'DRUM') return '🗞️';
@@ -111,41 +111,90 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
         // If offline, show greyed out bar. If no data at all, hide completely.
         if (level === undefined || level === null) return null;
         if (status === 'OFFLINE') return (
-            <div className="flex-1 flex flex-col items-center opacity-40 grayscale">
-                <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center space-x-1 tracking-wider">
+            <div className={`flex-1 flex flex-col items-center opacity-40 grayscale ${isHorizontal ? '' : 'w-full'}`}>
+                <span className={`text-[10px] uppercase font-bold text-gray-400 flex items-center space-x-1 tracking-wider ${isHorizontal ? '' : 'text-center mb-1'}`}>
                     <span className="opacity-70">{getIcon(label)}</span>
                     <span>{label}</span>
                 </span>
-                <span className="text-xl font-bold text-gray-400 my-1">OFFLINE</span>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
-                    <div className="h-1.5 rounded-full w-0"></div>
-                </div>
+                {isHorizontal ? (
+                    <>
+                        <span className="text-xl font-bold text-gray-400 my-1">OFFLINE</span>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
+                            <div className="h-1.5 rounded-full w-0"></div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex gap-1.5 w-full mt-1 px-1 justify-center">
+                        <div className="flex-1 max-w-[28px] flex flex-col items-center">
+                            <span className="text-[9px] font-bold text-gray-400">OFF</span>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-sm h-8 mt-0.5 relative overflow-hidden transform rotate-180">
+                                <div className="w-full h-0 bg-gray-400" />
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
 
-        let colorClass = "bg-emerald-500";
+        const isFuji = (printer.scraper_type === 'http_apeos' || printer.scraper_type === 'apeos')
+            || (printer.model || '').toLowerCase().includes('fuji')
+            || (printer.model || '').toLowerCase().includes('apeos')
+            || (printer.manufacturer || '').toLowerCase().includes('fuji');
+
+        let colorClass = "bg-gradient-to-r from-emerald-500 via-emerald-300 to-emerald-500 animate-shimmer-flow";
         let textColor = "text-emerald-500";
-        if (level < 20) {
-            colorClass = "bg-red-500";
+
+        if (level <= 10) {
+            colorClass = "bg-gradient-to-r from-red-600 via-red-400 to-red-600 animate-shimmer-flow";
             textColor = "text-red-500";
-        } else if (level <= 50) {
-            colorClass = "bg-amber-400";
-            textColor = "text-amber-500";
+        } else if (isFuji) {
+            // Fuji printer: Toner = black, Drum = gray when above threshold
+            if (label === 'TONER') {
+                colorClass = "bg-gradient-to-r from-gray-900 via-gray-600 to-gray-900 dark:from-gray-200 dark:via-gray-100 dark:to-gray-200 animate-shimmer-flow";
+                textColor = "text-gray-900 dark:text-gray-200";
+            } else if (label === 'DRUM') {
+                colorClass = "bg-gradient-to-r from-gray-500 via-gray-300 to-gray-500 animate-shimmer-flow";
+                textColor = "text-gray-500 dark:text-gray-400";
+            }
+        }
+
+        if (!isHorizontal) {
+            // For vertical bars, solid colors look much better
+            colorClass = "bg-emerald-500";
+            if (level <= 10) colorClass = "bg-red-500";
+            else if (isFuji && label === 'TONER') colorClass = "bg-gray-900 dark:bg-gray-200";
+            else if (isFuji && label === 'DRUM') colorClass = "bg-gray-500";
         }
 
         return (
-            <div className="flex-1 flex flex-col items-center">
-                <span className="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400 flex items-center space-x-1 tracking-wider text-center">
+            <div className={`flex-1 flex flex-col items-center ${isHorizontal ? '' : 'w-full'}`}>
+                <span className={`text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400 flex items-center space-x-1 tracking-wider ${isHorizontal ? 'text-center' : 'text-center mb-1'}`}>
                     <span className="opacity-70">{getIcon(label)}</span>
                     <span>{label}</span>
                 </span>
-                <span className={`text-2xl font-bold my-1 ${textColor}`}>{level}%</span>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1 overflow-hidden">
-                    <div
-                        style={{ width: `${level}%` }}
-                        className={`${colorClass} h-1.5 rounded-full transition-all duration-1000 ease-out`}
-                    />
-                </div>
+                {isHorizontal ? (
+                    <>
+                        <span className={`text-2xl font-bold my-1 ${textColor}`}>{level}%</span>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1 overflow-hidden shadow-inner">
+                            <div
+                                style={{ width: `${level}%` }}
+                                className={`${colorClass} h-1.5 rounded-full transition-all duration-1000 ease-out`}
+                            />
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex gap-1.5 w-full mt-1 px-1 justify-center">
+                        <div className="flex-1 max-w-[28px] flex flex-col items-center">
+                            <span className={`text-[10px] font-bold ${textColor}`}>{level}%</span>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-sm h-8 mt-0.5 relative overflow-hidden transform rotate-180">
+                                <div
+                                    style={{ height: `${level}%` }}
+                                    className={`w-full ${colorClass} transition-all duration-1000 ease-out`}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     };
@@ -160,11 +209,15 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
         const mkLevel = type === "TONER" ? (printer as any).toner_matte_black_level : undefined;
         const rLevel  = type === "TONER" ? (printer as any).toner_red_level : undefined;
         
-        const hasColors = [cLevel, mLevel, yLevel, kLevel, pkLevel, mkLevel, rLevel]
-            .some(v => v !== undefined && v !== null);
+        const colorArray = [cLevel, mLevel, yLevel, kLevel, pkLevel, mkLevel, rLevel].filter(v => v !== undefined && v !== null);
         
-        if (!hasColors) {
+        if (colorArray.length === 0) {
             return renderProgressBar(type, type === "TONER" ? printer.toner_level : printer.drum_level, printer.status);
+        }
+
+        // If it ONLY has black (K), treat it as a monochrome printer and show a regular progress bar
+        if (colorArray.length === 1 && kLevel !== undefined && kLevel !== null) {
+            return renderProgressBar(type, kLevel, printer.status);
         }
         
         if (printer.status === 'OFFLINE') return renderProgressBar(type, undefined, 'OFFLINE');
@@ -325,10 +378,10 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
                     { label: 'PF KIT 1', value: printer.pf_kit_1_level },
                 ].some(({ value }) => value !== undefined && value !== null) && (
                     <div className="grid grid-cols-2 gap-y-4 gap-x-6 px-2 mb-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                        {printer.fuser_level !== null && printer.fuser_level !== undefined && renderProgressBar("FUSER", printer.fuser_level, printer.status)}
-                        {printer.laser_unit_level !== null && printer.laser_unit_level !== undefined && renderProgressBar("LASER", printer.laser_unit_level, printer.status)}
-                        {printer.pf_kit_mp_level !== null && printer.pf_kit_mp_level !== undefined && renderProgressBar("PF KIT MP", printer.pf_kit_mp_level, printer.status)}
-                        {printer.pf_kit_1_level !== null && printer.pf_kit_1_level !== undefined && renderProgressBar("PF KIT 1", printer.pf_kit_1_level, printer.status)}
+                        {printer.fuser_level !== null && printer.fuser_level !== undefined && renderProgressBar("FUSER", printer.fuser_level, printer.status, true)}
+                        {printer.laser_unit_level !== null && printer.laser_unit_level !== undefined && renderProgressBar("LASER", printer.laser_unit_level, printer.status, true)}
+                        {printer.pf_kit_mp_level !== null && printer.pf_kit_mp_level !== undefined && renderProgressBar("PF KIT MP", printer.pf_kit_mp_level, printer.status, true)}
+                        {printer.pf_kit_1_level !== null && printer.pf_kit_1_level !== undefined && renderProgressBar("PF KIT 1", printer.pf_kit_1_level, printer.status, true)}
                     </div>
                 )}
 

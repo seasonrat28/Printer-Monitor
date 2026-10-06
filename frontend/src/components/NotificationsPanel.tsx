@@ -95,14 +95,14 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
             <div className={`fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-b from-[#111827] to-[#1e1b4b] flex justify-between items-center">
-                    <h2 className="text-lg font-bold text-white flex items-center">
-                        <Bell className="mr-2" size={20} />
+                <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1A1D20] flex justify-between items-center">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center">
+                        <Bell className="mr-2 text-slate-500 dark:text-slate-400" size={20} />
                         การแจ้งเตือน
                     </h2>
                     <button 
                         onClick={onClose}
-                        className="text-indigo-200 hover:text-white transition-colors"
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                     >
                         <X size={24} />
                     </button>

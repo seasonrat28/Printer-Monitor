@@ -33,7 +33,8 @@ def _is_apeos(printer: Printer) -> bool:
     """Return True if this printer should use the Apeos HTTP scraper."""
     if _is_known_apeos_ip(printer.ip_address):
         return True
-    if getattr(printer, "scraper_type", "snmp") == "http_apeos":
+    scraper = getattr(printer, "scraper_type", "snmp") or "snmp"
+    if scraper in ("http_apeos", "apeos"):   # ← รองรับทั้ง 2 ค่า
         return True
     # Auto-detect from model / manufacturer strings stored in DB
     for field in (printer.model or "", printer.manufacturer or ""):
@@ -77,7 +78,7 @@ def get_adapter(printer: Printer):
         return ApeosHTTPScraper(
             ip=printer.ip_address,
             password=pwd,
-            timeout=3
+            timeout=10
         )
     if _is_hp(printer):
         return HPHTTPScraper(
@@ -229,7 +230,10 @@ from app.services.notification import send_email_notify, get_department_email
 import asyncio
 
 async def _check_single_printer_status(printer_id: int, adapter: StandardSNMPAdapter):
+    import time
+    start_time = time.time()
     status, status_message = await adapter.get_status()
+    response_time = (time.time() - start_time) * 1000
     db = SessionLocal()
     try:
         printer = db.query(Printer).filter(Printer.id == printer_id).first()
@@ -265,7 +269,7 @@ async def _check_single_printer_status(printer_id: int, adapter: StandardSNMPAda
         # Evaluate Alerts
         await evaluate_status_alerts(db, printer)
         
-        history = PrinterStatusHistory(printer_id=printer_id, status=status)
+        history = PrinterStatusHistory(printer_id=printer_id, status=status, response_time=response_time)
         db.add(history)
         
         # Always broadcast to update the frontend progress bar

@@ -320,7 +320,7 @@ export const FloorMapPage = () => {
     const apiUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-[1600px] mx-auto">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center space-x-2">
                     <Map className="text-indigo-600" />

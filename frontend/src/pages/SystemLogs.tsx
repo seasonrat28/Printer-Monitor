@@ -51,7 +51,7 @@ const SystemLogs = () => {
     };
 
     return (
-        <div className="space-y-6 flex flex-col h-[calc(100vh-100px)]">
+        <div className="space-y-6 flex flex-col h-[calc(100vh-100px)] max-w-[1600px] mx-auto w-full">
             <div className="flex justify-between items-center shrink-0">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center space-x-2">

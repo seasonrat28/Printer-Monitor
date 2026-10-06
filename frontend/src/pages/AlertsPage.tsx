@@ -87,7 +87,7 @@ export const AlertsPage = () => {
     });
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-[1600px] mx-auto">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">

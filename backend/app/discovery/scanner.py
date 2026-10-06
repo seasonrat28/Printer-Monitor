@@ -1,8 +1,8 @@
 import asyncio
 import ipaddress
 import aioping
+import httpx
 from typing import List, Dict, Any
-from app.snmp.standard import StandardSNMPAdapter
 
 async def scan_network(cidr: str, snmp_community: str = "public", snmp_version: str = "v2c", blacklist: List[str] = None) -> List[Dict[str, Any]]:
     if blacklist is None:
@@ -21,11 +21,12 @@ async def scan_network(cidr: str, snmp_community: str = "public", snmp_version: 
     
     active_ips = [ip for ip, is_active in zip(ips, ping_results) if is_active]
     
-    # 2. SNMP Sweep on active IPs
-    snmp_tasks = [_snmp_probe(ip, snmp_community, snmp_version) for ip in active_ips]
-    snmp_results = await asyncio.gather(*snmp_tasks)
+    # 2. HTTP Web Probe on active IPs
+    async with httpx.AsyncClient(verify=False) as client:
+        http_tasks = [_http_probe(client, ip) for ip in active_ips]
+        http_results = await asyncio.gather(*http_tasks)
     
-    discovered_printers = [result for result in snmp_results if result is not None]
+    discovered_printers = [result for result in http_results if result is not None]
     
     return discovered_printers
 
@@ -36,36 +37,60 @@ async def _ping_host(ip: str, timeout: float = 0.5) -> bool:
     except (TimeoutError, OSError):
         return False
 
-async def _snmp_probe(ip: str, community: str, version: str) -> Dict[str, Any]:
-    adapter = StandardSNMPAdapter(ip=ip, community=community, version=version, timeout=1, retries=0)
-    system_info = await adapter.get_system_info()
+async def _http_probe(client: httpx.AsyncClient, ip: str) -> Dict[str, Any]:
+    try:
+        # Try HTTP first
+        url = f"http://{ip}"
+        response = await client.get(url, timeout=2.0)
+        html = response.text
+        server_header = response.headers.get('Server', '').lower()
+        return _analyze_web_response(ip, html, server_header)
+    except Exception:
+        # Fallback to HTTPS
+        try:
+            url = f"https://{ip}"
+            response = await client.get(url, timeout=2.0)
+            html = response.text
+            server_header = response.headers.get('Server', '').lower()
+            return _analyze_web_response(ip, html, server_header)
+        except Exception:
+            return None
+
+def _analyze_web_response(ip: str, html: str, server_header: str) -> Dict[str, Any]:
+    html_lower = html.lower()
     
-    sys_descr = system_info.get("sysDescr")
-    if not sys_descr:
-        return None  # No SNMP response
+    manufacturer = "Unknown"
+    is_printer = False
+    
+    # Detect Brother
+    if "brother" in html_lower or "brother" in server_header:
+        manufacturer = "Brother"
+        is_printer = True
         
-    # Basic Detection Logic
-    sys_descr_lower = sys_descr.lower()
-    is_printer = "printer" in sys_descr_lower or "print" in sys_descr_lower or "brother" in sys_descr_lower or "fuji" in sys_descr_lower or "hp" in sys_descr_lower
-    
+    # Detect Fuji / Apeos
+    elif "fuji" in html_lower or "apeos" in html_lower or "centreware" in html_lower:
+        manufacturer = "FUJIFILM"
+        is_printer = True
+        
+    # Detect HP
+    elif "hp" in server_header or "hewlett-packard" in html_lower or "hp laserjet" in html_lower:
+        manufacturer = "HP"
+        is_printer = True
+        
+    # Detect Epson
+    elif "epson" in html_lower or "epson" in server_header:
+        manufacturer = "Epson"
+        is_printer = True
+
     if not is_printer:
-        # We might want to be more liberal in production, but let's filter for now
         return None
         
-    manufacturer = "Unknown"
-    if "brother" in sys_descr_lower:
-        manufacturer = "Brother"
-    elif "fuji" in sys_descr_lower or "fujifilm" in sys_descr_lower:
-        manufacturer = "FUJIFILM"
-    elif "hp " in sys_descr_lower or "hewlett-packard" in sys_descr_lower:
-        manufacturer = "HP"
-
     return {
         "ip_address": ip,
-        "hostname": system_info.get("sysName", ""),
-        "location": system_info.get("sysLocation", ""),
+        "hostname": f"{manufacturer} Printer ({ip})",
+        "location": "",
         "manufacturer": manufacturer,
-        "model": "Detected by sysDescr",  # We can parse model from sysDescr later
-        "sys_descr": sys_descr,
+        "model": f"Detected by HTTP",
+        "sys_descr": "Web Interface Detected",
         "status": "ONLINE"
     }

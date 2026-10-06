@@ -139,7 +139,7 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-[1600px] mx-auto">
             <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div>
                     <h2 className="text-xl font-bold tracking-tight text-gray-800 dark:text-gray-200">Device Summary</h2>
@@ -237,9 +237,9 @@ const Dashboard = () => {
 
                         {/* Combined Progress Bar */}
                         <div className="w-full h-4 bg-gray-100/80 dark:bg-gray-800/50 rounded-full overflow-hidden flex shadow-inner border border-gray-200/60 dark:border-gray-700/50">
-                            <div style={{ width: `${onlinePct}%` }} className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500" title={`Ready: ${online}`}></div>
-                            <div style={{ width: `${warningPct}%` }} className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500" title={`Attention: ${warning}`}></div>
-                            <div style={{ width: `${offlinePct}%` }} className="h-full bg-gradient-to-r from-red-400 to-red-500 transition-all duration-500" title={`Error: ${offline}`}></div>
+                            <div style={{ width: `${onlinePct}%` }} className="h-full bg-gradient-to-r from-emerald-500 via-emerald-300 to-emerald-500 animate-shimmer-flow transition-all duration-500" title={`Ready: ${online}`}></div>
+                            <div style={{ width: `${warningPct}%` }} className="h-full bg-gradient-to-r from-amber-500 via-amber-300 to-amber-500 animate-shimmer-flow transition-all duration-500" title={`Attention: ${warning}`}></div>
+                            <div style={{ width: `${offlinePct}%` }} className="h-full bg-gradient-to-r from-red-500 via-red-400 to-red-500 animate-shimmer-flow transition-all duration-500" title={`Error: ${offline}`}></div>
                         </div>
                         <div className="flex justify-end mt-2">
                             <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{total} Devices</span>
@@ -256,7 +256,22 @@ const Dashboard = () => {
 
                     <div className="p-0 flex-1">
                         {loading ? (
-                            <div className="flex items-center justify-center h-full min-h-[200px] text-gray-400">Loading data...</div>
+                            <div className="p-6 space-y-6 h-full min-h-[200px]">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="animate-pulse flex items-center space-x-4">
+                                        <div className="rounded-md bg-slate-200/60 dark:bg-slate-700/50 h-10 w-10"></div>
+                                        <div className="flex-1 space-y-3 py-1">
+                                            <div className="h-2 bg-slate-200/60 dark:bg-slate-700/50 rounded w-1/4"></div>
+                                            <div className="space-y-3">
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    <div className="h-2 bg-slate-200/60 dark:bg-slate-700/50 rounded col-span-2"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="h-6 w-16 bg-slate-200/60 dark:bg-slate-700/50 rounded"></div>
+                                    </div>
+                                ))}
+                            </div>
                         ) : summary.consumables_alert.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-emerald-500 bg-emerald-50/30 m-4 rounded-lg border border-emerald-100">
                                 <CheckCircle2 size={40} className="mb-3 opacity-80" />
@@ -296,8 +311,8 @@ const Dashboard = () => {
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center space-x-2">
                                                         <span className="text-sm font-black text-red-600 w-8">{alert.level}%</span>
-                                                        <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden border border-gray-300">
-                                                            <div className="h-full bg-red-500" style={{ width: `${alert.level}%` }}></div>
+                                                        <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden border border-gray-300 dark:border-gray-600 shadow-inner">
+                                                            <div className="h-full bg-gradient-to-r from-red-600 via-red-400 to-red-600 animate-shimmer-flow transition-all duration-500" style={{ width: `${alert.level}%` }}></div>
                                                         </div>
                                                     </div>
                                                 </td>

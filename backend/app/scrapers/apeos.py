@@ -101,35 +101,13 @@ class ApeosHTTPScraper:
                     elif "ready" in text_lower or text == "":
                         # Try to get the real status from status.html (e.g. "Sleep")
                         try:
-                            import bs4
                             status_html = await self._fetch_http("/home/status.html")
                             if status_html:
-                                soup = bs4.BeautifulSoup(status_html, "html.parser")
-                                label = soup.find(string=re.compile(r"Device\s*Status", re.IGNORECASE))
-                                if label and label.parent:
-                                    parent = label.parent
-                                    # If the text is contained within the same parent
-                                    full_text = parent.text.strip()
-                                    clean_label = str(label).strip()
-                                    if full_text and full_text != clean_label:
-                                        real_status = full_text.replace(clean_label, '').strip()
-                                        if real_status:
-                                            text = real_status
-                                    else:
-                                        # Try next sibling
-                                        sibling = parent.find_next_sibling()
-                                        if sibling and sibling.text.strip():
-                                            text = sibling.text.strip()
-                                        else:
-                                            # Try parent's parent
-                                            parent_full_text = parent.parent.text.strip()
-                                            if parent_full_text and parent_full_text != clean_label:
-                                                real_status = parent_full_text.replace(clean_label, '').strip()
-                                                if real_status:
-                                                    text = real_status
-                                
-                                # Clean up text just in case
-                                text = re.sub(r'\s+', ' ', text).strip()
+                                m = re.search(r'>\s*Device(?:\s|&#32;)*Status\s*<.*?<(?:dd|span)[^>]*>(.*?)</(?:dd|span)>', status_html, re.IGNORECASE | re.DOTALL)
+                                if m:
+                                    real_status = re.sub(r'<[^>]+>', '', m.group(1)).strip()
+                                    if real_status:
+                                        text = re.sub(r'\s+', ' ', real_status)
                         except Exception as e:
                             logger.warning(f"[Apeos {self.ip}] failed to parse status.html for real status: {e}")
 
@@ -271,22 +249,35 @@ class ApeosHTTPScraper:
             # Format: <dt>Fuser Unit</dt><dd>167195 Page(s)</dd>
             #         <dt>(% of Life Remaining)</dt><dd>(84%)</dd>
             for key, name_pat in [
-                ("fuser_level",      r"Fuser(?:\s+Unit)?"),
-                ("laser_unit_level", r"Laser(?:\s+Unit)?"),
-                ("pf_kit_mp_level",  r"Paper\s+Feeding\s+Kit\s+MP"),
-                ("pf_kit_1_level",   r"Paper\s+Feeding\s+Kit\s+1"),
+                ("fuser_level",      r"(?:Fuser|Fusing|Fixing)(?:&#32;|\s)+(?:Unit|Assembly|Kit)?"),
+                ("laser_unit_level", r"(?:Laser|ROS)(?:&#32;|\s)+(?:Unit|Scanner)?"),
+                ("pf_kit_mp_level",  r"(?:PF|Paper(?:&#32;|\s)+Feed(?:ing)?)(?:&#32;|\s)+(?:Kit|Roller)(?:&#32;|\s)+(?:MP|Bypass)"),
+                ("pf_kit_1_level",   r"(?:PF|Paper(?:&#32;|\s)+Feed(?:ing)?)(?:&#32;|\s)+(?:Kit|Roller)(?:&#32;|\s)+(?:1|Tray(?:&#32;|\s)+1)"),
             ]:
                 # Find the <dt> for this item, then grab the (XX%) in the following <dd>
                 m = re.search(
-                    r'<dt[^>]*>\s*' + name_pat + r'\s*[*\s]*</dt>.{0,500}?<dd[^>]*>\s*\(?\s*(\d+)\s*%\s*\)?\s*</dd>',
+                    r'<dt[^>]*>(?:&#32;|\s)*' + name_pat + r'(?:&#32;|\s)*[*\s]*</dt>.{0,500}?<dd[^>]*>(?:&#32;|\s)*\(?(?:&#32;|\s)*(\d+)(?:&#32;|\s)*%(?:&#32;|\s)*\)?(?:&#32;|\s)*</dd>',
                     html, re.IGNORECASE | re.DOTALL
                 )
                 if m:
                     supplies[key] = int(m.group(1))
                 else:
-                    m = re.search(r'\b' + name_pat + r'\b.{0,240}?(\d+)\s*%', text_html, re.IGNORECASE)
+                    m = re.search(name_pat + r'.{0,240}?(\d+)\s*%', text_html, re.IGNORECASE)
                     if m:
                         supplies[key] = int(m.group(1))
+
+            # Fallback to SNMP for missing items (Fuser, Laser, PF Kits)
+            if any(v is None for v in supplies.values()):
+                try:
+                    from app.snmp.standard import StandardSNMPAdapter
+                    snmp_adapter = StandardSNMPAdapter(self.ip, "public", "v2c", timeout=2)
+                    snmp_supplies = await snmp_adapter.get_supplies()
+                    for k, v in snmp_supplies.items():
+                        if supplies.get(k) is None and v is not None:
+                            supplies[k] = v
+                    snmp_adapter.close()
+                except Exception as e:
+                    logger.warning(f"[Apeos {self.ip}] SNMP fallback for supplies error: {e}")
 
             return supplies
         except Exception as e:
@@ -340,26 +331,32 @@ class ApeosHTTPScraper:
         return None
 
     async def _login(self) -> Optional[str]:
-        """Login to Apeos web interface and return AuthCookie."""
+        """Login to Apeos web interface and return AuthCookie using urllib in a thread."""
         if self._cookie:
             return self._cookie
 
-        url = f"{self._https}/home/status.html"
-        try:
-            async with httpx.AsyncClient(
-                verify=self._ssl_ctx,
-                follow_redirects=True,
-                timeout=self.timeout,
-                trust_env=False
-            ) as client:
-                # 1. Fetch the page to get the CSRF token and password field name
-                resp1 = await client.get(url, timeout=self.timeout)
-                if resp1.status_code != 200:
+        def _do_login():
+            import urllib.request
+            import urllib.parse
+            import ssl
+
+            class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+                def redirect_request(self, req, fp, code, msg, headers, newurl):
                     return None
 
-                html = resp1.text
-                
-                # Find password field name, usually something like "B1859" or "password"
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+
+            opener = urllib.request.build_opener(NoRedirectHandler, urllib.request.HTTPSHandler(context=ctx))
+            
+            def attempt_login(base_url):
+                url = f"{base_url}/home/status.html"
+                req1 = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                html = ""
+                with opener.open(req1, timeout=self.timeout) as resp1:
+                    html = resp1.read().decode('utf-8', errors='ignore')
+
                 pwd_field_match = re.search(r'<input\s+[^>]*type="password"[^>]*name="([^"]+)"', html, re.IGNORECASE)
                 pwd_field = pwd_field_match.group(1) if pwd_field_match else "B1859"
 
@@ -367,50 +364,40 @@ class ApeosHTTPScraper:
                     pwd_field: self.password,
                     "loginurl": "/general/information.html?kind=item"
                 }
+                body = urllib.parse.urlencode(data).encode('utf-8')
 
-                # Add CSRF token if present
-                csrf_match = re.search(r'<input\s+type="hidden"\s+(?:id|name)="CSRFToken"\s+(?:id|name)="CSRFToken"\s+value="([^"]+)"', html, re.IGNORECASE)
-                if not csrf_match:
-                    csrf_match = re.search(r'<input\s+[^>]*name="CSRFToken"[^>]*value="([^"]+)"', html, re.IGNORECASE)
-                if csrf_match:
-                    data["CSRFToken"] = csrf_match.group(1)
+                req2 = urllib.request.Request(url, data=body, headers={"User-Agent": "Mozilla/5.0", "Content-Type": "application/x-www-form-urlencoded"})
+                try:
+                    resp2 = opener.open(req2, timeout=self.timeout)
+                    headers = resp2.headers
+                except urllib.error.HTTPError as e:
+                    headers = e.headers
+                return headers
 
-                body = urllib.parse.urlencode(data)
+            try:
+                headers = attempt_login(self._https)
+                self._base_url_working = self._https
+            except Exception as e:
+                headers = attempt_login(self._http)
+                self._base_url_working = self._http
 
-                # 2. Post login
-                resp2 = await client.post(
-                    url,
-                    content=body.encode(),
-                    headers={
-                        "Content-Type": "application/x-www-form-urlencoded",
-                        "User-Agent":   "Mozilla/5.0"
-                    },
-                    timeout=self.timeout
-                )
-                cookie = resp2.cookies.get("AuthCookie")
-                if not cookie:
-                    cookie = client.cookies.get("AuthCookie")
-                if not cookie:
-                    for set_cookie in resp2.headers.get_list("set-cookie"):
-                        match = re.search(r"(?:^|;)\s*AuthCookie=([^;]+)", set_cookie)
-                        if match:
-                            cookie = match.group(1)
-                            break
-                
-                if cookie:
-                    self._cookie = cookie
-                    return cookie
-                else:
-                    logger.error(
-                        "[Apeos %s] AuthCookie not found (status=%s, location=%s, cookies=%s)",
-                        self.ip,
-                        resp2.status_code,
-                        resp2.headers.get("location", "-"),
-                        sorted(client.cookies.keys())
-                    )
-                    return None
+            cookie_str = headers.get('Set-Cookie', '')
+            match = re.search(r"(?:^|;)\s*AuthCookie=([^;]+)", cookie_str)
+            if match:
+                return match.group(1)
+            else:
+                logger.error(f"[Apeos {self.ip}] AuthCookie not found in urllib headers")
+                return None
+
+        import asyncio
+        try:
+            cookie = await asyncio.to_thread(_do_login)
+            if cookie:
+                self._cookie = cookie
+                return cookie
+            return None
         except Exception as e:
-            logger.error("[Apeos %s] Login error: %r", self.ip, e)
+            logger.error(f"[Apeos {self.ip}] Login error: {e}")
             return None
 
     async def _fetch_http(self, path: str) -> Optional[str]:
@@ -434,6 +421,7 @@ class ApeosHTTPScraper:
 
     async def _fetch_https(self, path: str, cookie: str) -> Optional[str]:
         """GET from https://{ip}{path} with AuthCookie (ignores TLS cert)."""
+        base_url = getattr(self, "_base_url_working", self._https)
         try:
             async with httpx.AsyncClient(
                 verify=False,
@@ -442,7 +430,7 @@ class ApeosHTTPScraper:
                 trust_env=False
             ) as client:
                 resp = await client.get(
-                    self._https + path,
+                    base_url + path,
                     headers={
                         "User-Agent": "Mozilla/5.0",
                         "Cookie":     f"AuthCookie={cookie}"

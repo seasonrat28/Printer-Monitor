@@ -148,7 +148,7 @@ export const ReportsPage = () => {
     const metrics = summary.metrics || {};
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-[1600px] mx-auto">
             {/* Header */}
             <div className="flex justify-between items-center bg-white dark:bg-gray-800/40 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700/50">
                 <div>

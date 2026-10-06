@@ -74,31 +74,51 @@
   body {
     background: linear-gradient(135deg, hsl(var(--background)) 0%, #f0f4f8 100%);
     color: hsl(var(--foreground));
-    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    font-family: 'Inter', 'Noto Sans Thai', ui-sans-serif, system-ui, sans-serif;
     min-height: 100vh;
   }
   .dark body {
     background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
   }
-  /* Dark mode native scrollbar */
-  .dark ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  
+  /* Custom Premium Scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
   }
-  .dark ::-webkit-scrollbar-track {
-    background: #1f2937;
+  ::-webkit-scrollbar-track {
+    background: transparent;
   }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.4);
+    border-radius: 4px;
+    transition: background 0.3s;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.7);
+  }
+  
   .dark ::-webkit-scrollbar-thumb {
-    background: #4b5563;
-    border-radius: 3px;
+    background: rgba(75, 85, 99, 0.5);
   }
   .dark ::-webkit-scrollbar-thumb:hover {
-    background: #6b7280;
+    background: rgba(107, 114, 128, 0.8);
   }
+
   /* select elements dark mode */
   .dark select {
     background-color: #374151;
     color: #f9fafb;
     border-color: #4b5563;
+  }
+
+  /* Shimmer Flow Animation */
+  @keyframes shimmer-flow {
+    0% { background-position: 200% center; }
+    100% { background-position: -200% center; }
+  }
+  .animate-shimmer-flow {
+    background-size: 200% auto;
+    animation: shimmer-flow 3s linear infinite;
   }
 }

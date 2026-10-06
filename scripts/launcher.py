@@ -85,13 +85,17 @@ def get_local_ip():
     except Exception:
         return "127.0.0.1"
 
-def check_process_running(pid):
+def check_process_running(pid, process_name=None):
     if not pid:
         return False
     try:
         if os.name == 'nt':
             output = subprocess.check_output(f'tasklist /FI "PID eq {pid}" /NH', shell=True).decode()
-            return str(pid) in output
+            if str(pid) in output:
+                if process_name and process_name.lower() not in output.lower():
+                    return False
+                return True
+            return False
         else:
             os.kill(int(pid), 0)
             return True
@@ -246,8 +250,8 @@ def _launch_browser(frontend_url):
 
 def start():
     pids = get_pids()
-    backend_running = check_process_running(pids.get("backend_pid"))
-    frontend_running = check_process_running(pids.get("frontend_pid"))
+    backend_running = check_process_running(pids.get("backend_pid"), "python")
+    frontend_running = check_process_running(pids.get("frontend_pid"), "node")
     
     if backend_running or frontend_running:
         ports = get_ports()
@@ -343,13 +347,13 @@ def stop():
     b_pid = pids.get("backend_pid")
     f_pid = pids.get("frontend_pid")
     
-    if b_pid and check_process_running(b_pid):
+    if b_pid and check_process_running(b_pid, "python"):
         stop_process(b_pid)
         print_and_log("Backend stopped")
     else:
         print_and_log("Backend is not running")
         
-    if f_pid and check_process_running(f_pid):
+    if f_pid and check_process_running(f_pid, "node"):
         stop_process(f_pid)
         print_and_log("Frontend stopped")
     else:
@@ -369,8 +373,8 @@ def status():
     b_pid = pids.get("backend_pid")
     f_pid = pids.get("frontend_pid")
     
-    b_running = check_process_running(b_pid)
-    f_running = check_process_running(f_pid)
+    b_running = check_process_running(b_pid, "python")
+    f_running = check_process_running(f_pid, "node")
     
     if b_running and f_running:
         print_and_log("RUNNING")

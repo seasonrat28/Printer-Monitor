@@ -150,6 +150,15 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     dept_counts = dict(Counter(p.department for p in printers if p.department))
     department_distribution = [{"name": k, "value": v} for k, v in dept_counts.items()] or [{"name": "Unassigned", "value": total}]
 
+    # Calculate Avg Response Time
+    from app.models.monitoring import PrinterStatusHistory
+    from sqlalchemy import func
+    from datetime import datetime, timedelta
+    
+    # Debug: just get the average of ALL non-null response times to see if it works
+    avg_resp_val = db.query(func.avg(PrinterStatusHistory.response_time)).filter(PrinterStatusHistory.response_time != None).scalar()
+    avg_response_str = f"{round(avg_resp_val)}ms" if avg_resp_val else "N/A"
+
     return {
         "status_summary": {"total": total, "online": online, "warning": warning, "offline": offline},
         "metrics": {
@@ -157,7 +166,7 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
             "critical_alerts": critical_alerts,
             "pages_printed": pages_printed,
             "low_toner_printers": len(low_toner),
-            "avg_response": "N/A",
+            "avg_response": avg_response_str,
         },
         "consumables_alert": consumables_alert,
         "recent_alerts": recent_alerts,

@@ -40,14 +40,14 @@ export const ProfilePage = () => {
     }, []);
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-6 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                 <User className="text-indigo-500" />
                 Profile
             </h2>
 
             {/* Profile Header Card */}
-            <Card className="bg-white/70 dark:bg-[#1e1b4b]/40 backdrop-blur-md border-indigo-100 dark:border-indigo-900/50 overflow-hidden shadow-lg">
+            <Card className="bg-white/70 dark:bg-[#1A1D20]/80 backdrop-blur-md border-indigo-100 dark:border-slate-800 overflow-hidden shadow-lg">
                 <div className="p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div className="flex items-center gap-6">
                         <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-4xl font-bold shadow-xl shadow-indigo-500/20 shrink-0">

@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
 
-LOG_FILE_PATH = r"D:\app\Printer-Monitor\logs\backend.log"
+LOG_FILE_PATH = r"d:\app\Printer-Monitor\logs\printer_system.log"
 
 @router.get("/")
 def get_system_logs(lines: int = 100):
