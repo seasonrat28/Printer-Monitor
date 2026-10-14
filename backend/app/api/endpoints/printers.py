@@ -471,7 +471,7 @@ def export_printers(db: Session = Depends(get_db)):
     )
 
 @router.post("/import/csv")
-def import_printers(file: UploadFile = File(...), background_tasks: BackgroundTasks = None, db: Session = Depends(get_db), current_user = Depends(get_current_active_admin)):
+def import_printers(file: UploadFile = File(...), background_tasks: BackgroundTasks = BackgroundTasks(), db: Session = Depends(get_db), current_user: dict = Depends(get_current_active_admin)):
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be CSV")
     
@@ -484,15 +484,21 @@ def import_printers(file: UploadFile = File(...), background_tasks: BackgroundTa
     for row in reader:
         if not row or len(row) < 1: continue
         ip = row[0]
-        if db.query(PrinterModel).filter(PrinterModel.ip_address == ip).first():
+        existing = db.query(PrinterModel).filter(PrinterModel.ip_address == ip).first()
+        if existing:
+            if len(row) > 1 and row[1].strip(): existing.hostname = row[1].strip()
+            if len(row) > 2 and row[2].strip(): existing.manufacturer = row[2].strip()
+            if len(row) > 3 and row[3].strip(): existing.model = row[3].strip()
+            if len(row) > 4 and row[4].strip(): existing.snmp_community = row[4].strip()
+            count += 1
             continue
         
         printer = PrinterModel(
             ip_address=ip,
-            hostname=row[1] if len(row) > 1 else None,
-            manufacturer=row[2] if len(row) > 2 else None,
-            model=row[3] if len(row) > 3 else None,
-            snmp_community=row[4] if len(row) > 4 else "public"
+            hostname=row[1].strip() if len(row) > 1 else None,
+            manufacturer=row[2].strip() if len(row) > 2 else None,
+            model=row[3].strip() if len(row) > 3 else None,
+            snmp_community=row[4].strip() if len(row) > 4 else "public"
         )
         db.add(printer)
         db.flush()

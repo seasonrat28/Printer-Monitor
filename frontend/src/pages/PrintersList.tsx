@@ -461,12 +461,22 @@ const PrintersList = () => {
         formData.append('file', file);
 
         try {
-            await api.post('/printers/import/csv', formData);
+            await api.post('/printers/import/csv', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
             toast.success('Printers imported successfully!');
             fetchPrinters();
             fetchSummary();
         } catch (err: any) {
-            toast.error(err.response?.data?.detail || 'Failed to import printers');
+            let errorMsg = 'Failed to import printers';
+            if (err.response?.data?.detail) {
+                if (typeof err.response.data.detail === 'string') {
+                    errorMsg = err.response.data.detail;
+                } else if (Array.isArray(err.response.data.detail)) {
+                    errorMsg = err.response.data.detail.map((d: any) => `${d.loc?.join('.') || 'Field'}: ${d.msg}`).join(', ');
+                }
+            }
+            toast.error(errorMsg);
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }

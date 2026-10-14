@@ -14,7 +14,38 @@ class HPHTTPScraper(StandardSNMPAdapter):
     """
     def __init__(self, ip: str, community: str = "public", version: str = "v2c", timeout: int = 3):
         super().__init__(ip, community, version, timeout)
-        
+
+    async def get_status(self) -> tuple[str, Optional[str]]:
+        urls = [
+            f"https://{self.ip}/",
+            f"http://{self.ip}/"
+        ]
+        for url in urls:
+            try:
+                async with httpx.AsyncClient(verify=False, timeout=4.0) as client:
+                    res = await client.get(url, follow_redirects=True)
+                    if res.status_code == 200:
+                        return "ONLINE", "Ready (HTTP)"
+            except Exception:
+                continue
+        return await super().get_status()
+
+    async def get_system_info(self) -> Dict[str, Any]:
+        info = await super().get_system_info()
+        if not info.get("sysName") or not info.get("model"):
+            try:
+                async with httpx.AsyncClient(verify=False, timeout=4.0) as client:
+                    res = await client.get(f"https://{self.ip}/", follow_redirects=True)
+                    if res.status_code == 200:
+                        info["sysDescr"] = info.get("sysDescr") or "HP Printer (HTTP)"
+                        info["model"] = info.get("model") or "HP Printer"
+                        m = re.search(r"<title>\s*HP\s+([^<]+)</title>", res.text, re.IGNORECASE)
+                        if m:
+                            info["model"] = m.group(1).strip()
+            except Exception:
+                pass
+        return info
+
     async def get_supplies(self) -> Dict[str, Any]:
         # Base supplies from SNMP (This ensures we catch items like Drums that HP Web UI hides!)
         base_supplies = await super().get_supplies()

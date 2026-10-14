@@ -17,6 +17,48 @@ class EpsonHTTPScraper(StandardSNMPAdapter):
     def __init__(self, ip: str, community: str = "public", version: str = "v2c", timeout: int = 3):
         super().__init__(ip, community, version, timeout)
 
+    async def get_status(self) -> tuple[str, Optional[str]]:
+        urls = [
+            f"http://{self.ip}/PRESENTATION/HTML/TOP/INDEX.HTML",
+            f"http://{self.ip}/"
+        ]
+        for url in urls:
+            try:
+                async with httpx.AsyncClient(verify=False, timeout=4.0) as client:
+                    res = await client.get(url, follow_redirects=True)
+                    if res.status_code == 200:
+                        return "ONLINE", "Ready (HTTP)"
+            except Exception:
+                continue
+        return await super().get_status()
+
+    async def get_system_info(self) -> Dict[str, Any]:
+        # Always try SNMP first, as it provides the most accurate sysName, serial, etc.
+        info = await super().get_system_info()
+        
+        # If SNMP completely failed (all None) or missing sysName, try HTTP to at least get the model
+        if not info.get("sysName") or not info.get("model"):
+            try:
+                async with httpx.AsyncClient(verify=False, timeout=4.0) as client:
+                    # Fetch PRTINFO to get both model (from title) and hostname
+                    res = await client.get(f"http://{self.ip}/PRESENTATION/HTML/TOP/PRTINFO.HTML", follow_redirects=True)
+                    if res.status_code == 200:
+                        info["sysDescr"] = info.get("sysDescr") or "Epson Printer (HTTP)"
+                        info["model"] = info.get("model") or "Epson Printer"
+                        
+                        m_model = re.search(r"<title>(?:EPSON\s+)?([^<]+)</title>", res.text, re.IGNORECASE)
+                        if m_model:
+                            info["model"] = m_model.group(1).strip()
+                            
+                        # Try to extract the hostname (e.g. EPSONFD99DA)
+                        m_name = re.search(r"(EPSON[A-F0-9]{6})", res.text, re.IGNORECASE)
+                        if m_name:
+                            info["sysName"] = m_name.group(1).upper().strip()
+            except Exception:
+                pass
+                
+        return info
+
     async def get_supplies(self) -> Dict[str, Any]:
         # Check both the Wide-Format and EcoTank endpoints
         urls = [

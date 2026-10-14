@@ -17,10 +17,12 @@ import { ProfilePage } from './pages/ProfilePage';
 import { InventoryPage } from './pages/InventoryPage';
 import { OfflinePage } from './pages/OfflinePage';
 import { LayoutDashboard, Printer, Settings, LogOut, FileText, Map, Shield, Terminal, Filter, Layers, Wrench, Bell, ChevronLeft, ChevronRight, Power, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ToastProvider } from './contexts/ToastContext';
 import { Toaster } from 'react-hot-toast';
 import { CommandPalette } from './components/CommandPalette';
+import { alertService } from './services/api';
+import { useWebSocket } from './contexts/WebSocketContext';
 
 const MainLayout = () => {
   const { user, logout } = useAuth();
@@ -35,6 +37,28 @@ const MainLayout = () => {
       document.documentElement.classList.remove('dark');
     }
   }, []);
+
+  const [activeAlertsCount, setActiveAlertsCount] = useState<number>(0);
+  const { lastEvent } = useWebSocket();
+
+  const fetchAlertsCount = useCallback(async () => {
+      try {
+          const res = await alertService.getAlerts(false); // false = ACTIVE
+          setActiveAlertsCount(res.data ? res.data.length : 0);
+      } catch (err) {
+          console.error("Failed to fetch alerts count", err);
+      }
+  }, []);
+
+  useEffect(() => {
+      fetchAlertsCount();
+  }, [fetchAlertsCount]);
+
+  useEffect(() => {
+      if (lastEvent && (lastEvent.type === 'ALERT_RESOLVED' || lastEvent.type === 'SUPPLIES_UPDATE' || lastEvent.type === 'STATUS_UPDATE' || lastEvent.type === 'SYNC_COMPLETE')) {
+          fetchAlertsCount();
+      }
+  }, [lastEvent, fetchAlertsCount]);
 
   const toggleDarkMode = () => {
     const isDark = document.documentElement.classList.toggle('dark');
@@ -55,16 +79,17 @@ const MainLayout = () => {
     <div className="flex h-screen flex-col overflow-hidden bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-slate-100 transition-all duration-700 ease-in-out">
       <div className="flex flex-1 min-h-0 overflow-hidden relative">
         {/* Spacer for collapsed sidebar */}
-        <div className={`shrink-0 hidden sm:block bg-slate-50 dark:bg-[#121212] transition-all duration-300 ease-in-out z-0 ${isSidebarExpanded ? 'w-[280px]' : 'w-20'}`}></div>
+        <div className={`shrink-0 hidden sm:block bg-slate-50 dark:bg-[#121212] transition-all duration-300 ease-in-out z-0 ${isSidebarExpanded ? 'w-[280px]' : 'w-16'}`}></div>
 
         {/* Sidebar */}
-        <aside className={`absolute left-0 top-0 h-full z-40 shrink-0 bg-white dark:bg-[#1A1D20] border-r border-slate-200 dark:border-slate-800 shadow-[2px_0_24px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'w-[280px]' : 'w-20'}`}>
+        <aside className={`absolute left-0 top-0 h-full z-40 shrink-0 bg-white dark:bg-[#1A1D20] border-r border-slate-200 dark:border-slate-800 shadow-[2px_0_24px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'w-[280px]' : 'w-16'}`}>
           {/* Logo Section */}
-          <div className="h-20 flex items-center px-6 shrink-0 whitespace-nowrap overflow-hidden">
+          <div className={`h-20 flex items-center shrink-0 whitespace-nowrap overflow-hidden transition-all duration-300 ${isSidebarExpanded ? 'px-6' : 'justify-center px-0'}`}>
             <div className="flex items-center gap-3 relative">
               <Printer className="w-8 h-8 shrink-0 text-blue-600 dark:text-blue-400" strokeWidth={2.5} />
-              <div className={`flex flex-col transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0 hidden'}`}>
-                 <h1 className="text-xl font-bold tracking-tight text-[#1A1D20] dark:text-white leading-none mt-1">BRAdmin <span className="font-light text-slate-500">Next</span></h1>
+              <div className={`flex flex-col justify-center transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0 hidden'}`}>
+                 <h1 className="text-xl font-bold tracking-tight text-[#1A1D20] dark:text-white leading-none">Enterprise</h1>
+                 <span className="text-sm font-medium text-slate-500 leading-none mt-0.5">Printer Monitor</span>
               </div>
             </div>
           </div>
@@ -78,22 +103,22 @@ const MainLayout = () => {
           </button>
           
           {/* Navigation */}
-          <nav className="flex-1 py-2 overflow-y-auto overflow-x-hidden relative px-4 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+          <nav className={`flex-1 py-2 overflow-y-auto overflow-x-hidden relative space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] ${isSidebarExpanded ? 'px-4' : 'px-2'}`}>
             {/* Group 1: NAVIGATION */}
             <div className="space-y-1">
               <p className={`pl-4 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 transition-opacity duration-300 whitespace-nowrap ${isSidebarExpanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden pb-0'}`}>Navigation</p>
               {[
                 { to: "/", icon: LayoutDashboard, label: "Dashboard", exact: true },
                 { to: "/printers", icon: Printer, label: "Printers" },
-                { to: "/alerts", icon: Bell, label: "Alerts", badge: 7 },
+                { to: "/alerts", icon: Bell, label: "Alerts", badge: activeAlertsCount > 0 ? activeAlertsCount : undefined },
                 { to: "/map", icon: Map, label: "Floor Map" },
               ].map(item => (
                 <div key={item.to} className="relative group/navitem">
-                  <NavLink title={!isSidebarExpanded ? item.label : undefined} to={item.to} end={item.exact} className={({ isActive }) => `flex items-center w-full pl-[14px] pr-[14px] py-3 rounded-xl overflow-hidden transition-colors duration-200 whitespace-nowrap ${isActive ? 'bg-blue-50/80 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-300' : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#2A2D30] dark:hover:text-slate-200'}`}>
+                  <NavLink title={!isSidebarExpanded ? item.label : undefined} to={item.to} end={item.exact} className={({ isActive }) => `flex items-center w-full py-3 rounded-xl overflow-hidden transition-colors duration-200 whitespace-nowrap ${isSidebarExpanded ? 'px-[14px]' : 'justify-center'} ${isActive ? 'bg-blue-50/80 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-300' : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#2A2D30] dark:hover:text-slate-200'}`}>
                     <item.icon size={20} className="shrink-0" strokeWidth={2} />
-                    <span className={`ml-3 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>{item.label}</span>
+                    <span className={`transition-all duration-300 ${isSidebarExpanded ? 'ml-3 opacity-100' : 'w-0 opacity-0 overflow-hidden hidden'}`}>{item.label}</span>
                     {item.badge && (
-                      <span className={`ml-auto flex h-5 items-center justify-center rounded-full bg-red-100 px-2 text-[10px] font-bold text-red-600 dark:bg-red-500/20 dark:text-red-400 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                      <span className={`ml-auto flex h-5 items-center justify-center rounded-full bg-red-100 px-2 text-[10px] font-bold text-red-600 dark:bg-red-500/20 dark:text-red-400 transition-all duration-300 ${isSidebarExpanded ? 'opacity-100' : 'w-0 opacity-0 overflow-hidden hidden'}`}>
                         {item.badge}
                       </span>
                     )}
@@ -111,9 +136,9 @@ const MainLayout = () => {
                 { to: "/reports", icon: FileText, label: "Reports" },
               ].map(item => (
                 <div key={item.to} className="relative group/navitem">
-                  <NavLink title={!isSidebarExpanded ? item.label : undefined} to={item.to} className={({ isActive }) => `flex items-center w-full pl-[14px] pr-[14px] py-3 rounded-xl overflow-hidden transition-colors duration-200 whitespace-nowrap ${isActive ? 'bg-blue-50/80 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-300' : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#2A2D30] dark:hover:text-slate-200'}`}>
+                  <NavLink title={!isSidebarExpanded ? item.label : undefined} to={item.to} className={({ isActive }) => `flex items-center w-full py-3 rounded-xl overflow-hidden transition-colors duration-200 whitespace-nowrap ${isSidebarExpanded ? 'px-[14px]' : 'justify-center'} ${isActive ? 'bg-blue-50/80 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-300' : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#2A2D30] dark:hover:text-slate-200'}`}>
                     <item.icon size={20} className="shrink-0" strokeWidth={2} />
-                    <span className={`ml-3 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>{item.label}</span>
+                    <span className={`transition-all duration-300 ${isSidebarExpanded ? 'ml-3 opacity-100' : 'w-0 opacity-0 overflow-hidden hidden'}`}>{item.label}</span>
                   </NavLink>
                 </div>
               ))}
@@ -121,15 +146,15 @@ const MainLayout = () => {
               {user?.role === 'ADMIN' && (
                 <>
                   <div className="relative group/navitem">
-                    <NavLink title={!isSidebarExpanded ? "Users" : undefined} to="/users" className={({ isActive }) => `flex items-center w-full pl-[14px] pr-[14px] py-3 rounded-xl overflow-hidden transition-colors duration-200 whitespace-nowrap ${isActive ? 'bg-blue-50/80 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-300' : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#2A2D30] dark:hover:text-slate-200'}`}>
+                    <NavLink title={!isSidebarExpanded ? "Users" : undefined} to="/users" className={({ isActive }) => `flex items-center w-full py-3 rounded-xl overflow-hidden transition-colors duration-200 whitespace-nowrap ${isSidebarExpanded ? 'px-[14px]' : 'justify-center'} ${isActive ? 'bg-blue-50/80 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-300' : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#2A2D30] dark:hover:text-slate-200'}`}>
                       <Shield size={20} className="shrink-0" strokeWidth={2} />
-                      <span className={`ml-3 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>Users</span>
+                      <span className={`transition-all duration-300 ${isSidebarExpanded ? 'ml-3 opacity-100' : 'w-0 opacity-0 overflow-hidden hidden'}`}>Users</span>
                     </NavLink>
                   </div>
                   <div className="relative group/navitem">
-                    <NavLink title={!isSidebarExpanded ? "System Logs" : undefined} to="/logs" className={({ isActive }) => `flex items-center w-full pl-[14px] pr-[14px] py-3 rounded-xl overflow-hidden transition-colors duration-200 whitespace-nowrap ${isActive ? 'bg-blue-50/80 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-300' : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#2A2D30] dark:hover:text-slate-200'}`}>
+                    <NavLink title={!isSidebarExpanded ? "System Logs" : undefined} to="/logs" className={({ isActive }) => `flex items-center w-full py-3 rounded-xl overflow-hidden transition-colors duration-200 whitespace-nowrap ${isSidebarExpanded ? 'px-[14px]' : 'justify-center'} ${isActive ? 'bg-blue-50/80 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-300' : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#2A2D30] dark:hover:text-slate-200'}`}>
                       <Terminal size={20} className="shrink-0" strokeWidth={2} />
-                      <span className={`ml-3 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>System Logs</span>
+                      <span className={`transition-all duration-300 ${isSidebarExpanded ? 'ml-3 opacity-100' : 'w-0 opacity-0 overflow-hidden hidden'}`}>System Logs</span>
                     </NavLink>
                   </div>
                 </>
@@ -144,9 +169,9 @@ const MainLayout = () => {
                 { to: "/settings", icon: Settings, label: "Settings" },
               ].map(item => (
                 <div key={item.to} className="relative group/navitem">
-                  <NavLink title={!isSidebarExpanded ? item.label : undefined} to={item.to} className={({ isActive }) => `flex items-center w-full pl-[14px] pr-[14px] py-3 rounded-xl overflow-hidden transition-colors duration-200 whitespace-nowrap ${isActive ? 'bg-blue-50/80 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-300' : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#2A2D30] dark:hover:text-slate-200'}`}>
+                  <NavLink title={!isSidebarExpanded ? item.label : undefined} to={item.to} className={({ isActive }) => `flex items-center w-full py-3 rounded-xl overflow-hidden transition-colors duration-200 whitespace-nowrap ${isSidebarExpanded ? 'px-[14px]' : 'justify-center'} ${isActive ? 'bg-blue-50/80 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-300' : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#2A2D30] dark:hover:text-slate-200'}`}>
                     <item.icon size={20} className="shrink-0" strokeWidth={2} />
-                    <span className={`ml-3 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>{item.label}</span>
+                    <span className={`transition-all duration-300 ${isSidebarExpanded ? 'ml-3 opacity-100' : 'w-0 opacity-0 overflow-hidden hidden'}`}>{item.label}</span>
                   </NavLink>
                 </div>
               ))}
