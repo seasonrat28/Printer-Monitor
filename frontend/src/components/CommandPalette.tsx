@@ -75,9 +75,9 @@ export const CommandPalette: React.FC = () => {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] sm:pt-[20vh] animate-in fade-in duration-200">
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsOpen(false)} />
-            <div className="relative w-full max-w-2xl transform overflow-hidden rounded-xl bg-white dark:bg-[#1e1e2e] shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all animate-in zoom-in-95 duration-200">
-                <div className="flex items-center border-b border-slate-100 dark:border-slate-800 px-4">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity" onClick={() => setIsOpen(false)} />
+            <div className="relative w-full max-w-2xl transform overflow-hidden rounded-xl bg-white dark:bg-slate-800 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all animate-in zoom-in-95 duration-200">
+                <div className="flex items-center border-b border-slate-100 dark:border-slate-700/60 px-4">
                     <Search className="h-6 w-6 text-indigo-500" />
                     <input
                         ref={inputRef}

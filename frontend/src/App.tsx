@@ -76,13 +76,13 @@ const MainLayout = () => {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-slate-100 transition-all duration-700 ease-in-out">
+    <div className="flex h-screen flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-all duration-500 ease-in-out">
       <div className="flex flex-1 min-h-0 overflow-hidden relative">
         {/* Spacer for collapsed sidebar */}
-        <div className={`shrink-0 hidden sm:block bg-slate-50 dark:bg-[#121212] transition-all duration-300 ease-in-out z-0 ${isSidebarExpanded ? 'w-[280px]' : 'w-16'}`}></div>
+        <div className={`shrink-0 hidden sm:block bg-slate-50 dark:bg-slate-900 transition-all duration-300 ease-in-out z-0 ${isSidebarExpanded ? 'w-[280px]' : 'w-16'}`}></div>
 
         {/* Sidebar */}
-        <aside className={`absolute left-0 top-0 h-full z-40 shrink-0 bg-white dark:bg-[#1A1D20] border-r border-slate-200 dark:border-slate-800 shadow-[2px_0_24px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'w-[280px]' : 'w-16'}`}>
+        <aside className={`absolute left-0 top-0 h-full z-40 shrink-0 bg-white dark:bg-slate-900/95 border-r border-slate-200 dark:border-slate-800 shadow-[2px_0_24px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'w-[280px]' : 'w-16'}`}>
           {/* Logo Section */}
           <div className={`h-20 flex items-center shrink-0 whitespace-nowrap overflow-hidden transition-all duration-300 ${isSidebarExpanded ? 'px-6' : 'justify-center px-0'}`}>
             <div className="flex items-center gap-3 relative">

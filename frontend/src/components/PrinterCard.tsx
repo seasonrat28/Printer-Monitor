@@ -261,7 +261,7 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
 
     return (
         <div
-            className={`bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-lg dark:shadow-gray-900/50 transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] group flex flex-col relative overflow-hidden border-2 animate-in fade-in zoom-in duration-500 ${getStatusCardBorder(printer.status)}`}
+            className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-lg dark:shadow-black/40 transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] group flex flex-col relative overflow-hidden border-2 animate-in fade-in zoom-in duration-500 ${getStatusCardBorder(printer.status)}`}
         >
 
             {/* Card Content */}
@@ -417,7 +417,7 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
                         ) : suppliesHistory.length > 0 ? (
                             <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                                 {suppliesHistory.map((item, idx) => (
-                                    <div key={idx} className={`flex items-center justify-between p-2 rounded-lg text-xs border ${idx === 0 ? 'bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'}`}>
+                                    <div key={idx} className={`flex items-center justify-between p-2 rounded-lg text-xs border ${idx === 0 ? 'bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800' : 'bg-white dark:bg-[#1c1f24] border-gray-100 dark:border-[#2e333d]'}`}>
                                         <div className="flex items-center space-x-1 text-gray-500 dark:text-gray-400 font-medium">
                                             <History size={10} className={idx === 0 ? 'text-blue-500' : ''} />
                                             <span className={idx === 0 ? 'text-blue-600 dark:text-blue-400' : ''}>{item.formattedDate}</span>

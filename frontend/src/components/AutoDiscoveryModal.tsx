@@ -94,11 +94,11 @@ export const AutoDiscoveryModal: React.FC<AutoDiscoveryModalProps> = ({ isOpen, 
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0 animate-in fade-in duration-200">
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
-            <div className="relative w-full max-w-3xl transform overflow-hidden rounded-xl bg-white dark:bg-[#1e1e2e] shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all flex flex-col max-h-[85vh]">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity" onClick={onClose} />
+            <div className="relative w-full max-w-3xl transform overflow-hidden rounded-xl bg-white dark:bg-slate-800 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all flex flex-col max-h-[85vh] border border-slate-200 dark:border-slate-700">
                 
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-4 bg-slate-50 dark:bg-slate-900/50">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 px-6 py-4 bg-slate-50 dark:bg-slate-800/90">
                     <div className="flex items-center space-x-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
                             <Wifi className="h-5 w-5" />

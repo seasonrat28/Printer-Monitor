@@ -671,9 +671,9 @@ const PrintersList = () => {
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold tracking-tight">Printers Directory</h2>
                 <div className="flex space-x-3">
-                    <div className="flex items-center rounded-md border border-slate-300 bg-white p-1 dark:border-slate-600 dark:bg-[#1e1e1e]" aria-label="View mode">
-                        <button onClick={() => setViewMode('cards')} className={`rounded px-3 py-1.5 text-xs font-medium ${viewMode === 'cards' ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : 'text-slate-600 dark:text-slate-300'}`}>Cards</button>
-                        <button onClick={() => setViewMode('table')} className={`rounded px-3 py-1.5 text-xs font-medium ${viewMode === 'table' ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : 'text-slate-600 dark:text-slate-300'}`}>Table</button>
+                    <div className="flex items-center rounded-lg border border-slate-300 bg-white p-1 dark:border-slate-700 dark:bg-slate-900" aria-label="View mode">
+                        <button onClick={() => setViewMode('cards')} className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === 'cards' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}>Cards</button>
+                        <button onClick={() => setViewMode('table')} className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === 'table' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}>Table</button>
                     </div>
                     <button
                         onClick={handleRefresh}
@@ -967,9 +967,9 @@ const PrintersList = () => {
                     ))}
                 </div>
             ) : (
-                <div className="overflow-x-auto rounded-md border border-slate-200 bg-white dark:border-gray-700/50 dark:bg-gray-800/40 backdrop-blur-sm">
+                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800 shadow-sm">
                     <table className="min-w-245 w-full text-left text-sm">
-                        <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 dark:border-gray-700/50 dark:bg-gray-800/50 dark:text-slate-300">
+                        <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-300">
                             <tr>
                                 <th className="px-3 py-2 font-semibold">Printer</th>
                                 <th className="px-3 py-2 font-semibold">Status</th>
@@ -1069,14 +1069,14 @@ const PrintersList = () => {
 
 
             {isAddModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 dark:bg-black/70 transition-opacity">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-xl border border-gray-300 dark:border-gray-600">
-                        <div className="flex justify-between items-center px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200" id="modal-title">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-xl border border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-center px-5 py-4 bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700">
+                            <h3 className="text-base font-bold text-slate-800 dark:text-slate-100" id="modal-title">
                                 Discover specific devices
                             </h3>
-                            <button onClick={() => setIsAddModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                                <X size={16} />
+                            <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                                <X size={18} />
                             </button>
                         </div>
                         <form onSubmit={handleAddPrinter}>
@@ -1084,27 +1084,31 @@ const PrintersList = () => {
                                 <div className="space-y-6">
                                     {/* Network Section */}
                                     <div>
-                                        <h4 className="text-xs font-bold text-gray-500 mb-3">Network:</h4>
-                                        <div className="space-y-4 ml-2">
+                                        <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Network:</h4>
+                                        <div className="space-y-4 ml-1">
                                             {/* Specified Address */}
                                             <div className="flex items-start">
-                                                <div className="flex items-center h-5">
+                                                <div className="flex items-center h-5 mt-0.5">
                                                     <input
                                                         id="method-address"
                                                         name="discovery-method"
                                                         type="radio"
                                                         checked={discoveryMethod === 'address'}
                                                         onChange={() => setDiscoveryMethod('address')}
-                                                        className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
+                                                        className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-slate-300 dark:border-slate-600 dark:bg-slate-900 cursor-pointer"
                                                     />
                                                 </div>
                                                 <div className="ml-3">
-                                                    <label htmlFor="method-address" className="text-sm font-medium text-gray-700">Specified address:</label>
+                                                    <label htmlFor="method-address" className="text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">Specified address:</label>
                                                     <div className="mt-2 flex">
                                                         <input
                                                             type="text"
                                                             disabled={discoveryMethod !== 'address'}
-                                                            className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-48 sm:text-sm border-gray-300 rounded-md px-3 py-1.5 border ${discoveryMethod !== 'address' ? 'bg-gray-50 text-gray-400' : ''}`}
+                                                            className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-56 sm:text-sm border rounded-lg px-3 py-1.5 ${
+                                                                discoveryMethod !== 'address' 
+                                                                    ? 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900/40 dark:border-slate-700/50 dark:text-slate-500' 
+                                                                    : 'bg-white text-slate-800 border-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100'
+                                                            }`}
                                                             placeholder="e.g. 192.168.1.10"
                                                             value={rawIps}
                                                             onChange={e => setRawIps(e.target.value)}
@@ -1115,46 +1119,46 @@ const PrintersList = () => {
 
                                             {/* Address Range */}
                                             <div className="flex items-start">
-                                                <div className="flex items-center h-5">
+                                                <div className="flex items-center h-5 mt-0.5">
                                                     <input
                                                         id="method-range"
                                                         name="discovery-method"
                                                         type="radio"
                                                         checked={discoveryMethod === 'range'}
                                                         onChange={() => setDiscoveryMethod('range')}
-                                                        className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
+                                                        className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-slate-300 dark:border-slate-600 dark:bg-slate-900 cursor-pointer"
                                                     />
                                                 </div>
                                                 <div className="ml-3">
-                                                    <label htmlFor="method-range" className="text-sm font-medium text-gray-700">Address range:</label>
-                                                    <div className={`mt-2 flex items-center space-x-2 ${discoveryMethod !== 'range' ? 'text-gray-400' : 'text-gray-700'}`}>
-                                                        <input type="text" disabled={discoveryMethod !== 'range'} className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-40 sm:text-sm border-gray-300 rounded-md px-3 py-1.5 border ${discoveryMethod !== 'range' ? 'bg-gray-50' : ''}`} placeholder="192.168.1.1" />
+                                                    <label htmlFor="method-range" className="text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">Address range:</label>
+                                                    <div className={`mt-2 flex items-center space-x-2 ${discoveryMethod !== 'range' ? 'text-slate-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                        <input type="text" disabled={discoveryMethod !== 'range'} className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-40 sm:text-sm rounded-lg px-3 py-1.5 border ${discoveryMethod !== 'range' ? 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900/40 dark:border-slate-700/50' : 'bg-white text-slate-800 border-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100'}`} placeholder="192.168.1.1" />
                                                         <span>~</span>
-                                                        <input type="text" disabled={discoveryMethod !== 'range'} className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-40 sm:text-sm border-gray-300 rounded-md px-3 py-1.5 border ${discoveryMethod !== 'range' ? 'bg-gray-50' : ''}`} placeholder="192.168.1.255" />
+                                                        <input type="text" disabled={discoveryMethod !== 'range'} className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-40 sm:text-sm rounded-lg px-3 py-1.5 border ${discoveryMethod !== 'range' ? 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900/40 dark:border-slate-700/50' : 'bg-white text-slate-800 border-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100'}`} placeholder="192.168.1.255" />
                                                     </div>
-                                                    <p className="text-[10px] text-gray-400 mt-1">*Select to use range format in the textarea</p>
+                                                    <p className="text-[10px] text-slate-400 mt-1">*Select to use range format in the textarea</p>
                                                 </div>
                                             </div>
 
                                             {/* Import list */}
                                             <div className="flex items-start">
-                                                <div className="flex items-center h-5">
+                                                <div className="flex items-center h-5 mt-0.5">
                                                     <input
                                                         id="method-file"
                                                         name="discovery-method"
                                                         type="radio"
                                                         checked={discoveryMethod === 'file'}
                                                         onChange={() => setDiscoveryMethod('file')}
-                                                        className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
+                                                        className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-slate-300 dark:border-slate-600 dark:bg-slate-900 cursor-pointer"
                                                     />
                                                 </div>
                                                 <div className="ml-3 w-full">
-                                                    <label htmlFor="method-file" className="text-sm font-medium text-gray-700">Import address list file:</label>
+                                                    <label htmlFor="method-file" className="text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">Import address list file:</label>
                                                     <div className="mt-2 flex w-full">
                                                         <input
                                                             type="text"
                                                             disabled
-                                                            className={`shadow-sm block w-full sm:text-sm border-gray-300 rounded-l-md px-3 py-1.5 border ${discoveryMethod !== 'file' ? 'bg-gray-50 text-gray-400' : 'bg-gray-50 text-gray-700'}`}
+                                                            className={`shadow-sm block w-full sm:text-sm border rounded-l-lg px-3 py-1.5 ${discoveryMethod !== 'file' ? 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900/40 dark:border-slate-700/50 dark:text-slate-500' : 'bg-slate-50 text-slate-700 border-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200'}`}
                                                             placeholder="No file chosen"
                                                             value={selectedFileName}
                                                         />
@@ -1169,7 +1173,7 @@ const PrintersList = () => {
                                                             type="button"
                                                             disabled={discoveryMethod !== 'file'}
                                                             onClick={() => addressListFileInputRef.current?.click()}
-                                                            className={`inline-flex items-center px-3 py-1.5 border border-l-0 border-gray-300 rounded-r-md text-sm ${discoveryMethod !== 'file' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                                                            className={`inline-flex items-center px-4 py-1.5 border border-l-0 rounded-r-lg text-sm font-medium transition-colors ${discoveryMethod !== 'file' ? 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500 cursor-not-allowed' : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700'}`}
                                                         >
                                                             Browse...
                                                         </button>
@@ -1179,32 +1183,32 @@ const PrintersList = () => {
                                         </div>
                                     </div>
 
-                                    <hr className="border-gray-200" />
+                                    <hr className="border-slate-200 dark:border-slate-700" />
 
                                     {/* USB Section */}
                                     <div>
-                                        <h4 className="text-xs font-bold text-gray-500 mb-3">USB:</h4>
-                                        <div className="ml-2 flex items-start">
+                                        <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">USB:</h4>
+                                        <div className="ml-1 flex items-start">
                                             <div className="flex items-center h-5">
-                                                <input id="method-usb" name="discovery-method" type="radio" disabled className="h-4 w-4 text-indigo-600 border-gray-300 opacity-50" />
+                                                <input id="method-usb" name="discovery-method" type="radio" disabled className="h-4 w-4 text-indigo-600 border-slate-300 dark:border-slate-600 opacity-40 cursor-not-allowed" />
                                             </div>
                                             <div className="ml-3">
-                                                <label htmlFor="method-usb" className="text-sm font-medium text-gray-400">USB</label>
+                                                <label htmlFor="method-usb" className="text-sm font-medium text-slate-400 cursor-not-allowed">USB</label>
                                             </div>
                                         </div>
                                     </div>
 
                                 </div>
                             </div>
-                            <div className="bg-gray-50 px-4 py-3 flex justify-end space-x-2 border-t border-gray-200">
+                            <div className="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 flex justify-end space-x-2 border-t border-slate-200 dark:border-slate-700">
                                 <button
                                     type="submit"
                                     disabled={isSubmitting || (discoveryMethod === 'address' && !rawIps.trim()) || (discoveryMethod === 'file' && !selectedFileName)}
-                                    className="inline-flex justify-center rounded border border-transparent px-6 py-1.5 bg-blue-600 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none disabled:opacity-50 min-w-[80px]"
+                                    className="inline-flex justify-center rounded-lg px-6 py-2 bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-700 focus:outline-none disabled:opacity-50 min-w-[80px] shadow-sm transition-all"
                                 >
                                     {isSubmitting ? 'OK...' : 'OK'}
                                 </button>
-                                <button type="button" onClick={() => setIsAddModalOpen(false)} className="inline-flex justify-center rounded border border-gray-300 px-4 py-1.5 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none min-w-[80px]">
+                                <button type="button" onClick={() => setIsAddModalOpen(false)} className="inline-flex justify-center rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2 bg-white dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none min-w-[80px] transition-all">
                                     Cancel
                                 </button>
                             </div>
@@ -1215,16 +1219,16 @@ const PrintersList = () => {
 
             {/* History Modal */}
             {isHistoryModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/75 transition-opacity">
-                    <div className="bg-white dark:bg-gray-800 rounded-md text-left overflow-hidden shadow-md transform transition-all w-full max-w-4xl border border-gray-200 dark:border-gray-700 flex flex-col h-[80vh]">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-4xl border border-slate-200 dark:border-slate-700 flex flex-col h-[80vh]">
 
-                        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+                        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/90">
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center space-x-2">
-                                    <History size={20} className="text-indigo-600" />
+                                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center space-x-2">
+                                    <History size={20} className="text-indigo-500" />
                                     <span>ประวัติการใช้งาน: {selectedPrinterHistory?.hostname || selectedPrinterHistory?.ip_address}</span>
                                 </h3>
-                                <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                                <div className="flex items-center gap-4 mt-1 text-sm text-slate-500 dark:text-slate-400">
                                     <span>สถิติย้อนหลัง 30 วัน</span>
                                     {historyData.uptime_stats && (
                                         <div className="flex items-center gap-3">
@@ -1320,11 +1324,19 @@ const PrintersList = () => {
                                             <div className="h-64 w-full">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <LineChart data={historyData.supplies_history}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
-                                                        <XAxis dataKey="date" stroke="#6B7280" fontSize={12} />
-                                                        <YAxis stroke="#6B7280" fontSize={12} width={60} domain={[0, 100]} />
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#475569" opacity={0.35} />
+                                                        <XAxis dataKey="date" stroke="#94A3B8" fontSize={12} />
+                                                        <YAxis stroke="#94A3B8" fontSize={12} width={60} domain={[0, 100]} />
                                                         <RechartsTooltip
-                                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                                            contentStyle={{
+                                                                backgroundColor: '#1e293b',
+                                                                borderColor: '#334155',
+                                                                borderRadius: '8px',
+                                                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                                                                color: '#f8fafc'
+                                                            }}
+                                                            labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: '4px' }}
+                                                            itemStyle={{ padding: '2px 0' }}
                                                         />
                                                         <Legend verticalAlign="top" height={36} />
                                                         <Line type="monotone" dataKey="toner" stroke="#EAB308" strokeWidth={2} dot={false} activeDot={{ r: 4 }} name="Toner (%)" isAnimationActive={false} />
@@ -1351,11 +1363,19 @@ const PrintersList = () => {
                                                                 <stop offset="95%" stopColor="#4F46E5" stopOpacity={0} />
                                                             </linearGradient>
                                                         </defs>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
-                                                        <XAxis dataKey="date" stroke="#6B7280" fontSize={12} />
-                                                        <YAxis stroke="#6B7280" fontSize={12} width={60} />
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#475569" opacity={0.35} />
+                                                        <XAxis dataKey="date" stroke="#94A3B8" fontSize={12} />
+                                                        <YAxis stroke="#94A3B8" fontSize={12} width={60} />
                                                         <RechartsTooltip
-                                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                                            contentStyle={{
+                                                                backgroundColor: '#1e293b',
+                                                                borderColor: '#334155',
+                                                                borderRadius: '8px',
+                                                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                                                                color: '#f8fafc'
+                                                            }}
+                                                            labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: '4px' }}
+                                                            itemStyle={{ padding: '2px 0' }}
                                                         />
                                                         <Area type="monotone" dataKey="pages" stroke="#4F46E5" strokeWidth={2} fill="url(#colorPages)" isAnimationActive={false} />
                                                         <Brush dataKey="date" height={30} stroke="#4F46E5" fill="#f8fafc" travellerWidth={10} />
@@ -1401,12 +1421,20 @@ const PrintersList = () => {
                                             <div className="h-64 w-full">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <BarChart data={historyData.meter_history}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} vertical={false} />
-                                                        <XAxis dataKey="date" stroke="#6B7280" fontSize={12} tickLine={false} axisLine={false} />
-                                                        <YAxis stroke="#6B7280" fontSize={12} width={60} tickLine={false} axisLine={false} />
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#475569" opacity={0.4} />
+                                                        <XAxis dataKey="date" stroke="#94A3B8" fontSize={12} tickLine={true} axisLine={true} />
+                                                        <YAxis stroke="#94A3B8" fontSize={12} width={60} tickLine={true} axisLine={true} />
                                                         <RechartsTooltip
                                                             cursor={{ fill: 'rgba(99, 102, 241, 0.1)' }}
-                                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                                            contentStyle={{
+                                                                backgroundColor: '#1e293b',
+                                                                borderColor: '#334155',
+                                                                borderRadius: '8px',
+                                                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                                                                color: '#f8fafc'
+                                                            }}
+                                                            labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: '4px' }}
+                                                            itemStyle={{ padding: '2px 0' }}
                                                         />
                                                         <Bar dataKey="pages" fill="#6366F1" radius={[4, 4, 0, 0]} name="Pages Printed" />
                                                     </BarChart>
@@ -1598,25 +1626,25 @@ const PrintersList = () => {
 
             {/* Borrow Modal */}
             {isBorrowModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 dark:bg-black/70 transition-opacity">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-md border border-gray-300 dark:border-gray-600">
-                        <div className="flex justify-between items-center px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-md border border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-center px-5 py-4 bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700">
+                            <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
                                 ระบุข้อมูลการยืมเครื่องพิมพ์
                             </h3>
-                            <button onClick={() => setIsBorrowModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                                <X size={16} />
+                            <button onClick={() => setIsBorrowModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                                <X size={18} />
                             </button>
                         </div>
                         <form onSubmit={handleBorrowSubmit}>
-                            <div className="p-4 space-y-4">
+                            <div className="p-5 space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                         เครื่องพิมพ์ (Printer) <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         required
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:text-white text-sm"
                                         value={selectedPrinterBorrow?.id || ''}
                                         onChange={(e) => {
                                             const p = printers.find(x => x.id === parseInt(e.target.value));
@@ -1632,24 +1660,24 @@ const PrintersList = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                         แผนกที่ขอยืม (Department) <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="text"
                                         required
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:text-white text-sm"
                                         placeholder="เช่น HR, IT, Marketing"
                                         value={borrowDepartment}
                                         onChange={(e) => setBorrowDepartment(e.target.value)}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                         หมายเหตุ (Remark)
                                     </label>
                                     <textarea
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:text-white text-sm"
                                         placeholder="ระบุเหตุผลการยืม..."
                                         rows={3}
                                         value={borrowRemark}
@@ -1657,18 +1685,18 @@ const PrintersList = () => {
                                     />
                                 </div>
                             </div>
-                            <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 flex justify-end space-x-2 border-t border-gray-200 dark:border-gray-600">
+                            <div className="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 flex justify-end space-x-2 border-t border-slate-200 dark:border-slate-700">
                                 <button
                                     type="button"
                                     onClick={() => setIsBorrowModalOpen(false)}
-                                    className="px-4 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                    className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                 >
                                     ยกเลิก
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submittingBorrow || !borrowDepartment.trim()}
-                                    className="px-4 py-1.5 border border-transparent rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                                    className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
                                 >
                                     {submittingBorrow ? 'กำลังบันทึก...' : 'บันทึกการยืม'}
                                 </button>

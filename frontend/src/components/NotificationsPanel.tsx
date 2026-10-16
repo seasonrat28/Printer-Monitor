@@ -92,12 +92,12 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
             )}
             
             {/* Slide-over panel */}
-            <div className={`fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className={`fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1A1D20] flex justify-between items-center">
+                <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex justify-between items-center">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center">
-                        <Bell className="mr-2 text-slate-500 dark:text-slate-400" size={20} />
+                        <Bell className="mr-2 text-indigo-500" size={20} />
                         การแจ้งเตือน
                     </h2>
                     <button 
@@ -109,7 +109,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900/50">
+                <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-slate-900">
                     {loading ? (
                         <div className="flex justify-center items-center h-32">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -166,7 +166,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
                                                 e.stopPropagation();
                                                 handleResolve(alert.id);
                                             }}
-                                            className="text-xs px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm rounded hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium transition-colors"
+                                            className="text-xs px-3 py-1.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 font-medium transition-colors"
                                         >
                                             รับทราบ (Resolve)
                                         </button>

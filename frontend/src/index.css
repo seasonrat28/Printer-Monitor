@@ -36,32 +36,32 @@
   }
  
   .dark {
-    --background: 0 0% 7%;
+    --background: 222.2 47.4% 11.2%; /* #0f172a slate-900 */
     --foreground: 210 40% 98%;
- 
-    --card: 0 0% 12%;
+
+    --card: 217.2 32.6% 17.5%;       /* #1e293b slate-800 */
     --card-foreground: 210 40% 98%;
- 
-    --popover: 222.2 84% 4.9%;
+
+    --popover: 217.2 32.6% 17.5%;
     --popover-foreground: 210 40% 98%;
- 
+
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
- 
+
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
- 
+
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
- 
-    --accent: 217.2 32.6% 17.5%;
+
+    --accent: 217.2 32.6% 22%;
     --accent-foreground: 210 40% 98%;
- 
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
- 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+
+    --border: 217.2 32.6% 25%;       /* #334155 slate-700 */
+    --input: 217.2 32.6% 25%;
     --ring: 212.7 26.8% 83.9%;
   }
 }
@@ -69,16 +69,16 @@
 @layer base {
   * {
     border-color: hsl(var(--border));
-    transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out, color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;
+    transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out, color 0.3s ease-in-out;
   }
   body {
-    background: linear-gradient(135deg, hsl(var(--background)) 0%, #f0f4f8 100%);
+    background-color: #f8fafc;
     color: hsl(var(--foreground));
     font-family: 'Inter', 'Noto Sans Thai', ui-sans-serif, system-ui, sans-serif;
     min-height: 100vh;
   }
   .dark body {
-    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+    background-color: #0f172a;
   }
   
   /* Custom Premium Scrollbars */
@@ -107,10 +107,73 @@
 
   /* select elements dark mode */
   .dark select {
-    background-color: #374151;
+    background-color: #1e293b;
     color: #f9fafb;
-    border-color: #4b5563;
+    border-color: #334155;
   }
+
+  /* Universal Dark Mode Surface Palette Override to match screenshot card */
+  .dark .bg-slate-900,
+  .dark .bg-gray-900,
+  .dark .bg-slate-950,
+  .dark .bg-gray-950,
+  .dark .bg-\[\#111827\],
+  .dark .bg-\[\#16181b\],
+  .dark .bg-\[\#1e1e1e\],
+  .dark .bg-\[\#1A1D20\] {
+    background-color: #0f172a !important;
+  }
+
+  .dark .bg-slate-800,
+  .dark .bg-gray-800,
+  .dark .bg-slate-800\/50,
+  .dark .bg-gray-800\/50,
+  .dark .bg-slate-800\/80,
+  .dark .bg-gray-800\/60,
+  .dark .bg-gray-800\/40,
+  .dark .bg-gray-700,
+  .dark .bg-\[\#20242a\],
+  .dark .bg-\[\#1c1f24\] {
+    background-color: #1e293b !important;
+  }
+
+  .dark .bg-slate-850 {
+    background-color: #162032 !important;
+  }
+
+  .dark .border-slate-800,
+  .dark .border-gray-800,
+  .dark .border-slate-700,
+  .dark .border-gray-700,
+  .dark .border-slate-600,
+  .dark .border-gray-600,
+  .dark .border-\[\#2e333d\] {
+    border-color: #334155 !important;
+  }
+
+  /* Recharts Tooltip Styling */
+  .recharts-default-tooltip {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  }
+  .recharts-tooltip-label {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+    margin-bottom: 4px !important;
+  }
+  .dark .recharts-default-tooltip {
+    background-color: #1e293b !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  }
+  .dark .recharts-tooltip-label {
+    color: #f1f5f9 !important;
+    font-weight: 600 !important;
+    margin-bottom: 4px !important;
+  }
+
 
   /* Shimmer Flow Animation */
   @keyframes shimmer-flow {
@@ -122,3 +185,4 @@
     animation: shimmer-flow 3s linear infinite;
   }
 }
+

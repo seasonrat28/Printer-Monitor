@@ -101,7 +101,7 @@ export const AlertsPage = () => {
 
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 overflow-hidden flex flex-col">
                 {/* Filters */}
-                <div className="p-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/80 flex flex-wrap gap-4 items-center justify-between">
+                <div className="p-4 border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/80 flex flex-wrap gap-4 items-center justify-between">
                     <div className="flex flex-wrap gap-3">
                         <div className="flex items-center space-x-2 bg-white dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
                             {(['ACTIVE', 'RESOLVED', 'ALL'] as const).map(status => (
@@ -148,12 +148,12 @@ export const AlertsPage = () => {
                 {/* Table */}
                 <div className="overflow-x-auto min-h-[400px]">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-xs uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">
+                        <thead className="bg-slate-50/50 dark:bg-slate-800/80 text-xs uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">
                             <tr>
-                                <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50">Alert Details</th>
-                                <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50">Printer</th>
-                                <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 w-48">Time</th>
-                                <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 text-right w-32">Status / Action</th>
+                                <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">Alert Details</th>
+                                <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">Printer</th>
+                                <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 w-48">Time</th>
+                                <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 text-right w-32">Status / Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -170,7 +170,7 @@ export const AlertsPage = () => {
                                 <tr>
                                     <td colSpan={4} className="px-6 py-12 text-center">
                                         <div className="flex flex-col items-center justify-center text-slate-400">
-                                            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-3">
+                                            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-3">
                                                 <CheckCircle2 size={32} className="text-emerald-500 opacity-80" />
                                             </div>
                                             <p className="text-base font-bold text-slate-600 dark:text-slate-300">No alerts found</p>
@@ -180,7 +180,7 @@ export const AlertsPage = () => {
                                 </tr>
                             ) : (
                                 filteredAlerts.map(alert => (
-                                    <tr key={alert.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                                    <tr key={alert.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-start gap-3">
                                                 <div className="mt-0.5">

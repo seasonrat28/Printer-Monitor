@@ -140,7 +140,7 @@ const Dashboard = () => {
 
     return (
         <div className="space-y-6 max-w-[1600px] mx-auto">
-            <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700/60">
                 <div>
                     <h2 className="text-xl font-bold tracking-tight text-gray-800 dark:text-gray-200">Device Summary</h2>
                     {lastUpdated && (
@@ -192,14 +192,14 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Status Panel (Left) */}
-                <div className="lg:col-span-1 bg-white/70 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl shadow-lg border border-slate-200/80 dark:border-gray-700/50 flex flex-col overflow-hidden">
-                    <div className="p-4 border-b border-gray-100/50 dark:border-gray-700/50 bg-gray-50/30 dark:bg-gray-800/30">
+                <div className="lg:col-span-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex flex-col overflow-hidden">
+                    <div className="p-4 border-b border-gray-100 dark:border-slate-700/60 bg-gray-50/50 dark:bg-slate-800/80">
                         <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Device Status</h3>
                     </div>
 
                     <div className="p-6 flex-1 flex flex-col justify-center">
                         <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="border border-emerald-200/80 dark:border-emerald-900/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors shadow-sm bg-white/60 dark:bg-gray-800/40">
+                            <div className="border border-emerald-200/80 dark:border-emerald-900/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors shadow-sm bg-white/60 dark:bg-slate-900/50">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400/20 to-emerald-300/20 blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                                 <div className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 mb-1 relative z-10">
                                     <CheckCircle2 size={16} />
@@ -208,7 +208,7 @@ const Dashboard = () => {
                                 <span className="text-3xl font-black text-emerald-700 dark:text-emerald-300 relative z-10">{online}</span>
                             </div>
 
-                            <div className="border border-amber-200/80 dark:border-amber-900/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors shadow-sm bg-white/60 dark:bg-gray-800/40">
+                            <div className="border border-amber-200/80 dark:border-amber-900/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors shadow-sm bg-white/60 dark:bg-slate-900/50">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-amber-400/20 to-amber-300/20 blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                                 <div className="flex items-center space-x-1 text-amber-600 dark:text-amber-400 mb-1 relative z-10">
                                     <AlertTriangle size={16} />
@@ -217,7 +217,7 @@ const Dashboard = () => {
                                 <span className="text-3xl font-black text-amber-700 dark:text-amber-300 relative z-10">{warning}</span>
                             </div>
 
-                            <div className="border border-red-200/80 dark:border-red-900/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm bg-white/60 dark:bg-gray-800/40">
+                            <div className="border border-red-200/80 dark:border-red-900/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm bg-white/60 dark:bg-slate-900/50">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-red-400/20 to-red-300/20 blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                                 <div className="flex items-center space-x-1 text-red-600 dark:text-red-400 mb-1 relative z-10">
                                     <XCircle size={16} />
@@ -226,7 +226,7 @@ const Dashboard = () => {
                                 <span className="text-3xl font-black text-red-700 dark:text-red-300 relative z-10">{offline}</span>
                             </div>
 
-                            <div className="border border-gray-200/80 dark:border-gray-700/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden bg-gray-50/60 dark:bg-gray-800/40 shadow-sm">
+                            <div className="border border-gray-200/80 dark:border-slate-700/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden bg-gray-50/60 dark:bg-slate-900/50 shadow-sm">
                                 <div className="flex items-center space-x-1 text-gray-500 dark:text-gray-400 mb-1">
                                     <Printer size={16} />
                                     <span className="font-bold text-sm">Total</span>
@@ -236,7 +236,7 @@ const Dashboard = () => {
                         </div>
 
                         {/* Combined Progress Bar */}
-                        <div className="w-full h-4 bg-gray-100/80 dark:bg-gray-800/50 rounded-full overflow-hidden flex shadow-inner border border-gray-200/60 dark:border-gray-700/50">
+                        <div className="w-full h-4 bg-gray-100/80 dark:bg-slate-900/70 rounded-full overflow-hidden flex shadow-inner border border-gray-200/60 dark:border-slate-700/50">
                             <div style={{ width: `${onlinePct}%` }} className="h-full bg-gradient-to-r from-emerald-500 via-emerald-300 to-emerald-500 animate-shimmer-flow transition-all duration-500" title={`Ready: ${online}`}></div>
                             <div style={{ width: `${warningPct}%` }} className="h-full bg-gradient-to-r from-amber-500 via-amber-300 to-amber-500 animate-shimmer-flow transition-all duration-500" title={`Attention: ${warning}`}></div>
                             <div style={{ width: `${offlinePct}%` }} className="h-full bg-gradient-to-r from-red-500 via-red-400 to-red-500 animate-shimmer-flow transition-all duration-500" title={`Error: ${offline}`}></div>
@@ -248,8 +248,8 @@ const Dashboard = () => {
                 </div>
 
                 {/* Consumables Panel (Right) */}
-                <div className="lg:col-span-2 bg-white/70 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl shadow-lg border border-slate-200/80 dark:border-gray-700/50 flex flex-col overflow-hidden">
-                    <div className="p-4 border-b border-gray-100/50 dark:border-gray-700/50 bg-gray-50/30 dark:bg-gray-800/30 flex justify-between items-center">
+                <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex flex-col overflow-hidden">
+                    <div className="p-4 border-b border-gray-100 dark:border-slate-700/60 bg-gray-50/50 dark:bg-slate-800/80 flex justify-between items-center">
                         <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Consumables Requiring Replacement</h3>
                         <span className="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-900/30 px-2 py-1 rounded-md border border-amber-200/80 dark:border-amber-700/50 backdrop-blur-sm shadow-sm">Toner &lt; 10%</span>
                     </div>
@@ -401,7 +401,15 @@ const Dashboard = () => {
                                     </Pie>
                                     <RechartsTooltip 
                                         formatter={(value: number) => [`${value} Devices`, 'Count']}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        contentStyle={{
+                                            backgroundColor: '#1e293b',
+                                            borderColor: '#334155',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                                            color: '#f8fafc'
+                                        }}
+                                        labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: '4px' }}
+                                        itemStyle={{ padding: '2px 0' }}
                                     />
                                     <Legend verticalAlign="bottom" height={36} iconType="circle" />
                                 </PieChart>

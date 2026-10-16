@@ -152,23 +152,23 @@ export const UsersPage = () => {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-lg"></div>
+            <div key={i} className="h-16 bg-gray-200 dark:bg-slate-800 animate-pulse rounded-lg"></div>
           ))}
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800/40 backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 dark:border-gray-700/50 overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700/50">
+            <thead className="bg-slate-50/50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700/60 text-xs uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">
               <tr>
-                <th className="px-6 py-4 font-medium text-gray-500">User</th>
-                <th className="px-6 py-4 font-medium text-gray-500">Role</th>
-                <th className="px-6 py-4 font-medium text-gray-500">Status</th>
-                <th className="px-6 py-4 font-medium text-gray-500 text-right">Actions</th>
+                <th className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400">User</th>
+                <th className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400">Role</th>
+                <th className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400">Status</th>
+                <th className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
               {users.map(u => (
-                <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
                   <td className="px-6 py-4 font-medium">
                     <div className="flex items-center space-x-3">
                       <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
@@ -221,9 +221,9 @@ export const UsersPage = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-md shadow-md w-full max-w-2xl p-6 border border-gray-100 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">{editingUser ? 'Edit User' : 'Add User'}</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl p-6 border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100">{editingUser ? 'Edit User' : 'Add User'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
