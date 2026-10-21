@@ -106,3 +106,31 @@ def clear_resolved_alerts(
     deleted_count = db.query(Alert).filter(Alert.is_resolved == True).delete()
     db.commit()
     return {"message": f"Deleted {deleted_count} resolved alerts"}
+
+@router.post("/sync-teams")
+async def sync_alerts_to_teams(db: Session = Depends(deps.get_db)):
+    """
+    Push all current active alerts from database to Microsoft Teams immediately.
+    """
+    from app.core.notifications import send_teams_webhook
+    active_alerts = db.query(Alert).join(Printer).filter(
+        Alert.is_resolved == False,
+        not_(and_(Alert.alert_type == "STATUS", Alert.message.ilike("%offline%")))
+    ).order_by(desc(Alert.created_at)).all()
+    
+    sent_count = 0
+    for a in active_alerts:
+        created_str = a.created_at.strftime("%d/%m/%Y, %H:%M:%S") if a.created_at else ""
+        await send_teams_webhook(
+            title=a.message,
+            message=a.message,
+            severity=a.severity,
+            printer_name=a.printer.hostname or a.printer.ip_address,
+            printer_ip=a.printer.ip_address,
+            location=a.printer.location or "-",
+            created_at=created_str
+        )
+        sent_count += 1
+        
+    return {"status": "success", "synced_count": sent_count, "message": f"ซิงค์การแจ้งเตือนปัจจุบันจำนวน {sent_count} รายการไปยัง Teams สำเร็จแล้ว"}
+

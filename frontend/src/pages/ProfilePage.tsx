@@ -47,7 +47,7 @@ export const ProfilePage = () => {
             </h2>
 
             {/* Profile Header Card */}
-            <Card className="bg-white/70 dark:bg-[#1A1D20]/80 backdrop-blur-md border-indigo-100 dark:border-slate-800 overflow-hidden shadow-lg">
+            <Card className="bg-white dark:bg-slate-800 border-indigo-100 dark:border-slate-700/60 overflow-hidden shadow-sm">
                 <div className="p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div className="flex items-center gap-6">
                         <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-4xl font-bold shadow-xl shadow-indigo-500/20 shrink-0">

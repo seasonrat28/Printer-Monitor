@@ -269,7 +269,70 @@ export const SettingsPage = () => {
                                     <Input name="lineToken" value={config.lineToken || ''} onChange={handleConfigChange} placeholder="Line token here" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">MS Teams Webhook URL</label>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-medium">MS Teams Webhook URL</label>
+                                        {config.teamsWebhook && (
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    try {
+                                                        // 1. Try backend endpoint first
+                                                        await api.post('/settings/test-teams');
+                                                        addToast('success', 'Teams Webhook', 'ส่งข้อความทดสอบสำเร็จ! ตรวจสอบที่ Teams ได้เลย');
+                                                    } catch (err: any) {
+                                                        // 2. If backend endpoint not loaded yet, send directly via fetch to webhook URL!
+                                                        if (config.teamsWebhook) {
+                                                            try {
+                                                                const payload = {
+                                                                    type: "AdaptiveCard",
+                                                                    $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+                                                                    version: "1.4",
+                                                                    title: "Test Alert จาก Enterprise Printer Monitor",
+                                                                    text: "ทดสอบการส่งข้อความแจ้งเตือนจากหน้าเว็บ Enterprise Printer Monitor เข้า Teams สำเร็จเรียบร้อยแล้ว!",
+                                                                    severity: "WARNING",
+                                                                    summary: "Test Alert",
+                                                                    body: [
+                                                                        {
+                                                                            type: "Container",
+                                                                            items: [
+                                                                                {
+                                                                                    type: "TextBlock",
+                                                                                    text: "🖨️ Test Alert จาก Enterprise Printer Monitor",
+                                                                                    weight: "Bolder",
+                                                                                    size: "Medium",
+                                                                                    color: "Warning",
+                                                                                    wrap: true
+                                                                                },
+                                                                                {
+                                                                                    type: "TextBlock",
+                                                                                    text: "ทดสอบการส่งข้อความแจ้งเตือนจากหน้าเว็บเข้าสู่ Teams สำเร็จเรียบร้อยแล้ว!",
+                                                                                    wrap: true,
+                                                                                    spacing: "Small"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                };
+                                                                await fetch(config.teamsWebhook, {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify(payload)
+                                                                });
+                                                                addToast('success', 'Teams Webhook', 'ส่งข้อความทดสอบสำเร็จ! ตรวจสอบที่ Teams ได้เลย');
+                                                            } catch (fetchErr) {
+                                                                addToast('error', 'Error', 'ไม่สามารถส่ง Webhook ได้ กรุณาตรวจสอบ URL หรือรีสตาร์ท Backend');
+                                                            }
+                                                        } else {
+                                                            addToast('error', 'Error', err.response?.data?.detail || 'ส่งข้อความทดสอบไม่สำเร็จ');
+                                                        }
+                                                    }
+                                                }}
+                                                className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium hover:underline"
+                                            >
+                                                🔔 ทดสอบส่งข้อความ (Test)
+                                            </button>
+                                        )}
+                                    </div>
                                     <Input name="teamsWebhook" value={config.teamsWebhook || ''} onChange={handleConfigChange} placeholder="https://..." />
                                 </div>
                             </CardContent>

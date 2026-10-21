@@ -50,9 +50,19 @@ async def _create_or_update_alert(db: Session, printer_id: int, alert_type: str,
         from app.core.notifications import dispatch_alert
         from app.models.printer import Printer
         printer_obj = db.query(Printer).filter(Printer.id == printer_id).first()
-        ip_str = printer_obj.ip_address if printer_obj else f"ID {printer_id}"
-        title = f"[{severity}] Printer Alert: {ip_str}"
-        await dispatch_alert(title, message)
+        p_name = printer_obj.hostname or (printer_obj.ip_address if printer_obj else "-")
+        p_ip = printer_obj.ip_address if printer_obj else "-"
+        p_loc = printer_obj.location if (printer_obj and printer_obj.location) else "-"
+        created_str = new_alert.created_at.strftime("%d/%m/%Y, %H:%M:%S") if new_alert.created_at else ""
+        await dispatch_alert(
+            title=message,
+            message=message,
+            severity=severity,
+            printer_name=p_name,
+            printer_ip=p_ip,
+            location=p_loc,
+            created_at=created_str
+        )
 
 async def _resolve_alerts(db: Session, printer_id: int, alert_type: str):
     alerts = db.query(Alert).filter(

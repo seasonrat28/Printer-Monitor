@@ -60,18 +60,23 @@ backend/offline_packages/
 frontend/electron/
 frontend/dist_electron/
 
-# Private scripts
-push_github.bat
-build_app.bat
-cleanup.py
-do_cleanup.py
-cleanup_files.bat
-deploy.bat
-fix_db.bat
-migrate.bat
-backend/scratch_fetch.py
-backend/explore_apeos.py
-scripts/debugging/
+# Private & Helper scripts
+*.bat
+!start_all.bat
+!stop_all.bat
+!manage.bat
+!install.bat
+push_changes.bat
+push_to_github.bat
+git_status.bat
+kill_all.bat
+kill_services.bat
+cleanup_garbage.bat
+cleanup_logs.bat
+run_lh.bat
+build_frontend.bat
+setup_deployment.bat
+start_tray.bat
 
 # Scratch & Debug files
 check_*.py
@@ -89,3 +94,4 @@ test_*.py
 scratch_*.py
 Skill/
 install-godkiller-mcp.bat
+

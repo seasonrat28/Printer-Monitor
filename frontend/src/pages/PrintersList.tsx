@@ -12,6 +12,7 @@ import { MetricGrid } from '../components/MetricGrid';
 import { AutoDiscoveryModal } from '../components/AutoDiscoveryModal';
 import type { Printer } from '../types';
 import toast from 'react-hot-toast';
+import { useSearchParams } from 'react-router-dom';
 
 let isInitialSyncDone = false;
 let cachedPrinters: Printer[] = [];
@@ -26,6 +27,8 @@ const isColorPrinter = (printer: Printer) => {
 };
 
 const PrintersList = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const selectedPrinterId = Number(searchParams.get('printerId')) || null;
     const { user } = useAuth();
     const [printers, setPrinters] = useState<Printer[]>(cachedPrinters);
     const [loading, setLoading] = useState(cachedPrinters.length === 0);
@@ -536,6 +539,7 @@ const PrintersList = () => {
     // Filter Logic
     const filteredPrinters = React.useMemo(() => {
         let result = printers.filter(p => {
+            if (selectedPrinterId && p.id !== selectedPrinterId) return false;
             // Group Filter
             if (groupFilter !== 'ALL') {
                 if (!activeGroupPrinterIds.has(p.id)) return false;
@@ -612,7 +616,7 @@ const PrintersList = () => {
         });
 
         return result;
-    }, [printers, statusFilter, assetStatusFilter, supplyFilter, departmentFilter, searchQuery, sortBy, groupFilter, brandFilter, activeGroupPrinterIds]);
+    }, [printers, selectedPrinterId, statusFilter, assetStatusFilter, supplyFilter, departmentFilter, searchQuery, sortBy, groupFilter, brandFilter, activeGroupPrinterIds]);
 
 
 
@@ -627,6 +631,7 @@ const PrintersList = () => {
         setActiveGroupPrinterIds(new Set());
         setActiveSmartFilterPrinterIds(new Set());
         setSortBy('ip_asc');
+        setSearchParams({});
     };
 
     const metrics = dashboardSummary?.metrics || { active_alerts: 0, critical_alerts: 0, pages_printed: 0, low_toner_printers: 0, avg_response: 'N/A' };
@@ -780,6 +785,12 @@ const PrintersList = () => {
             )}
 
             {/* Search and Filter Bar */}
+            {selectedPrinterId && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-100">
+                    <span>Showing the printer selected from the dashboard.</span>
+                    <button onClick={clearFilters} className="font-semibold text-indigo-700 hover:text-indigo-900 dark:text-indigo-300 dark:hover:text-white">Show all printers</button>
+                </div>
+            )}
             <div className="flex flex-col lg:flex-row gap-2 xl:gap-3 items-center bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                 <div className="w-full lg:w-auto flex-1 min-w-[200px] max-w-md relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

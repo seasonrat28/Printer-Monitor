@@ -90,3 +90,14 @@ def remove_blacklist(ip_address: str, db: Session = Depends(get_db), current_use
     db.delete(item)
     db.commit()
     return {"status": "success"}
+
+@router.post("/test-teams")
+async def test_teams_notification(current_user: User = Depends(verify_admin)):
+    from app.core.notifications import send_teams_webhook
+    await send_teams_webhook(
+        title="Test Notification from Enterprise Printer Monitor",
+        message="การเชื่อมต่อระหว่างระบบ Enterprise Printer Monitor และ MS Teams สำเร็จเรียบร้อยแล้ว!",
+        severity="WARNING"
+    )
+    return {"status": "success", "message": "ส่งข้อความทดสอบไปยัง MS Teams เรียบร้อยแล้ว"}
+

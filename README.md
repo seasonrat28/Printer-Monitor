@@ -21,6 +21,7 @@
 
 This project does not require PowerShell to start, ensuring compatibility with strict Endpoint Security systems (like Sangfor).
 
+- **All-in-One Control:** `manage.bat` (ศูนย์รวมคำสั่ง Start, Stop, Build, Tray, Auto-Start ในตัวเดียว)
 - **Start All (CMD Window):** `start_all.bat` (รันทั้ง 2 ระบบในหน้าต่างเดียว)
 - **Start Hidden (No Window):** `start_hidden.vbs` (รันระบบซ่อนอยู่เบื้องหลัง)
 - **Stop All:** `stop_all.bat` (สั่งปิดการทำงานทั้งหมด)

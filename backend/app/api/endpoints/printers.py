@@ -80,7 +80,9 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     total = len(printers)
     online = sum(1 for p in printers if p.status == 'ONLINE')
     warning = sum(1 for p in printers if p.status == 'WARNING')
+    error = sum(1 for p in printers if p.status == 'ERROR')
     offline = sum(1 for p in printers if p.status == 'OFFLINE')
+    unknown = sum(1 for p in printers if p.status not in {'ONLINE', 'WARNING', 'ERROR', 'OFFLINE'})
 
     # Consumables Requiring Replacement (already in memory from printers query)
     low_toner = [{"id": p.id, "hostname": p.hostname, "ip_address": p.ip_address, "level": p.toner_level, "type": "Toner"} for p in printers if p.toner_level is not None and p.toner_level <= 10]
@@ -160,7 +162,14 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     avg_response_str = f"{round(avg_resp_val)}ms" if avg_resp_val else "N/A"
 
     return {
-        "status_summary": {"total": total, "online": online, "warning": warning, "offline": offline},
+        "status_summary": {
+            "total": total,
+            "online": online,
+            "warning": warning,
+            "error": error,
+            "offline": offline,
+            "unknown": unknown,
+        },
         "metrics": {
             "active_alerts": active_alerts,
             "critical_alerts": critical_alerts,

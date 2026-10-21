@@ -11,7 +11,7 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 const Dashboard = () => {
     const [summary, setSummary] = useState<any>({
-        status_summary: { total: 0, online: 0, offline: 0, warning: 0 },
+        status_summary: { total: 0, online: 0, warning: 0, error: 0, offline: 0, unknown: 0 },
         metrics: { active_alerts: 0, critical_alerts: 0, pages_printed: 0, low_toner_printers: 0, avg_response: 'N/A' },
         consumables_alert: [],
         recent_alerts: [],
@@ -108,14 +108,16 @@ const Dashboard = () => {
         return `${m}m ago`;
     };
 
-    const { total, online, offline, warning } = summary.status_summary;
+    const { total, online, warning, error = 0, offline, unknown = 0 } = summary.status_summary;
     const metrics = summary.metrics || { active_alerts: 0, critical_alerts: 0, pages_printed: 0, low_toner_printers: 0, avg_response: 'N/A' };
     const { recent_alerts = [], top_printers = [], department_distribution = [] } = summary;
 
     // Calculate percentages for the combined status bar
     const onlinePct = total > 0 ? (online / total) * 100 : 0;
     const warningPct = total > 0 ? (warning / total) * 100 : 0;
+    const errorPct = total > 0 ? (error / total) * 100 : 0;
     const offlinePct = total > 0 ? (offline / total) * 100 : 0;
+    const unknownPct = total > 0 ? (unknown / total) * 100 : 0;
 
     const inventorySummary = useMemo(() => {
         const groups = inventoryItems.reduce((acc: Record<string, any>, item: any) => {
@@ -223,7 +225,23 @@ const Dashboard = () => {
                                     <XCircle size={16} />
                                     <span className="font-bold text-sm">Error</span>
                                 </div>
-                                <span className="text-3xl font-black text-red-700 dark:text-red-300 relative z-10">{offline}</span>
+                                <span className="text-3xl font-black text-red-700 dark:text-red-300 relative z-10">{error}</span>
+                            </div>
+
+                            <div className="border border-slate-200/80 dark:border-slate-700/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-slate-50 dark:hover:bg-slate-900/20 transition-colors shadow-sm bg-white/60 dark:bg-slate-900/50">
+                                <div className="flex items-center space-x-1 text-slate-600 dark:text-slate-300 mb-1 relative z-10">
+                                    <XCircle size={16} />
+                                    <span className="font-bold text-sm">Offline</span>
+                                </div>
+                                <span className="text-3xl font-black text-slate-700 dark:text-slate-200 relative z-10">{offline}</span>
+                            </div>
+
+                            <div className="border border-violet-200/80 dark:border-violet-900/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm bg-white/60 dark:bg-slate-900/50">
+                                <div className="flex items-center space-x-1 text-violet-600 dark:text-violet-400 mb-1 relative z-10">
+                                    <AlertTriangle size={16} />
+                                    <span className="font-bold text-sm">Unknown</span>
+                                </div>
+                                <span className="text-3xl font-black text-violet-700 dark:text-violet-300 relative z-10">{unknown}</span>
                             </div>
 
                             <div className="border border-gray-200/80 dark:border-slate-700/50 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden bg-gray-50/60 dark:bg-slate-900/50 shadow-sm">
@@ -239,7 +257,9 @@ const Dashboard = () => {
                         <div className="w-full h-4 bg-gray-100/80 dark:bg-slate-900/70 rounded-full overflow-hidden flex shadow-inner border border-gray-200/60 dark:border-slate-700/50">
                             <div style={{ width: `${onlinePct}%` }} className="h-full bg-gradient-to-r from-emerald-500 via-emerald-300 to-emerald-500 animate-shimmer-flow transition-all duration-500" title={`Ready: ${online}`}></div>
                             <div style={{ width: `${warningPct}%` }} className="h-full bg-gradient-to-r from-amber-500 via-amber-300 to-amber-500 animate-shimmer-flow transition-all duration-500" title={`Attention: ${warning}`}></div>
-                            <div style={{ width: `${offlinePct}%` }} className="h-full bg-gradient-to-r from-red-500 via-red-400 to-red-500 animate-shimmer-flow transition-all duration-500" title={`Error: ${offline}`}></div>
+                            <div style={{ width: `${errorPct}%` }} className="h-full bg-gradient-to-r from-red-500 via-red-400 to-red-500 animate-shimmer-flow transition-all duration-500" title={`Error: ${error}`}></div>
+                            <div style={{ width: `${offlinePct}%` }} className="h-full bg-gradient-to-r from-slate-500 via-slate-300 to-slate-500 animate-shimmer-flow transition-all duration-500" title={`Offline: ${offline}`}></div>
+                            <div style={{ width: `${unknownPct}%` }} className="h-full bg-gradient-to-r from-violet-500 via-violet-300 to-violet-500 animate-shimmer-flow transition-all duration-500" title={`Unknown: ${unknown}`}></div>
                         </div>
                         <div className="flex justify-end mt-2">
                             <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{total} Devices</span>
@@ -317,7 +337,7 @@ const Dashboard = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <Link to="/printers" className="text-gray-500 hover:text-gray-900 bg-white border border-gray-300 px-3 py-1 rounded shadow-sm inline-flex items-center text-xs font-bold transition-all hover:bg-gray-50">
+                                                    <Link to={`/printers?printerId=${alert.id}`} className="text-gray-500 hover:text-gray-900 bg-white border border-gray-300 px-3 py-1 rounded shadow-sm inline-flex items-center text-xs font-bold transition-all hover:bg-gray-50">
                                                         Details <ChevronRight size={14} className="ml-1" />
                                                     </Link>
                                                 </td>
