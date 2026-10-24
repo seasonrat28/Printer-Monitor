@@ -21,7 +21,7 @@ app.add_middleware(
 
 # Rate Limiting
 from app.core.middleware import RateLimitMiddleware
-app.add_middleware(RateLimitMiddleware, max_requests=300, window=60)
+app.add_middleware(RateLimitMiddleware, max_requests=1000, window=60)
 
 
 @app.get("/health")
@@ -150,7 +150,7 @@ async def apeos_login_debug(ip: str = "192.168.1.100", pwd: str = "admin1234"):
 
 @app.get("/test_apeos_creds")
 def get_creds():
-    from app.database import SessionLocal
+    from app.db.session import SessionLocal
     from app.models.printer import Printer
     db = SessionLocal()
     printers = db.query(Printer).all()
@@ -307,7 +307,7 @@ from app.models.monitoring import PrinterStatusHistory, PrinterSupplies, Printer
 from app.models.alert import Alert
 from app.models.group import PrinterGroup
 from app.models.smart_filter import SmartFilter
-from app.models.audit import AuditLog
+from app.models.audit import AuditLog, LoginLog
 from app.models.settings import SystemSetting, BlacklistIP
 from app.models.floormap import FloorMap, PrinterPin
 from app.models.inventory import Warehouse, InventoryItem
@@ -321,11 +321,11 @@ Base.metadata.create_all(bind=engine)
 async def startup_event():
     # Run schema migrations
     from app.db.session import engine
-    from app.models.audit import AuditLog
+    from app.models.audit import AuditLog, LoginLog
     from app.models.inventory import Warehouse, InventoryItem, InventoryUsageLog
     try:
-        AuditLog.__table__.drop(engine, checkfirst=True)
-        AuditLog.__table__.create(engine)
+        LoginLog.__table__.create(engine, checkfirst=True)
+        AuditLog.__table__.create(engine, checkfirst=True)
         from sqlalchemy import text
         with engine.connect() as conn:
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_status_printer_checked ON printer_status_history (printer_id, checked_at DESC)"))
@@ -458,7 +458,9 @@ def shutdown_event():
         logger.error(f"Error shutting down APScheduler: {e}")
 
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import os
+from pathlib import Path
 
 os.makedirs("uploads/floormaps", exist_ok=True)
 app.mount("/static/floormaps", StaticFiles(directory="uploads/floormaps"), name="floormaps")
@@ -468,7 +470,35 @@ app.mount("/static/attachments", StaticFiles(directory="uploads/attachments"), n
 
 app.include_router(api_router, prefix="/api/v1")
 
+# ─── Serve Frontend Single-Port (SPA fallback) ────────────────────────────────
+FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+if FRONTEND_DIST.exists():
+    # Mount assets (js, css, images)
+    assets_dir = FRONTEND_DIST / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="frontend_assets")
+
+    # Serve index.html or static files for any frontend route
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # Don't hijack API, static, or docs
+        if full_path.startswith("api/") or full_path.startswith("static/") or full_path in ("docs", "redoc", "openapi.json"):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Not Found")
+            
+        file_path = FRONTEND_DIST / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+            
+        index_file = FRONTEND_DIST / "index.html"
+        if index_file.is_file():
+            return FileResponse(index_file)
+            
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Frontend build not found")
+
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
+

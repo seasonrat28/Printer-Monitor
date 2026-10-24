@@ -7,8 +7,8 @@ class Warehouse(Base):
     __tablename__ = "warehouses"
     
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True, nullable=False) # e.g. "คลัง 81 : Paolo เกษตร"
-    location = Column(String, nullable=True) # e.g. "สถานที่ 00 : Paolo เกษตร"
+    name = Column(String, index=True, nullable=False) # e.g. "คลังอะไหล่กลาง (Main IT Storage)"
+    location = Column(String, nullable=True) # e.g. "อาคาร A ชั้น 2 ห้อง IT"
     created_at = Column(DateTime, default=datetime.utcnow)
     
     items = relationship("InventoryItem", back_populates="warehouse", cascade="all, delete-orphan")

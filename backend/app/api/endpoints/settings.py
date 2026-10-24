@@ -14,12 +14,14 @@ def verify_admin(current_user: User = Depends(get_current_active_user)):
         raise HTTPException(status_code=403, detail="สิทธิ์ของคุณไม่เพียงพอ (เฉพาะผู้ดูแลระบบไอทีเท่านั้น)")
     return current_user
 
+@router.get("", response_model=SettingsResponse)
 @router.get("/", response_model=SettingsResponse)
 def get_settings(db: Session = Depends(get_db), current_user: User = Depends(verify_admin)):
     settings_db = db.query(SystemSetting).all()
     result = {s.key: s.value for s in settings_db}
     return {"settings": result}
 
+@router.put("", response_model=SettingsResponse)
 @router.put("/", response_model=SettingsResponse)
 def update_settings(
     settings_in: SettingsUpdate,
@@ -57,6 +59,7 @@ class BlacklistIPResponse(BaseModel):
         orm_mode = True
 
 @router.get("/blacklist", response_model=List[BlacklistIPResponse])
+@router.get("/blacklist/", response_model=List[BlacklistIPResponse])
 def get_blacklist(db: Session = Depends(get_db), current_user: User = Depends(verify_admin)):
     return db.query(BlacklistIP).all()
 
@@ -100,4 +103,81 @@ async def test_teams_notification(current_user: User = Depends(verify_admin)):
         severity="WARNING"
     )
     return {"status": "success", "message": "ส่งข้อความทดสอบไปยัง MS Teams เรียบร้อยแล้ว"}
+
+import subprocess
+from pathlib import Path
+
+TUNNEL_URL_FILE = Path(r"d:\app\Printer-Monitor\runtime\tunnel_url.txt")
+
+@router.get("/tunnel/status")
+@router.get("/tunnel/status/")
+def get_tunnel_status(current_user: User = Depends(verify_admin)):
+    running = False
+    try:
+        res = subprocess.run(["tasklist", "/FI", "IMAGENAME eq cloudflared.exe"], capture_output=True, text=True)
+        running = "cloudflared.exe" in res.stdout
+    except Exception:
+        pass
+
+    url = None
+    if TUNNEL_URL_FILE.exists():
+        try:
+            url = TUNNEL_URL_FILE.read_text(encoding="utf-8").strip()
+        except Exception:
+            pass
+
+    return {"is_running": running, "url": url if running else None}
+
+@router.post("/tunnel/toggle")
+@router.post("/tunnel/toggle/")
+def toggle_tunnel(current_user: User = Depends(verify_admin)):
+    import re
+    import threading
+    base_dir = Path(r"d:\app\Printer-Monitor")
+    cloudflared_exe = base_dir / "cloudflared.exe"
+
+    # Check if currently running
+    res = subprocess.run(["tasklist", "/FI", "IMAGENAME eq cloudflared.exe"], capture_output=True, text=True)
+    is_running = "cloudflared.exe" in res.stdout
+
+    if is_running:
+        subprocess.run(["taskkill", "/F", "/IM", "cloudflared.exe"], capture_output=True)
+        if TUNNEL_URL_FILE.exists():
+            try:
+                TUNNEL_URL_FILE.unlink()
+            except Exception:
+                pass
+        return {"status": "stopped", "is_running": False, "url": None}
+    else:
+        if not cloudflared_exe.exists():
+            raise HTTPException(status_code=404, detail="ไม่พบไฟล์ cloudflared.exe ในระบบ")
+
+        TUNNEL_URL_FILE.parent.mkdir(parents=True, exist_ok=True)
+        if TUNNEL_URL_FILE.exists():
+            try:
+                TUNNEL_URL_FILE.unlink()
+            except Exception:
+                pass
+
+        cmd = [str(cloudflared_exe), "tunnel", "--url", "http://localhost:4173"]
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            creationflags=0x08000000
+        )
+
+        def read_output():
+            for line in iter(proc.stdout.readline, ''):
+                if not line:
+                    break
+                match = re.search(r'https://[a-zA-Z0-9\-]+\.trycloudflare\.com', line)
+                if match:
+                    found_url = match.group(0)
+                    TUNNEL_URL_FILE.write_text(found_url, encoding="utf-8")
+                    break
+
+        threading.Thread(target=read_output, daemon=True).start()
+        return {"status": "starting", "is_running": True, "url": None}
 

@@ -69,50 +69,75 @@
 @layer base {
   * {
     border-color: hsl(var(--border));
-    transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out, color 0.3s ease-in-out;
-  }
-  body {
-    background-color: #f8fafc;
-    color: hsl(var(--foreground));
-    font-family: 'Inter', 'Noto Sans Thai', ui-sans-serif, system-ui, sans-serif;
-    min-height: 100vh;
-  }
-  .dark body {
-    background-color: #0f172a;
   }
   
-  /* Custom Premium Scrollbars */
+  html, body, #root {
+    height: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    color-scheme: light dark;
+    scroll-behavior: smooth;
+    background-color: #f8fafc;
+  }
+
+  .dark html {
+    background-color: #0d121f;
+  }
+
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-family: 'Plus Jakarta Sans', 'Inter', 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.011em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark body {
+    background-color: #0d121f;
+    color: #f1f5f9;
+  }
+  
+  /* Custom High-Precision Scrollbars */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(156, 163, 175, 0.4);
-    border-radius: 4px;
-    transition: background 0.3s;
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 9999px;
+    transition: background 0.2s ease;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(156, 163, 175, 0.7);
+    background: rgba(148, 163, 184, 0.6);
   }
   
   .dark ::-webkit-scrollbar-thumb {
-    background: rgba(75, 85, 99, 0.5);
+    background: rgba(100, 116, 139, 0.3);
   }
   .dark ::-webkit-scrollbar-thumb:hover {
-    background: rgba(107, 114, 128, 0.8);
+    background: rgba(148, 163, 184, 0.5);
   }
 
-  /* select elements dark mode */
+  /* Form controls styling */
+  select, input, textarea {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
   .dark select {
-    background-color: #1e293b;
-    color: #f9fafb;
-    border-color: #334155;
+    background-color: #111827;
+    color: #f8fafc;
+    border-color: #1f293d;
   }
 
-  /* Universal Dark Mode Surface Palette Override to match screenshot card */
+  /* Universal Dark Mode Surface Palette Override with high visual hierarchy */
   .dark .bg-slate-900,
   .dark .bg-gray-900,
   .dark .bg-slate-950,
@@ -121,7 +146,7 @@
   .dark .bg-\[\#16181b\],
   .dark .bg-\[\#1e1e1e\],
   .dark .bg-\[\#1A1D20\] {
-    background-color: #0f172a !important;
+    background-color: #0d121f !important;
   }
 
   .dark .bg-slate-800,
@@ -134,11 +159,11 @@
   .dark .bg-gray-700,
   .dark .bg-\[\#20242a\],
   .dark .bg-\[\#1c1f24\] {
-    background-color: #1e293b !important;
+    background-color: #131b2e !important;
   }
 
   .dark .bg-slate-850 {
-    background-color: #162032 !important;
+    background-color: #0f172a !important;
   }
 
   .dark .border-slate-800,
@@ -148,34 +173,35 @@
   .dark .border-slate-600,
   .dark .border-gray-600,
   .dark .border-\[\#2e333d\] {
-    border-color: #334155 !important;
+    border-color: #1e293b !important;
   }
 
   /* Recharts Tooltip Styling */
   .recharts-default-tooltip {
-    background-color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(8px) !important;
     border: 1px solid #e2e8f0 !important;
-    border-radius: 8px !important;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
   }
   .recharts-tooltip-label {
-    color: #1e293b !important;
-    font-weight: 600 !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
     margin-bottom: 4px !important;
   }
   .dark .recharts-default-tooltip {
-    background-color: #1e293b !important;
-    border: 1px solid #334155 !important;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+    background-color: rgba(19, 27, 46, 0.95) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid #1e293b !important;
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6) !important;
   }
   .dark .recharts-tooltip-label {
-    color: #f1f5f9 !important;
-    font-weight: 600 !important;
+    color: #f8fafc !important;
+    font-weight: 700 !important;
     margin-bottom: 4px !important;
   }
 
-
-  /* Shimmer Flow Animation */
+  /* Micro-interactions & Keyframe Animations */
   @keyframes shimmer-flow {
     0% { background-position: 200% center; }
     100% { background-position: -200% center; }
@@ -184,5 +210,35 @@
     background-size: 200% auto;
     animation: shimmer-flow 3s linear infinite;
   }
+
+  @keyframes pulse-subtle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(0.98); }
+  }
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
 }
 
+/* Glassmorphism & Elevation Utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.card-hover-lift {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+.card-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.08);
+}
+.dark .card-hover-lift:hover {
+  box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.4);
+}

@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableDelayedExpansion
 title Enterprise Printer Monitor - Control Center
 
@@ -8,16 +9,16 @@ echo ========================================================
 echo        Enterprise Printer Monitor - Control Center
 echo ========================================================
 echo.
-echo   [1] Start System (รันปกติในหน้าต่างเดียว)
-echo   [2] Start Background (รันซ่อนหน้าต่างเบื้องหลัง)
-echo   [3] Start Tray App (รันพร้อมไอคอน System Tray)
-echo   [4] Stop All Services (สั่งปิดระบบทั้งหมด)
+echo   [1] Start System (Single Window)
+echo   [2] Start Background (Hidden Mode)
+echo   [3] Start Tray App (System Tray Icon)
+echo   [4] Stop All Services (Force Stop)
 echo.
-echo   [5] Build Frontend (คอมไพล์โค้ด Frontend ใหม่)
-echo   [6] Clean Old Logs (ล้างไฟล์ Log เก่าเกิน 14 วัน)
-echo   [7] Setup Windows Auto-Start (ตั้งค่าเปิดอัตโนมัติ)
+echo   [5] Build Frontend (Rebuild Dist)
+echo   [6] Clean Old Logs (Older than 14 Days)
+echo   [7] Setup Windows Auto-Start
 echo.
-echo   [0] Exit (ออก)
+echo   [0] Exit
 echo.
 echo ========================================================
 set /p CHOICE="Select option [0-7]: "
@@ -41,7 +42,7 @@ echo.
 echo [1] Starting Backend Server (Port 8000)...
 cd /d "%~dp0backend"
 call venv\Scripts\activate.bat
-start /B "" uvicorn app.main:app --host 0.0.0.0 --port 8000
+start /B "" uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 echo [2] Starting Frontend Preview (Port 4173)...
 cd /d "%~dp0frontend"

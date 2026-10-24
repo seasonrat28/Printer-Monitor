@@ -1,4 +1,8 @@
 {
-    "serverpulse.ai.enabled": true,
-    "serverpulse.ai.optInShown": true
+  "serverpulse.ai.enabled": true,
+  "serverpulse.ai.optInShown": true,
+  "cSpell.words": [
+    "คุณต้องการลบรายการบันทึกนี้ใช่หรือไม่",
+    "ไม่สามารถลบรายการได้"
+  ]
 }

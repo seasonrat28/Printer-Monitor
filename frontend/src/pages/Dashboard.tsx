@@ -108,9 +108,10 @@ const Dashboard = () => {
         return `${m}m ago`;
     };
 
-    const { total, online, warning, error = 0, offline, unknown = 0 } = summary.status_summary;
-    const metrics = summary.metrics || { active_alerts: 0, critical_alerts: 0, pages_printed: 0, low_toner_printers: 0, avg_response: 'N/A' };
-    const { recent_alerts = [], top_printers = [], department_distribution = [] } = summary;
+    const status_summary = summary?.status_summary || { total: 0, online: 0, warning: 0, error: 0, offline: 0, unknown: 0 };
+    const { total = 0, online = 0, warning = 0, error = 0, offline = 0, unknown = 0 } = status_summary;
+    const metrics = summary?.metrics || { active_alerts: 0, critical_alerts: 0, pages_printed: 0, low_toner_printers: 0, avg_response: 'N/A' };
+    const { recent_alerts = [], top_printers = [], department_distribution = [] } = summary || {};
 
     // Calculate percentages for the combined status bar
     const onlinePct = total > 0 ? (online / total) * 100 : 0;
@@ -141,39 +142,39 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[1600px] mx-auto">
-            <div className="flex justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700/60">
+        <div className="space-y-4 sm:space-y-6 max-w-[1600px] mx-auto flex-1 w-full pb-12">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-5 rounded-2xl shadow-xs border border-slate-200/90 dark:border-slate-800">
                 <div>
-                    <h2 className="text-xl font-bold tracking-tight text-gray-800 dark:text-gray-200">Device Summary</h2>
+                    <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Device Summary</h2>
                     {lastUpdated && (
-                        <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
-                            <Clock size={10} />
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
+                            <Clock size={12} className="text-slate-400" />
                             Updated {formatSecondsAgo(secondsAgo)}
                         </p>
                     )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2.5">
                     {/* Sync Now button */}
                     <button
                         onClick={handleSyncNow}
                         disabled={syncing}
                         title="Sync all printers now"
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border transition-all
+                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all duration-200 shadow-xs
                             ${ syncing
-                                ? 'bg-indigo-50 text-indigo-400 border-indigo-200 cursor-not-allowed'
-                                : 'bg-white text-indigo-600 border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 active:scale-95'}`}
+                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-400 border-indigo-200 dark:border-indigo-800 cursor-not-allowed'
+                                : 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-indigo-200/80 dark:border-indigo-900/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-300 dark:hover:border-indigo-700 active:scale-95'}`}
                     >
                         <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
                         {syncing ? 'Syncing...' : 'Sync Now'}
                     </button>
 
-                    {/* Connection status */}
-                    <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-md border border-gray-100 dark:border-gray-800">
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Connection:</span>
-                        <span className="flex items-center space-x-1">
-                            <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
-                            <span className={`text-xs font-bold ${isConnected ? 'text-emerald-600' : 'text-red-600'}`}>
-                                {isConnected ? 'ONLINE' : 'OFFLINE'}
+                    {/* Connection status badge */}
+                    <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status:</span>
+                        <span className="flex items-center space-x-1.5">
+                            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]'}`}></span>
+                            <span className={`text-xs font-bold ${isConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                {isConnected ? 'LIVE CONNECTED' : 'OFFLINE'}
                             </span>
                         </span>
                     </div>

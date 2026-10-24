@@ -50,6 +50,7 @@ logs/
 *.log.*
 runtime/pids.json
 runtime/ports.json
+runtime/*.txt
 frontend/node_modules/
 backend/uploads/
 frontend/dist_electron/

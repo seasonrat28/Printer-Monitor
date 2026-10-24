@@ -15,10 +15,12 @@ router = APIRouter()
 # --- Warehouses ---
 
 @router.get("/warehouses", response_model=List[WarehouseResponse])
+@router.get("/warehouses/", response_model=List[WarehouseResponse])
 def get_warehouses(db: Session = Depends(get_db)):
     return db.query(Warehouse).all()
 
 @router.post("/warehouses", response_model=WarehouseResponse)
+@router.post("/warehouses/", response_model=WarehouseResponse)
 def create_warehouse(warehouse: WarehouseCreate, db: Session = Depends(get_db)):
     new_warehouse = Warehouse(**warehouse.dict())
     db.add(new_warehouse)
@@ -39,6 +41,7 @@ def delete_warehouse(warehouse_id: int, db: Session = Depends(get_db)):
 # --- Inventory Items ---
 
 @router.get("/items", response_model=List[InventoryItemResponse])
+@router.get("/items/", response_model=List[InventoryItemResponse])
 def get_inventory_items(warehouse_id: int = None, db: Session = Depends(get_db)):
     query = db.query(InventoryItem)
     if warehouse_id:
@@ -46,6 +49,7 @@ def get_inventory_items(warehouse_id: int = None, db: Session = Depends(get_db))
     return query.all()
 
 @router.post("/items", response_model=InventoryItemResponse)
+@router.post("/items/", response_model=InventoryItemResponse)
 def create_inventory_item(item: InventoryItemCreate, db: Session = Depends(get_db)):
     # Check if warehouse exists
     if not db.query(Warehouse).filter(Warehouse.id == item.warehouse_id).first():
@@ -138,6 +142,7 @@ def delete_inventory_item(item_id: int, db: Session = Depends(get_db)):
 # --- Logs ---
 
 @router.get("/logs", response_model=List[InventoryUsageLogResponse])
+@router.get("/logs/", response_model=List[InventoryUsageLogResponse])
 def get_inventory_logs(limit: int = 50, db: Session = Depends(get_db)):
     logs = db.query(InventoryUsageLog).order_by(InventoryUsageLog.timestamp.desc()).limit(limit).all()
     

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Save, Ban, Trash2, Shield, Settings as SettingsIcon } from 'lucide-react';
+import { Save, Ban, Trash2, Shield, Settings as SettingsIcon, Globe, ExternalLink, Copy } from 'lucide-react';
 import api from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,6 +33,11 @@ export const SettingsPage = () => {
     const [blacklist, setBlacklist] = useState<any[]>([]);
     const [newIp, setNewIp] = useState('');
     
+    // Cloudflare Tunnel State
+    const [tunnelRunning, setTunnelRunning] = useState(false);
+    const [tunnelUrl, setTunnelUrl] = useState<string | null>(null);
+    const [tunnelLoading, setTunnelLoading] = useState(false);
+
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -42,14 +47,62 @@ export const SettingsPage = () => {
         }
     }, [currentUser]);
 
+    const fetchTunnelStatus = async () => {
+        try {
+            const res = await api.get('/settings/tunnel/status/');
+            setTunnelRunning(res.data.is_running);
+            setTunnelUrl(res.data.url);
+        } catch (e) {
+            console.error("Failed to fetch tunnel status", e);
+        }
+    };
+
+    const handleToggleTunnel = async () => {
+        try {
+            setTunnelLoading(true);
+            const res = await api.post('/settings/tunnel/toggle/');
+            setTunnelRunning(res.data.is_running);
+            if (res.data.status === 'stopped') {
+                setTunnelUrl(null);
+                addToast('success', 'Cloudflare Tunnel', 'ปิดการเข้าถึงจากภายนอกเรียบร้อยแล้ว');
+            } else {
+                addToast('success', 'Cloudflare Tunnel', 'กำลังเริ่มต้น Tunnel... ระบบจะดึงลิงก์ให้อัตโนมัติ');
+                // Poll for URL for 15 seconds
+                let tries = 0;
+                const poll = setInterval(async () => {
+                    tries++;
+                    const st = await api.get('/settings/tunnel/status/').catch(() => ({ data: {} }));
+                    if (st.data?.url) {
+                        setTunnelUrl(st.data.url);
+                        clearInterval(poll);
+                        addToast('success', 'Public Link Ready', `ลิงก์สาธารณะ: ${st.data.url}`);
+                    }
+                    if (tries > 15) clearInterval(poll);
+                }, 1500);
+            }
+        } catch (err: any) {
+            addToast('error', 'Error', err.response?.data?.detail || 'Failed to toggle tunnel');
+        } finally {
+            setTunnelLoading(false);
+        }
+    };
+
+    const handleCopyTunnelUrl = () => {
+        if (!tunnelUrl) return;
+        navigator.clipboard.writeText(tunnelUrl);
+        addToast('success', 'Copied', 'คัดลอกลิงก์ไปยังคลิปบอร์ดแล้ว');
+    };
+
     const fetchData = async () => {
         try {
             setLoading(true);
-            const resSettings = await api.get('/settings');
+            const resSettings = await api.get('/settings/');
             setConfig(prev => ({ ...prev, ...resSettings.data.settings }));
             
-            const resBlacklist = await api.get('/settings/blacklist');
+            const resBlacklist = await api.get('/settings/blacklist/');
             setBlacklist(resBlacklist.data);
+
+            await fetchTunnelStatus();
         } catch (err) {
             console.error("Failed to load settings data", err);
             addToast('error', 'Error', 'Failed to load settings data');
@@ -66,7 +119,7 @@ export const SettingsPage = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            await api.put('/settings', { settings: config });
+            await api.put('/settings/', { settings: config });
             addToast('success', 'Success', 'Settings saved successfully!');
         } catch (err) {
             addToast('error', 'Error', 'Failed to save settings');
@@ -126,7 +179,7 @@ export const SettingsPage = () => {
     }
 
     return (
-        <div className="space-y-6 max-w-[1600px] mx-auto">
+        <div className="space-y-4 sm:space-y-6 max-w-[1600px] mx-auto flex-1 w-full pb-12">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h2>
                 {activeTab === 'advanced' && (
@@ -165,6 +218,83 @@ export const SettingsPage = () => {
             <div className="pt-6">
                 {activeTab === 'blacklist' && (
                     <div className="space-y-6">
+                        {/* Cloudflare Tunnel Public Access Card */}
+                        <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-white dark:bg-slate-800 shadow-sm p-6 space-y-5">
+                            {/* Header row */}
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="flex items-start sm:items-center space-x-3.5">
+                                    <div className="p-2.5 rounded-xl bg-indigo-600 text-white shadow-sm shrink-0">
+                                        <Globe size={22} />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex flex-wrap items-center gap-2.5">
+                                            <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                                                การเข้าถึงจากภายนอก (Cloudflare Tunnel)
+                                            </h3>
+                                            <span className={`inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
+                                                tunnelRunning 
+                                                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800' 
+                                                    : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300 border-gray-200 dark:border-slate-600'
+                                            }`}>
+                                                {tunnelRunning ? '● เปิดใช้งานอยู่ (ONLINE)' : '○ ปิดการทำงาน (OFFLINE)'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                                            เปิด-ปิดเพื่อให้ผู้ใช้ภายนอกเข้าถึงระบบผ่าน Cloudflare ได้โดยไม่ต้องเปิด Port Forward หรือมี Public IP
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    onClick={handleToggleTunnel}
+                                    disabled={tunnelLoading}
+                                    className={`shrink-0 font-semibold text-sm px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm ${
+                                        tunnelRunning 
+                                            ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/20' 
+                                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
+                                    }`}
+                                >
+                                    {tunnelLoading ? 'กำลังประมวลผล...' : (tunnelRunning ? '⏹️ ปิดการเข้าถึงจากภายนอก' : '🚀 เปิดให้คนนอกเข้าใช้งาน')}
+                                </Button>
+                            </div>
+
+                            {/* Public Link Box - Well spaced with clear border & background */}
+                            {tunnelRunning && (
+                                <div className="mt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-indigo-100/80 dark:border-slate-700">
+                                    <div className="flex flex-wrap items-center gap-2.5 min-w-0">
+                                        <span className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide shrink-0">
+                                            ลิงก์สำหรับคนภายนอก:
+                                        </span>
+                                        {tunnelUrl ? (
+                                            <a 
+                                                href={tunnelUrl} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className="font-mono text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline flex items-center gap-1.5 break-all transition-colors"
+                                            >
+                                                {tunnelUrl}
+                                                <ExternalLink size={14} className="shrink-0" />
+                                            </a>
+                                        ) : (
+                                            <span className="text-sm text-amber-600 dark:text-amber-400 font-medium italic animate-pulse">
+                                                กำลังรอ URL จาก Cloudflare... (รอสักครู่)
+                                            </span>
+                                        )}
+                                    </div>
+                                    {tunnelUrl && (
+                                        <button 
+                                            type="button"
+                                            onClick={handleCopyTunnelUrl}
+                                            className="shrink-0 px-3.5 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 transition-colors shadow-xs"
+                                        >
+                                            <Copy size={13} />
+                                            <span>คัดลอกลิงก์</span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
                             <CardHeader className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 rounded-t-xl">
                                 <div className="flex items-center justify-between">

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { Wrench, Plus, Package, X, Building2, Edit2, Trash2, Printer as PrinterIcon, History, Layers, AlertTriangle } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Warehouse {
   id: number;
@@ -51,6 +52,7 @@ export function InventoryPage() {
   
   const [loading, setLoading] = useState(true);
   const { addToast } = useToast();
+  const { user } = useAuth();
 
   // Modal states
   const [showWhModal, setShowWhModal] = useState(false);
@@ -80,8 +82,8 @@ export function InventoryPage() {
     try {
       setLoading(true);
       const [whRes, itemsRes] = await Promise.all([
-        api.get('/inventory/warehouses'),
-        api.get('/inventory/items')
+        api.get('/inventory/warehouses/'),
+        api.get('/inventory/items/')
       ]);
       setWarehouses(whRes.data);
       setItems(itemsRes.data);
@@ -89,9 +91,10 @@ export function InventoryPage() {
       if (whRes.data.length > 0 && itemForm.warehouse_id === 0) {
         setItemForm(prev => ({ ...prev, warehouse_id: whRes.data[0].id }));
       }
-    } catch (err) {
-      console.error(err);
-      addToast('error', "Failed to fetch inventory data");
+    } catch (err: any) {
+      console.error('Inventory fetch error:', err);
+      const msg = err.response?.data?.detail || err.message || "Failed to fetch inventory data";
+      addToast('error', `Inventory Error (${err.response?.status || 'Network'}): ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`);
     } finally {
       setLoading(false);
     }
@@ -99,7 +102,7 @@ export function InventoryPage() {
 
   const fetchPrinters = async () => {
     try {
-      const res = await api.get('/printers');
+      const res = await api.get('/printers/');
       setPrinters(res.data);
     } catch (err) {
       console.error(err);
@@ -109,7 +112,7 @@ export function InventoryPage() {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/inventory/logs');
+      const res = await api.get('/inventory/logs/');
       setLogs(res.data);
     } catch (err) {
       console.error(err);
@@ -160,6 +163,20 @@ export function InventoryPage() {
       addToast('error', err.response?.data?.detail || "Failed to create warehouse");
     }
   };
+
+  const handleDeleteWarehouse = async (warehouseId: number, warehouseName: string) => {
+    if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบคลัง "${warehouseName}"? อะไหล่ทั้งหมดที่อยู่ในคลังนี้จะถูกลบไปด้วย`)) {
+      return;
+    }
+    try {
+      await api.delete(`/inventory/warehouses/${warehouseId}`);
+      addToast('success', `ลบคลัง "${warehouseName}" สำเร็จแล้ว`);
+      fetchData();
+    } catch (err: any) {
+      addToast('error', err.response?.data?.detail || "Failed to delete warehouse");
+    }
+  };
+
 
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,7 +252,7 @@ export function InventoryPage() {
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="space-y-4 sm:space-y-6 max-w-[1600px] mx-auto flex-1 w-full pb-12">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
         
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
@@ -366,9 +383,21 @@ export function InventoryPage() {
               const whItems = items.filter(i => i.warehouse_id === wh.id);
               return (
                 <div key={wh.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                  <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{wh.name}</h2>
-                    {wh.location && <p className="text-sm text-slate-500 dark:text-slate-400">{wh.location}</p>}
+                  <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{wh.name}</h2>
+                      {wh.location && <p className="text-sm text-slate-500 dark:text-slate-400">{wh.location}</p>}
+                    </div>
+                    {user?.role === 'ADMIN' && (
+                      <button
+                        onClick={() => handleDeleteWarehouse(wh.id, wh.name)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:text-white hover:bg-red-600 dark:hover:bg-red-600/80 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-lg transition-colors shadow-sm"
+                        title="ลบคลังสินค้านี้"
+                      >
+                        <Trash2 size={14} />
+                        <span>ลบคลัง</span>
+                      </button>
+                    )}
                   </div>
                   
                   {whItems.length === 0 ? (
@@ -513,7 +542,7 @@ export function InventoryPage() {
                   type="text" required
                   value={whForm.name} onChange={e => setWhForm({...whForm, name: e.target.value})}
                   className="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="e.g. คลัง 81 : Paolo เกษตร"
+                  placeholder="e.g. คลังอะไหล่กลาง (Main IT Storage)"
                 />
               </div>
               <div>
@@ -522,7 +551,7 @@ export function InventoryPage() {
                   type="text" 
                   value={whForm.location} onChange={e => setWhForm({...whForm, location: e.target.value})}
                   className="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="e.g. สถานที่ 00 : Paolo เกษตร"
+                  placeholder="e.g. อาคาร A ชั้น 2 ห้อง IT"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-4">

@@ -41,7 +41,7 @@ export const UsersPage = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/users');
+      const res = await api.get('/users/');
       setUsers(res.data);
       setError(null);
     } catch (err: any) {
@@ -126,7 +126,7 @@ export const UsersPage = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
+    <div className="space-y-4 sm:space-y-6 max-w-[1600px] mx-auto flex-1 w-full pb-12">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">

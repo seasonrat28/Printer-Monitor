@@ -116,8 +116,8 @@ export const FloorMapPage = () => {
         try {
             if (showLoader) setLoading(true);
             const [mapsRes, printersRes] = await Promise.all([
-                api.get('/floormaps'),
-                api.get('/printers')
+                api.get('/floormaps/'),
+                api.get('/printers/')
             ]);
             setMaps(mapsRes.data);
             setPrinters(printersRes.data);
@@ -320,7 +320,7 @@ export const FloorMapPage = () => {
     const apiUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
 
     return (
-        <div className="space-y-6 max-w-[1600px] mx-auto">
+        <div className="space-y-4 sm:space-y-6 max-w-[1600px] mx-auto flex-1 w-full pb-12">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center space-x-2">
                     <Map className="text-indigo-600" />

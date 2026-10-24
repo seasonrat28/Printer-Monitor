@@ -1,46 +1,54 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Mail, Phone, Briefcase, Shield } from 'lucide-react';
-import { Card, CardHeader, CardContent } from '../components/ui/card';
+import { User, Mail, Phone, Briefcase } from 'lucide-react';
+import { Card } from '../components/ui/card';
 import api from '../services/api';
 
 export const ProfilePage = () => {
     const { user } = useAuth();
-    const [loading, setLoading] = useState(true);
 
     const [profileDetails, setProfileDetails] = useState({
-        fullName: 'Loading...',
-        position: 'Loading...',
-        affiliation: 'Loading...',
-        email: 'Loading...',
-        phone: 'Loading...',
-        location: 'Loading...'
+        fullName: user?.display_name || user?.username || '-',
+        position: '-',
+        affiliation: '-',
+        email: '-',
+        phone: '-',
+        location: '-'
     });
 
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const res = await api.get('/users/me');
-                const data = res.data;
-                setProfileDetails({
-                    fullName: data.display_name || data.username,
-                    position: data.position || 'Not specified',
-                    affiliation: data.affiliation || 'Not specified',
-                    email: data.email || 'Not specified',
-                    phone: data.phone || 'Not specified',
-                    location: data.location || 'Not specified'
-                });
+                // Try fetching directly from /users/me/
+                let data: any = null;
+                try {
+                    const res = await api.get('/users/me/');
+                    data = res.data;
+                } catch {
+                    // Fallback to fetch from /users/ list
+                    const res = await api.get('/users/');
+                    data = res.data?.find((u: any) => u.username === user?.username) || null;
+                }
+
+                if (data) {
+                    setProfileDetails({
+                        fullName: data.display_name || data.username || user?.username || '-',
+                        position: data.position || '-',
+                        affiliation: data.affiliation || '-',
+                        email: data.email || '-',
+                        phone: data.phone || '-',
+                        location: data.location || '-'
+                    });
+                }
             } catch (error) {
-                console.error("Failed to fetch profile", error);
-            } finally {
-                setLoading(false);
+                console.error("Failed to fetch profile from API", error);
             }
         };
         fetchProfile();
-    }, []);
+    }, [user]);
 
     return (
-        <div className="space-y-6 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-4 sm:space-y-6 max-w-[1600px] mx-auto flex-1 w-full pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                 <User className="text-indigo-500" />
                 Profile
@@ -58,18 +66,24 @@ export const ProfilePage = () => {
                                 {profileDetails.fullName}
                             </h3>
                             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                                <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                                    <Briefcase size={16} className="text-indigo-400" />
-                                    {profileDetails.position}
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <Phone size={16} className="text-sky-400" />
-                                    {profileDetails.phone !== 'Not specified' ? profileDetails.phone : 'Contact phone not specified'}
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <Mail size={16} className="text-purple-400" />
-                                    {profileDetails.email !== 'Not specified' ? profileDetails.email : 'Email not specified'}
-                                </span>
+                                {profileDetails.position !== '-' && (
+                                    <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                                        <Briefcase size={16} className="text-indigo-400" />
+                                        {profileDetails.position}
+                                    </span>
+                                )}
+                                {profileDetails.phone !== '-' && (
+                                    <span className="flex items-center gap-1.5">
+                                        <Phone size={16} className="text-sky-400" />
+                                        {profileDetails.phone}
+                                    </span>
+                                )}
+                                {profileDetails.email !== '-' && (
+                                    <span className="flex items-center gap-1.5">
+                                        <Mail size={16} className="text-purple-400" />
+                                        {profileDetails.email}
+                                    </span>
+                                )}
                             </div>
                             <div className="flex items-center gap-2 pt-2">
                                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Role</span>

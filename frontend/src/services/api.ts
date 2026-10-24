@@ -1,13 +1,16 @@
 import axios from 'axios';
 
-const getApiBaseUrl = () => {
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return `http://${window.location.hostname}:8000/api/v1`;
-    }
-    if (import.meta.env.VITE_API_URL) {
+export const getApiBaseUrl = () => {
+    // If explicitly set via env AND not accessing via a different host
+    if (import.meta.env.VITE_API_URL && window.location.host.includes('10.119.43.25')) {
         return `${import.meta.env.VITE_API_URL}/api/v1`;
     }
-    return `http://${window.location.hostname}:8000/api/v1`;
+    // If running separate frontend Vite dev server (5173) or preview (4173) on localhost
+    if ((window.location.port === '5173' || window.location.port === '4173') && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        return `http://${window.location.hostname}:8000/api/v1`;
+    }
+    // Relative path for same-origin (port 8000), Cloudflare Tunnel, or any proxy
+    return '/api/v1';
 };
 
 const api = axios.create({
@@ -49,7 +52,7 @@ const scheduleRefresh = (token: string) => {
     refreshTimer = setTimeout(async () => {
         try {
             const res = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/v1/auth/refresh`,
+                `${getApiBaseUrl()}/auth/refresh`,
                 {},
                 { headers: { Authorization: `Bearer ${getToken()}` } }
             );

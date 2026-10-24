@@ -53,9 +53,13 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
 
             if (!isMountedRef.current) return;
 
-            const wsBase =
-                import.meta.env.VITE_API_URL?.replace(/^http/, 'ws') ||
-                `ws://${window.location.hostname}:8000`;
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            let wsBase = '';
+            if (window.location.port === '5173' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+                wsBase = `ws://${window.location.hostname}:8000`;
+            } else {
+                wsBase = `${protocol}//${window.location.host}`;
+            }
             const wsUrl = `${wsBase}/api/v1/ws/dashboard`;
 
             let ws: WebSocket;
@@ -74,7 +78,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
                 setIsConnected(true);
             };
 
-            ws.onclose = (evt) => {
+            ws.onclose = () => {
                 if (!isMountedRef.current) return;
                 setIsConnected(false);
                 // Only reconnect when it wasn't an intentional unmount close
@@ -109,8 +113,20 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
 
         connect();
 
+        // Keep-alive heartbeat: ping backend every 30s so Cloudflare Tunnel doesn't timeout
+        const heartbeatInterval = setInterval(() => {
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                try {
+                    wsRef.current.send(JSON.stringify({ type: 'ping' }));
+                } catch (_) {
+                    // ignore
+                }
+            }
+        }, 30000);
+
         return () => {
             isMountedRef.current = false;
+            clearInterval(heartbeatInterval);
             if (reconnectTimerRef.current) {
                 clearTimeout(reconnectTimerRef.current);
                 reconnectTimerRef.current = null;

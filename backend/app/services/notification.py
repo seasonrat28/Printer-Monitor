@@ -84,6 +84,31 @@ async def send_email_notify(subject: str, message: str, to_email: str = None, pr
     except Exception as e:
         logger.error(f"❌ [Email Error] ส่งเมลไม่ผ่าน: {e}")
 
+async def send_webhook_notify(title: str, message: str, level: str = "WARNING", printer_ip: str = None):
+    """Send webhook alert (Slack / Discord / Teams / Custom API) for critical printer issues."""
+    webhook_url = get_db_setting("webhookUrl", "WEBHOOK_URL", "")
+    if not webhook_url:
+        return
+
+    payload = {
+        "title": title,
+        "message": message,
+        "level": level,
+        "printer_ip": printer_ip,
+        "timestamp": time.time()
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(webhook_url, json=payload)
+            if resp.status_code < 400:
+                logger.info(f"🔔 [Webhook Sent] แจ้งเตือนสำเร็จไปยัง {webhook_url}")
+            else:
+                logger.warning(f"⚠️ [Webhook Failed] Server ตอบกลับ HTTP {resp.status_code}")
+    except Exception as e:
+        logger.error(f"❌ [Webhook Error] ไม่สามารถยิง Webhook ได้: {e}")
+
 def get_department_email(department: str) -> str:
     """Helper to get department specific email from config if implemented."""
     return get_db_setting("smtpTo", "RECEIVER_EMAIL")
+
