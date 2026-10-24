@@ -43,12 +43,35 @@ class StandardSNMPAdapter(SNMPAdapter):
     async def get_system_info(self) -> Dict[str, Any]:
         values = {name: await self._get_oid(oid) for name, oid in self.SYSTEM_OIDS.items()}
         
+        serial = values.get("serial")
+        if not serial or not serial.strip():
+            # Fallback: Walk prtGeneralSerialNumber table (1.3.6.1.2.1.43.5.1.1.17) in case index is not .1
+            try:
+                serials = await self._walk_oid("1.3.6.1.2.1.43.5.1.1.17")
+                if serials:
+                    for s in serials.values():
+                        if s and s.strip():
+                            serial = s.strip()
+                            break
+            except Exception:
+                pass
+
+        model = values.get("model")
+        if not model or not model.strip():
+            # Fallback: Check hrDeviceDescr (1.3.6.1.2.1.25.3.2.1.3.1)
+            try:
+                dev_descr = await self._get_oid("1.3.6.1.2.1.25.3.2.1.3.1")
+                if dev_descr and dev_descr.strip():
+                    model = dev_descr.strip()
+            except Exception:
+                pass
+
         return {
             "sysDescr": values["description"],
             "sysName": values["name"],
             "sysLocation": values["location"],
-            "serialNumber": values["serial"],
-            "model": values["model"]
+            "serialNumber": serial,
+            "model": model
         }
 
     async def get_status(self) -> tuple[str, Optional[str]]:
@@ -268,10 +291,22 @@ class StandardSNMPAdapter(SNMPAdapter):
 
     async def get_counters(self) -> Dict[str, Any]:
         # prtMarkerLifeCount (1.3.6.1.2.1.43.10.2.1.4.1.1)
+        total_pages = None
         try:
             pages = await self._get_oid("1.3.6.1.2.1.43.10.2.1.4.1.1")
+            if pages and str(pages).isdigit() and int(pages) > 0:
+                total_pages = int(pages)
+            else:
+                # Fallback: Walk prtMarkerLifeCount table in case index is not .1.1
+                counters_walk = await self._walk_oid("1.3.6.1.2.1.43.10.2.1.4")
+                if counters_walk:
+                    for val in counters_walk.values():
+                        if val and str(val).isdigit() and int(val) > 0:
+                            total_pages = int(val)
+                            break
         except Exception:
-            pages = None
+            total_pages = None
+
         return {
-            "total_pages": int(pages) if pages and pages.isdigit() else 0
+            "total_pages": total_pages
         }

@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { alertService } from '../services/api';
 import { Bell, CheckCircle2, Clock, AlertTriangle, AlertOctagon, Info, Filter, Search, Printer, MapPin, Globe } from 'lucide-react';
 import { format } from 'date-fns';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { useToast } from '../contexts/ToastContext';
+import { useAlerts } from '../contexts/AlertContext';
 
 export const AlertsPage = () => {
     const [alerts, setAlerts] = useState<any[]>([]);
@@ -35,12 +36,18 @@ export const AlertsPage = () => {
         fetchAlerts();
     }, [fetchAlerts]);
 
-    // Listen for WebSocket updates to auto-refresh alerts
+    const { fetchAlerts: refreshGlobalAlerts } = useAlerts();
+
+    // Listen for WebSocket updates to auto-refresh alerts (debounced)
     useEffect(() => {
-        if (lastEvent && (lastEvent.type === 'ALERT_RESOLVED' || lastEvent.type === 'SUPPLIES_UPDATE' || lastEvent.type === 'STATUS_UPDATE')) {
-            // Refetch alerts on relevant events (could be optimized to patch state, but refetching ensures consistency for now)
-            fetchAlerts();
+        const relevantTypes = ['ALERT_RESOLVED', 'NEW_ALERT', 'ALERT_TRIGGERED', 'SYNC_COMPLETE'];
+        if (!lastEvent || !relevantTypes.includes(lastEvent.type)) {
+            return;
         }
+        const timer = setTimeout(() => {
+            fetchAlerts();
+        }, 1000);
+        return () => clearTimeout(timer);
     }, [lastEvent, fetchAlerts]);
 
     const handleResolve = async (id: number) => {
@@ -48,6 +55,7 @@ export const AlertsPage = () => {
             await alertService.resolveAlert(id);
             addToast("success", "Alert resolved successfully");
             fetchAlerts();
+            refreshGlobalAlerts();
         } catch (error) {
             console.error("Failed to resolve alert", error);
             addToast("error", "Failed to resolve alert");
@@ -87,7 +95,7 @@ export const AlertsPage = () => {
     });
 
     return (
-        <div className="space-y-6 max-w-[1600px] mx-auto">
+        <div className="space-y-4 sm:space-y-6 max-w-[1600px] mx-auto flex-1 w-full pb-12">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">

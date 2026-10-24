@@ -1,20 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Bell, X, AlertTriangle, Info, CheckCircle2, XCircle, Printer, CalendarClock, ShieldAlert } from 'lucide-react';
-import { alertService } from '../services/api';
-import { useWebSocket } from '../contexts/WebSocketContext';
-
-interface Alert {
-    id: number;
-    printer_id: number;
-    alert_type: string;
-    severity: string;
-    message: string;
-    is_resolved: boolean;
-    created_at: string;
-    printer_hostname?: string;
-    printer_ip?: string;
-    printer_location?: string;
-}
+import { useAlerts } from '../contexts/AlertContext';
+import type { AlertItem as _AlertItem } from '../contexts/AlertContext';
 
 interface NotificationsPanelProps {
     isOpen: boolean;
@@ -22,48 +9,16 @@ interface NotificationsPanelProps {
 }
 
 export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose }) => {
-    const [alerts, setAlerts] = useState<Alert[]>([]);
-    const [loading, setLoading] = useState(false);
-    const { lastEvent } = useWebSocket();
-
-    const fetchAlerts = async () => {
-        try {
-            setLoading(true);
-            const res = await alertService.getAlerts(false); // only unresolved
-            setAlerts(res.data);
-        } catch (err) {
-            console.error("Failed to fetch alerts", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { alerts, loading, resolveAlert, fetchAlerts } = useAlerts();
 
     useEffect(() => {
         if (isOpen) {
             fetchAlerts();
         }
-    }, [isOpen]);
-
-    useEffect(() => {
-        if (lastEvent?.type === 'NEW_ALERT') {
-            fetchAlerts();
-        } else if (lastEvent?.type === 'ALERT_RESOLVED') {
-            setAlerts(prev => prev.filter(a => a.id !== lastEvent.data.id));
-        }
-    }, [lastEvent]);
+    }, [isOpen, fetchAlerts]);
 
     const handleResolve = async (id: number) => {
-        // Optimistically remove
-        setAlerts(prev => prev.filter(a => a.id !== id));
-        try {
-            await alertService.resolveAlert(id);
-        } catch (err: any) {
-            console.error("Failed to resolve alert", err);
-            // If it's not a 400 (already resolved), we might want to refresh to get correct state
-            if (err.response?.status !== 400) {
-                fetchAlerts();
-            }
-        }
+        await resolveAlert(id);
     };
 
     const getIcon = (alertType: string, severity: string) => {

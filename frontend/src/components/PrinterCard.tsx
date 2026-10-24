@@ -223,13 +223,13 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
         if (printer.status === 'OFFLINE') return renderProgressBar(type, undefined, 'OFFLINE');
 
         const colors = [
-            { label: 'PK', value: pkLevel, bg: 'bg-gray-900 dark:bg-gray-200', text: 'text-gray-700 dark:text-gray-300' },
-            { label: 'MK', value: mkLevel, bg: 'bg-gray-600', text: 'text-gray-600 dark:text-gray-400' },
-            { label: 'C',  value: cLevel,  bg: 'bg-cyan-500', text: 'text-cyan-600 dark:text-cyan-400' },
-            { label: 'M',  value: mLevel,  bg: 'bg-pink-500', text: 'text-pink-600 dark:text-pink-400' },
-            { label: 'Y',  value: yLevel,  bg: 'bg-yellow-400', text: 'text-yellow-600 dark:text-yellow-400' },
-            { label: 'K',  value: kLevel,  bg: 'bg-gray-800 dark:bg-gray-400', text: 'text-gray-800 dark:text-gray-300' },
-            { label: 'R',  value: rLevel,  bg: 'bg-red-600', text: 'text-red-600 dark:text-red-400' },
+            { label: 'PK', name: 'Photo Black', value: pkLevel, bg: 'bg-gray-900 dark:bg-gray-200', text: 'text-gray-700 dark:text-gray-300' },
+            { label: 'MK', name: 'Matte Black', value: mkLevel, bg: 'bg-gray-600', text: 'text-gray-600 dark:text-gray-400' },
+            { label: 'C',  name: 'Cyan (ฟ้า)', value: cLevel,  bg: 'bg-cyan-500', text: 'text-cyan-600 dark:text-cyan-400' },
+            { label: 'M',  name: 'Magenta (ชมพู)', value: mLevel,  bg: 'bg-pink-500', text: 'text-pink-600 dark:text-pink-400' },
+            { label: 'Y',  name: 'Yellow (เหลือง)', value: yLevel,  bg: 'bg-yellow-400', text: 'text-yellow-600 dark:text-yellow-400' },
+            { label: 'K',  name: 'Black (ดำ)', value: kLevel,  bg: 'bg-gray-800 dark:bg-gray-400', text: 'text-gray-800 dark:text-gray-300' },
+            { label: 'R',  name: 'Red (แดง)', value: rLevel,  bg: 'bg-red-600', text: 'text-red-600 dark:text-red-400' },
         ];
 
         return (
@@ -241,15 +241,19 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
                 <div className="flex gap-1.5 w-full mt-1 px-1 justify-center">
                     {colors.map((c, i) => (
                         c.value !== undefined && c.value !== null ? (
-                            <div key={i} className="flex-1 max-w-[24px] flex flex-col items-center">
+                            <div 
+                                key={i} 
+                                className="flex-1 max-w-[24px] flex flex-col items-center group/ink relative cursor-pointer"
+                                title={`${c.name}: ${c.value}%`}
+                            >
                                 <span className={`text-[9px] font-bold ${c.text}`}>{c.value}%</span>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-sm h-6 mt-0.5 relative overflow-hidden transform rotate-180">
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-sm h-6 mt-0.5 relative overflow-hidden transform rotate-180 shadow-inner">
                                     <div
                                         style={{ height: `${c.value}%` }}
                                         className={`w-full ${c.bg} transition-all duration-1000 ease-out`}
                                     />
                                 </div>
-                                <span className="text-[8px] font-bold text-gray-400 mt-0.5">{c.label}</span>
+                                <span className="text-[8px] font-bold text-gray-400 mt-0.5 group-hover/ink:text-blue-500 transition-colors">{c.label}</span>
                             </div>
                         ) : null
                     ))}
@@ -265,7 +269,7 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
         >
 
             {/* Card Content */}
-            <div className="p-5 flex-1 flex flex-col">
+            <div className="p-4 sm:p-5 flex-1 flex flex-col">
 
                 {/* Header */}
                 <div className="flex justify-between items-start mb-4">
@@ -334,20 +338,38 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
                     )}
                 </div>
 
-                {/* Status Box */}
-                <div className={`px-3 py-1.5 rounded-md border text-xs font-bold w-full text-center mb-3 ${getStatusBadgeClass(printer.status)}`}>
-                    Status: {getStatusText(printer)}
-                </div>
+                {/* Status Box & Critical Supply Alert integrated */}
+                {(() => {
+                    const isCritical = (printer.toner_level === 0 || printer.drum_level === 0);
+                    const criticalText = printer.toner_level === 0 && printer.drum_level === 0 ? 'หมึก & ดรัมหมด' : printer.toner_level === 0 ? 'หมึกหมด' : 'ดรัมหมด';
 
-                {/* Critical Supply Alert */}
-                {(printer.toner_level === 0 || printer.drum_level === 0) && (
-                    <div className="flex items-center justify-center gap-1.5 bg-red-100 dark:bg-red-900/40 border border-red-400 dark:border-red-600 rounded-md px-3 py-1.5 mb-3 animate-pulse">
-                        <span className="text-base">⚠️</span>
-                        <span className="text-xs font-bold text-red-700 dark:text-red-300">
-                            มีปัญหา: {printer.toner_level === 0 && printer.drum_level === 0 ? 'หมึก & ดรัมหมด' : printer.toner_level === 0 ? 'หมึกหมด' : 'ดรัมหมด'}
-                        </span>
-                    </div>
-                )}
+                    return (
+                        <div className="mb-3 space-y-1.5">
+                            <div className={`px-3 py-1.5 rounded-lg border text-xs font-bold w-full text-center shadow-2xs transition-colors ${getStatusBadgeClass(printer.status)}`}>
+                                Status: {getStatusText(printer)}
+                            </div>
+                            {printer.status_message && (
+                                <div className="px-2.5 py-1 rounded-md bg-slate-900 dark:bg-black/80 border border-slate-700/80 font-mono text-[11px] text-emerald-400 flex items-center justify-between shadow-inner">
+                                    <span className="flex items-center space-x-1.5 min-w-0">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                                        <span className="truncate text-emerald-300 font-semibold" title={`LCD Display: ${printer.status_message}`}>
+                                            {printer.status_message}
+                                        </span>
+                                    </span>
+                                    <span className="text-[9px] uppercase tracking-wider text-slate-500 shrink-0 font-sans ml-1">LCD</span>
+                                </div>
+                            )}
+                            {isCritical && (
+                                <div className="flex items-center justify-center gap-1.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 rounded-lg px-2.5 py-1 text-center shadow-xs">
+                                    <span className="text-xs">⚠️</span>
+                                    <span className="text-[11px] font-bold text-rose-700 dark:text-rose-300">
+                                        แจ้งเตือนฉุกเฉิน: {criticalText}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* Progress Bars */}
                 {(() => {
@@ -471,18 +493,32 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({ printer, onToggleFavor
                 )}
             </div>
 
-            {/* Hover Actions */}
-            <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 rounded-md shadow-sm p-1">
-                <a href={`http://${printer.ip_address}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 rounded transition-colors" title="Open Web Management">
+            {/* Actions: Always visible on mobile/touch, smooth hover on desktop */}
+            <div className="absolute top-2.5 right-2.5 flex items-center space-x-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-white/95 dark:bg-slate-800/95 backdrop-blur-xs rounded-lg shadow-sm border border-slate-200/80 dark:border-slate-700 p-1 z-20">
+                <a 
+                    href={`http://${printer.ip_address}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded-md transition-colors" 
+                    title="Open Web Management (IP)"
+                >
                     <ExternalLink size={14} />
                 </a>
                 {user?.role === 'ADMIN' && onEdit && (
-                    <button onClick={() => onEdit(printer)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded transition-colors" title="Edit Asset Info">
+                    <button 
+                        onClick={() => onEdit(printer)} 
+                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded-md transition-colors" 
+                        title="Edit Asset Info"
+                    >
                         <Edit2 size={14} />
                     </button>
                 )}
                 {user?.role === 'ADMIN' && (
-                    <button onClick={() => onDelete(printer.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/40 rounded transition-colors" title="Delete Printer">
+                    <button 
+                        onClick={() => onDelete(printer.id)} 
+                        className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/40 rounded-md transition-colors" 
+                        title="Delete Printer"
+                    >
                         <Trash2 size={14} />
                     </button>
                 )}

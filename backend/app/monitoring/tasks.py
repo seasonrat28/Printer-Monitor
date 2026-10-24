@@ -8,6 +8,7 @@ from app.db.session import SessionLocal
 from app.models.printer import Printer, MaintenanceLog
 from app.models.monitoring import PrinterStatusHistory, PrinterSupplies, PrinterCounters, PrinterSuppliesSnapshot
 from app.snmp.standard import StandardSNMPAdapter
+from app.snmp.brother import BrotherSNMPAdapter
 from app.scrapers.apeos import ApeosHTTPScraper
 from app.scrapers.hp import HPHTTPScraper
 from app.scrapers.epson import EpsonHTTPScraper
@@ -71,6 +72,15 @@ def _is_canon(printer: Printer) -> bool:
             return True
     return False
 
+def _is_brother(printer: Printer) -> bool:
+    """Return True if this printer is a Brother printer."""
+    if getattr(printer, "scraper_type", "") in ("brother", "snmp_brother"):
+        return True
+    for field in (printer.model or "", printer.manufacturer or "", printer.hostname or ""):
+        if "brother" in field.lower():
+            return True
+    return False
+
 def get_adapter(printer: Printer):
     """Return the correct scraper instance for a printer."""
     if _is_apeos(printer):
@@ -96,6 +106,13 @@ def get_adapter(printer: Printer):
         )
     if _is_canon(printer):
         return CanonHTTPScraper(
+            ip=printer.ip_address,
+            community=printer.snmp_community or "public",
+            version=printer.snmp_version or "v2c",
+            timeout=3
+        )
+    if _is_brother(printer):
+        return BrotherSNMPAdapter(
             ip=printer.ip_address,
             community=printer.snmp_community or "public",
             version=printer.snmp_version or "v2c",
@@ -226,7 +243,7 @@ async def sync_all_printers():
 
 from app.alerts.engine import evaluate_status_alerts, evaluate_supply_alerts
 from app.websocket.manager import manager
-from app.services.notification import send_email_notify, get_department_email
+from app.services.notification import send_email_notify, send_webhook_notify, get_department_email
 import asyncio
 
 async def _check_single_printer_status(printer_id: int, adapter: StandardSNMPAdapter):
@@ -353,6 +370,48 @@ async def _check_single_printer_supplies(printer_id: int, adapter: StandardSNMPA
     try:
         printer = db.query(Printer).filter(Printer.id == printer_id).first()
         if printer:
+            prev_serial = printer.serial_number
+            prev_model = printer.model
+            prev_page_count = printer.page_count or 0
+
+            new_serial = sys_info.get("serialNumber") if sys_info else None
+            new_model = sys_info.get("model") if sys_info else None
+            new_page_count = counters.get("total_pages") if (counters and counters.get("total_pages") is not None and counters["total_pages"] > 0) else None
+
+            # --- Detect Printer Replacement / Swap (สลับ/เปลี่ยนเครื่องพิมพ์ใหม่ที่ IP นี้) ---
+            is_swapped = False
+            swap_reasons = []
+
+            if prev_serial and new_serial and prev_serial.strip().upper() != new_serial.strip().upper():
+                is_swapped = True
+                swap_reasons.append(f"Serial Number: {prev_serial} ➔ {new_serial}")
+
+            if prev_model and new_model and prev_model.strip().lower() != new_model.strip().lower():
+                is_swapped = True
+                swap_reasons.append(f"Model: {prev_model} ➔ {new_model}")
+
+            if prev_page_count > 100 and new_page_count and new_page_count < (prev_page_count - 50):
+                is_swapped = True
+                swap_reasons.append(f"มิเตอร์เริ่มต้นใหม่: {prev_page_count:,} ➔ {new_page_count:,} แผ่น")
+
+            if is_swapped:
+                reason_str = ", ".join(swap_reasons)
+                print(f"[REPLACE] Detected printer replacement on IP {printer.ip_address} (ID {printer.id}): {reason_str}", flush=True)
+                db.add(MaintenanceLog(
+                    printer_id=printer.id,
+                    description=f"Auto-detected: สลับ/เปลี่ยนเครื่องพิมพ์ใหม่ ({reason_str})",
+                    performed_by="System (Auto-Detect)"
+                ))
+                # ล้างประวัติมิเตอร์เดิมของเครื่องเก่าทั้งหมด เพื่อเริ่มนับเฉพาะเครื่องใหม่
+                db.query(PrinterCounters).filter(PrinterCounters.printer_id == printer.id).delete()
+
+            # ลบเรคคอร์ดเก่าที่มิเตอร์สูงกว่าเครื่องปัจจุบัน (ตกค้างจากเครื่องเก่าก่อนเปลี่ยน)
+            if new_page_count:
+                db.query(PrinterCounters).filter(
+                    PrinterCounters.printer_id == printer.id,
+                    PrinterCounters.total_pages > (new_page_count + 50)
+                ).delete()
+
             if sys_info:
                 if sys_info.get("sysName"): printer.hostname = sys_info["sysName"]
                 if sys_info.get("sysLocation"): printer.location = sys_info["sysLocation"]
@@ -361,8 +420,8 @@ async def _check_single_printer_supplies(printer_id: int, adapter: StandardSNMPA
 
             any_changed = False
             
-            if counters and counters.get("total_pages") is not None:
-                printer.page_count = counters["total_pages"]
+            if new_page_count:
+                printer.page_count = new_page_count
 
             # --- Supplies: always write what the scraper returned ---
             # Rule: if scraper returns a value → show it. If None → hide it (clear from DB).
@@ -394,6 +453,13 @@ async def _check_single_printer_supplies(printer_id: int, adapter: StandardSNMPA
                             dept_email = get_department_email(printer.department)
                             if dept_email:
                                 asyncio.create_task(send_email_notify(f"Low Toner Alert: {printer.ip_address}", msg, dept_email, printer_ip=printer.ip_address, issue_type="low_toner"))
+                            # Also dispatch to configured Webhooks (Discord/Slack/Teams)
+                            asyncio.create_task(send_webhook_notify(
+                                title=f"⚠️ Low Toner Alert: {printer.hostname or printer.ip_address}",
+                                message=f"ระดับหมึกเหลือเพียง {new_toner}% (IP: {printer.ip_address}, แผนก: {printer.department or '-'}) กรุณาเตรียมตลับหมึกสำรอง",
+                                level="WARNING",
+                                printer_ip=printer.ip_address
+                            ))
                     else:
                         await _resolve_alerts(db, printer.id, "SUPPLY")
                     # Auto-detect Toner Replacement
@@ -473,7 +539,7 @@ async def _check_single_printer_supplies(printer_id: int, adapter: StandardSNMPA
                     }
                 })
                 
-            if counters and "total_pages" in counters:
+            if counters and counters.get("total_pages") is not None and counters["total_pages"] > 0:
                 from datetime import date
                 today = date.today()
                 

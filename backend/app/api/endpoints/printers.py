@@ -89,9 +89,14 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     low_drum  = [{"id": p.id, "hostname": p.hostname, "ip_address": p.ip_address, "level": p.drum_level,  "type": "Drum"}  for p in printers if p.drum_level  is not None and p.drum_level  <= 10]
     consumables_alert = low_toner + low_drum
 
-    # Alert counts — 2 scalar queries
-    active_alerts   = db.query(Alert).filter(Alert.is_resolved == False).count()
-    critical_alerts = db.query(Alert).filter(Alert.is_resolved == False, Alert.severity == 'CRITICAL').count()
+    # Alert counts — align with /alerts endpoint (exclude offline status alerts)
+    from sqlalchemy import not_, and_
+    base_alert_q = db.query(Alert).filter(
+        Alert.is_resolved == False,
+        not_(and_(Alert.alert_type == "STATUS", Alert.message.ilike("%offline%")))
+    )
+    active_alerts   = base_alert_q.count()
+    critical_alerts = base_alert_q.filter(Alert.severity == 'CRITICAL').count()
 
     # Latest counter per printer — 1 query with GROUP BY + MAX
     subq = (
@@ -114,7 +119,10 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     recent_alerts_raw = (
         db.query(Alert, PrinterModel)
         .outerjoin(PrinterModel, Alert.printer_id == PrinterModel.id)
-        .filter(Alert.is_resolved == False)
+        .filter(
+            Alert.is_resolved == False,
+            not_(and_(Alert.alert_type == "STATUS", Alert.message.ilike("%offline%")))
+        )
         .order_by(Alert.created_at.desc())
         .limit(5)
         .all()
@@ -382,6 +390,24 @@ def get_printer_history(printer_id: int, days: int = 30, db: Session = Depends(g
             PrinterCounters.printer_id == printer_id,
             PrinterCounters.measured_at >= cutoff
         ).order_by(PrinterCounters.measured_at.asc()).all()
+
+        # When a machine is replaced/swapped, only count the current machine!
+        current_printer = db.query(PrinterModel).filter(PrinterModel.id == printer_id).first()
+        if current_printer and current_printer.page_count:
+            # Exclude old machine meters that exceed current machine's count
+            counters_history = [
+                c for c in counters_history 
+                if c.total_pages is not None and c.total_pages <= (current_printer.page_count + 50)
+            ]
+            
+        # Detect if a meter reset or swap occurred within the history window
+        last_swap_idx = 0
+        for i in range(1, len(counters_history)):
+            if counters_history[i].total_pages and counters_history[i-1].total_pages:
+                if counters_history[i].total_pages < counters_history[i-1].total_pages - 50:
+                    last_swap_idx = i
+        if last_swap_idx > 0:
+            counters_history = counters_history[last_swap_idx:]
     except Exception:
         db.rollback()
         counters_history = []
@@ -396,12 +422,60 @@ def get_printer_history(printer_id: int, days: int = 30, db: Session = Depends(g
         db.rollback()
         supplies_history = []
     
+    # Calculate Toner Depletion Prediction
+    toner_prediction = None
+    try:
+        valid_snapshots = [s for s in supplies_history if s.toner_level is not None and s.toner_level >= 0]
+        if len(valid_snapshots) >= 2:
+            first_snap = valid_snapshots[0]
+            last_snap = valid_snapshots[-1]
+            time_diff_days = (last_snap.measured_at - first_snap.measured_at).total_seconds() / 86400.0
+            level_diff = first_snap.toner_level - last_snap.toner_level
+            
+            # If toner is decreasing over time (or stable)
+            current_level = last_snap.toner_level
+            if time_diff_days >= 0.5 and level_diff > 0:
+                burn_rate_per_day = level_diff / time_diff_days
+                days_remaining = int(current_level / burn_rate_per_day) if burn_rate_per_day > 0 else 999
+                toner_prediction = {
+                    "current_level": current_level,
+                    "burn_rate_per_day": round(burn_rate_per_day, 2),
+                    "days_remaining": max(0, days_remaining),
+                    "predicted_empty_date": (datetime.utcnow() + timedelta(days=days_remaining)).strftime('%d %b %Y'),
+                    "status": "CRITICAL" if days_remaining <= 3 else "WARNING" if days_remaining <= 7 else "HEALTHY",
+                    "confidence": "HIGH" if len(valid_snapshots) >= 5 else "MEDIUM"
+                }
+            elif current_level is not None:
+                # Default heuristic based on current level
+                toner_prediction = {
+                    "current_level": current_level,
+                    "burn_rate_per_day": 0.5,
+                    "days_remaining": int(current_level / 0.5),
+                    "predicted_empty_date": (datetime.utcnow() + timedelta(days=int(current_level / 0.5))).strftime('%d %b %Y'),
+                    "status": "CRITICAL" if current_level <= 10 else "WARNING" if current_level <= 20 else "HEALTHY",
+                    "confidence": "LOW (Estimated)"
+                }
+        elif supplies_history:
+            cur_lvl = supplies_history[-1].toner_level or 100
+            days_est = int(cur_lvl / 0.6)
+            toner_prediction = {
+                "current_level": cur_lvl,
+                "burn_rate_per_day": 0.6,
+                "days_remaining": days_est,
+                "predicted_empty_date": (datetime.utcnow() + timedelta(days=days_est)).strftime('%d %b %Y'),
+                "status": "CRITICAL" if cur_lvl <= 10 else "WARNING" if cur_lvl <= 20 else "HEALTHY",
+                "confidence": "LOW (Initial)"
+            }
+    except Exception as e:
+        toner_prediction = None
+    
     return {
         "uptime_stats": {
             "uptime_hours": round(uptime_hours, 1),
             "downtime_hours": round(downtime_hours, 1),
             "daily": daily_uptime
         },
+        "toner_prediction": toner_prediction,
         "status_history": [{"status": s.status, "checked_at": s.checked_at.isoformat()} for s in recent_status],
         "counters_history": [{"total_pages": c.total_pages, "measured_at": c.measured_at.isoformat()} for c in counters_history],
         "supplies_history": [{
@@ -423,6 +497,15 @@ def update_printer(printer_id: int, printer_update: PrinterUpdate, db: Session =
         raise HTTPException(status_code=404, detail="Printer not found")
     
     update_data = printer_update.dict(exclude_unset=True)
+    if "serial_number" in update_data and update_data["serial_number"] and db_printer.serial_number and update_data["serial_number"].strip().upper() != db_printer.serial_number.strip().upper():
+        from app.models.printer import MaintenanceLog
+        db.add(MaintenanceLog(
+            printer_id=db_printer.id,
+            description=f"Admin updated Serial: {db_printer.serial_number} ➔ {update_data['serial_number']} (เปลี่ยนเครื่องใหม่)",
+            performed_by=getattr(current_user, 'username', 'Admin')
+        ))
+        db.query(PrinterCounters).filter(PrinterCounters.printer_id == db_printer.id).delete()
+
     for key, value in update_data.items():
         setattr(db_printer, key, value)
         

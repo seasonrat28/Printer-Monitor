@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { printerService } from '../services/api';
 import { useWebSocket } from '../contexts/WebSocketContext';
-import { Search, Filter, Plus, Upload, Download, RefreshCw, Bell, AlertTriangle, Info, XCircle, X, CheckCircle2, History, Trash2 } from 'lucide-react';
+import { Search, Plus, Upload, Download, RefreshCw, Bell, X, History, Trash2, FileSpreadsheet, FileText, ChevronDown } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
@@ -13,6 +14,7 @@ import { AutoDiscoveryModal } from '../components/AutoDiscoveryModal';
 import type { Printer } from '../types';
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
+import { useAlerts } from '../contexts/AlertContext';
 
 let isInitialSyncDone = false;
 let cachedPrinters: Printer[] = [];
@@ -48,7 +50,7 @@ const PrintersList = () => {
     const [sortBy, setSortBy] = useState('ip_asc');
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-    const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
+    const { activeAlertsCount } = useAlerts();
     const [groups, setGroups] = useState<any[]>([]);
     const [smartFilters, setSmartFilters] = useState<any[]>([]);
     const [groupFilter, setGroupFilter] = useState<string>('ALL');
@@ -59,15 +61,6 @@ const PrintersList = () => {
         status_summary: { total: 0, online: 0, offline: 0, warning: 0 },
         metrics: { active_alerts: 0, critical_alerts: 0, pages_printed: 0, low_toner_printers: 0, avg_response: 'N/A' },
     });
-
-    const fetchUnreadAlertsCount = async () => {
-        try {
-            const res = await api.get('/alerts/?is_resolved=false');
-            setUnreadAlertsCount(res.data.length);
-        } catch (err) {
-            console.error("Failed to fetch alerts count", err);
-        }
-    };
 
     const fetchGroups = async () => {
         try {
@@ -117,7 +110,6 @@ const PrintersList = () => {
     }, [fetchSummary]);
 
     useEffect(() => {
-        fetchUnreadAlertsCount();
         fetchGroups();
         fetchSmartFilters();
         fetchSummary();
@@ -142,7 +134,23 @@ const PrintersList = () => {
     const [newMaintenanceUser, setNewMaintenanceUser] = useState('');
     const [submittingMaintenance, setSubmittingMaintenance] = useState(false);
     const [selectedPrinterHistory, setSelectedPrinterHistory] = useState<any>(null);
-    const [historyData, setHistoryData] = useState<{ uptime_stats?: { uptime_hours: number, downtime_hours: number, daily: { date: string, uptime_hours: number, downtime_hours: number }[] }, status_history: any[], counters_history: any[], supplies_history: any[], maintenance_logs: any[], meter_history: any[], attachments: any[] }>({ status_history: [], counters_history: [], supplies_history: [], maintenance_logs: [], meter_history: [], attachments: [] });
+    const [historyData, setHistoryData] = useState<{
+        uptime_stats?: { uptime_hours: number, downtime_hours: number, daily: { date: string, uptime_hours: number, downtime_hours: number }[] };
+        toner_prediction?: {
+            current_level: number;
+            burn_rate_per_day: number;
+            days_remaining: number;
+            predicted_empty_date: string;
+            status: 'CRITICAL' | 'WARNING' | 'HEALTHY';
+            confidence: string;
+        } | null;
+        status_history: any[];
+        counters_history: any[];
+        supplies_history: any[];
+        maintenance_logs: any[];
+        meter_history: any[];
+        attachments: any[];
+    }>({ status_history: [], counters_history: [], supplies_history: [], maintenance_logs: [], meter_history: [], attachments: [] });
 
     // Borrow Modal State
     const [isBorrowModalOpen, setIsBorrowModalOpen] = useState(false);
@@ -189,13 +197,31 @@ const PrintersList = () => {
             });
             const formattedCounters = Object.values(countersMap);
 
-            // Compute Daily Meter Readings
+            // Compute Daily Meter Readings for the active machine only
+            let validCounters = (res.data.counters_history || []).filter(
+                (c: any) => c.total_pages && c.total_pages > 0
+            );
+
+            // If current printer's page count is known, discard any legacy readings from older swapped machines
+            if (printer?.page_count && printer.page_count > 0) {
+                validCounters = validCounters.filter((c: any) => c.total_pages <= printer.page_count + 50);
+            }
+
+            // Find the last swap/reset point if counters ever dropped (indicating machine replacement)
+            let swapIdx = 0;
+            for (let i = 1; i < validCounters.length; i++) {
+                if (validCounters[i].total_pages < validCounters[i - 1].total_pages - 50) {
+                    swapIdx = i;
+                }
+            }
+            const currentMachineCounters = validCounters.slice(swapIdx);
+
             const dailyCounters: Record<string, number> = {};
-            res.data.counters_history.forEach((c: any) => {
+            currentMachineCounters.forEach((c: any) => {
                 const dateStr = c.measured_at.endsWith('Z') ? c.measured_at : c.measured_at + 'Z';
                 const d = new Date(dateStr);
                 const dayKey = d.toLocaleString('en-GB', { day: '2-digit', month: 'short' });
-                // We keep overwriting so the last reading of the day is kept
+                // We keep overwriting so the last valid reading of the day is kept
                 dailyCounters[dayKey] = c.total_pages;
             });
 
@@ -204,7 +230,13 @@ const PrintersList = () => {
             for (let i = 1; i < days.length; i++) {
                 const prevDay = days[i - 1];
                 const currDay = days[i];
-                const increment = dailyCounters[currDay] - dailyCounters[prevDay];
+                const prevVal = dailyCounters[prevDay];
+                const currVal = dailyCounters[currDay];
+
+                // Only calculate delta if counter is progressing normally on the same machine
+                if (!prevVal || !currVal || currVal < prevVal) continue;
+
+                const increment = currVal - prevVal;
                 meterHistory.push({
                     date: currDay,
                     pages: Math.max(0, increment)
@@ -229,6 +261,7 @@ const PrintersList = () => {
 
             setHistoryData({
                 uptime_stats: res.data.uptime_stats,
+                toner_prediction: res.data.toner_prediction,
                 status_history: res.data.status_history,
                 counters_history: formattedCounters,
                 supplies_history: formattedSupplies,
@@ -392,11 +425,7 @@ const PrintersList = () => {
                 return next;
             });
             debouncedFetchSummary();
-        } else if (lastEvent?.type === 'NEW_ALERT') {
-            setUnreadAlertsCount(prev => prev + 1);
-            debouncedFetchSummary();
-        } else if (lastEvent?.type === 'ALERT_RESOLVED') {
-            setUnreadAlertsCount(prev => Math.max(0, prev - 1));
+        } else if (lastEvent?.type === 'NEW_ALERT' || lastEvent?.type === 'ALERT_RESOLVED') {
             debouncedFetchSummary();
         }
     }, [lastEvent]); // ← only lastEvent as dep, avoids infinite loop
@@ -485,19 +514,74 @@ const PrintersList = () => {
         }
     };
 
-    const handleExport = async () => {
+    // Auto-refresh state (off, 15s, 30s, 60s)
+    const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(0);
+    const [downloadingExport, setDownloadingExport] = useState<'csv' | 'excel' | 'pdf' | null>(null);
+    const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+    const exportDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Close export dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+                setIsExportDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Auto-refresh interval effect
+    useEffect(() => {
+        if (!autoRefreshInterval || autoRefreshInterval <= 0) return;
+        const intervalId = setInterval(() => {
+            fetchPrinters();
+            fetchSummary();
+        }, autoRefreshInterval * 1000);
+        return () => clearInterval(intervalId);
+    }, [autoRefreshInterval, fetchPrinters, fetchSummary]);
+
+    const handleExport = async (format: 'csv' | 'excel' | 'pdf' = 'csv') => {
+        if (downloadingExport) return;
+        setDownloadingExport(format);
+        setIsExportDropdownOpen(false);
         try {
-            const response = await api.get('/printers/export/csv', { responseType: 'blob' });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', 'printers_export.csv');
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+            if (format === 'csv') {
+                const response = await api.get('/printers/export/csv', { responseType: 'blob' });
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `printers_${new Date().toISOString().slice(0, 10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                toast.success('ดาวน์โหลดรายงาน CSV สำเร็จ');
+            } else if (format === 'excel') {
+                const response = await api.get('/reports/excel', { responseType: 'blob' });
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `printers_${new Date().toISOString().slice(0, 10)}.xlsx`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                toast.success('ดาวน์โหลดรายงาน Excel สำเร็จ');
+            } else if (format === 'pdf') {
+                const response = await api.get('/reports/pdf', { responseType: 'blob' });
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `printers_${new Date().toISOString().slice(0, 10)}.pdf`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                toast.success('ดาวน์โหลดรายงาน PDF สำเร็จ');
+            }
         } catch (err) {
-            console.error("Failed to export printers", err);
-            alert("Failed to export printers");
+            console.error(`Failed to export printers as ${format}`, err);
+            toast.error(`ไม่สามารถส่งออกข้อมูลเป็น ${format.toUpperCase()} ได้`);
+        } finally {
+            setDownloadingExport(null);
         }
     };
 
@@ -636,57 +720,62 @@ const PrintersList = () => {
 
     const metrics = dashboardSummary?.metrics || { active_alerts: 0, critical_alerts: 0, pages_printed: 0, low_toner_printers: 0, avg_response: 'N/A' };
 
-    // Calculate real-time stats from local printers array
+    // Calculate real-time stats from local printers array to match Dashboard/Reports
     const realTimeTotal = printers.length;
-    const realTimeOnline = printers.filter(p => p.status === 'ONLINE' || p.status === 'WARNING' || p.status === 'ERROR').length;
-    const realTimeOffline = printers.filter(p => p.status === 'OFFLINE' || p.status === 'UNKNOWN' || !p.status).length;
+    const realTimeOnline = printers.filter(p => p.status === 'ONLINE').length;
+    const realTimeOffline = printers.filter(p => p.status === 'OFFLINE').length;
 
-    const SkeletonCard = () => (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 flex flex-col h-[280px] animate-pulse">
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center space-x-2 w-full">
-                    <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded flex-1"></div>
-                    <div className="w-12 h-4 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                </div>
-            </div>
-            <div className="space-y-3 mb-5 w-full">
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-4/6"></div>
-            </div>
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-md w-full mb-6"></div>
-            <div className="flex items-center justify-between space-x-6 px-2 mt-auto">
-                <div className="flex-1 flex flex-col items-center">
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-12 mb-2"></div>
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-10 mb-2"></div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"></div>
-                </div>
-                <div className="flex-1 flex flex-col items-center">
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-12 mb-2"></div>
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-10 mb-2"></div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"></div>
-                </div>
-            </div>
-        </div>
-    );
+
 
     return (
-        <div className="space-y-6 max-w-[1600px] mx-auto">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold tracking-tight">Printers Directory</h2>
-                <div className="flex space-x-3">
-                    <div className="flex items-center rounded-lg border border-slate-300 bg-white p-1 dark:border-slate-700 dark:bg-slate-900" aria-label="View mode">
-                        <button onClick={() => setViewMode('cards')} className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === 'cards' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}>Cards</button>
-                        <button onClick={() => setViewMode('table')} className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === 'table' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}>Table</button>
+        <div className="space-y-4 sm:space-y-6 max-w-[1600px] mx-auto flex-1 w-full pb-12">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Printers Directory</h2>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                    {/* View mode Cards / Table toggles */}
+                    <div className="h-[38px] flex items-center rounded-lg border border-slate-300 bg-white p-0.5 dark:border-slate-700 dark:bg-slate-900 shadow-sm" aria-label="View mode">
+                        <button onClick={() => setViewMode('cards')} className={`h-full rounded-md px-3 text-xs font-bold transition-all flex items-center justify-center ${viewMode === 'cards' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}>Cards</button>
+                        <button onClick={() => setViewMode('table')} className={`h-full rounded-md px-3 text-xs font-bold transition-all flex items-center justify-center ${viewMode === 'table' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}>Table</button>
                     </div>
+
+                    {/* Auto-refresh interval dropdown */}
+                    <div className="relative">
+                        <select
+                            value={autoRefreshInterval}
+                            onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setAutoRefreshInterval(val);
+                                if (val > 0) {
+                                    toast.success(`เปิด Auto-refresh ทุก ${val} วินาที`);
+                                } else {
+                                    toast('ปิด Auto-refresh แล้ว', { icon: '⏸️' });
+                                }
+                            }}
+                            className="h-[38px] pl-3 pr-7 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors shadow-sm cursor-pointer appearance-none"
+                            title="เลือกความถี่ในการรีเฟรชข้อมูลอัตโนมัติ"
+                        >
+                            <option value={0}>Auto: ปิด</option>
+                            <option value={15}>Auto: 15 วิ</option>
+                            <option value={30}>Auto: 30 วิ</option>
+                            <option value={60}>Auto: 1 นาที</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
+                            <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                        </div>
+                    </div>
+
                     <button
                         onClick={handleRefresh}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm"
+                        className="h-[38px] px-3.5 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-1.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition-colors shadow-sm text-xs font-semibold shrink-0"
+                        title="รีเฟรชทันที"
                     >
-                        <RefreshCw size={16} />
+                        <RefreshCw size={14} className={loading ? 'animate-spin text-indigo-500' : ''} />
                         <span>Refresh</span>
                     </button>
+
                     {user?.role === 'ADMIN' && (
                         <>
                             <input
@@ -698,55 +787,97 @@ const PrintersList = () => {
                             />
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm"
+                                className="h-[38px] px-3.5 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-1.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition-colors shadow-sm text-xs font-semibold shrink-0"
                             >
-                                <Upload size={16} />
+                                <Upload size={14} />
                                 <span>Import CSV</span>
                             </button>
                         </>
                     )}
-                    <button
-                        onClick={handleExport}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm"
-                    >
-                        <Download size={16} />
-                        <span>Export CSV</span>
-                    </button>
+
+                    {/* Multi-Format Export Dropdown */}
+                    <div className="relative" ref={exportDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+                            disabled={!!downloadingExport}
+                            className="h-[38px] px-3.5 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-1.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm text-xs font-semibold text-gray-700 dark:text-gray-200 shrink-0"
+                            title="ดาวน์โหลดรายงานสรุป"
+                        >
+                            <Download size={14} className={downloadingExport ? 'animate-bounce text-indigo-500' : ''} />
+                            <span>{downloadingExport ? `กำลังส่งออก ${downloadingExport.toUpperCase()}...` : 'Export'}</span>
+                            <ChevronDown size={13} className="text-gray-400 ml-0.5" />
+                        </button>
+
+                        {isExportDropdownOpen && (
+                            <div className="absolute right-0 mt-1.5 w-44 rounded-xl bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 py-1.5 z-30 animate-in fade-in slide-in-from-top-1 duration-150">
+                                <div className="px-3 py-1 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    เลือกฟอร์แมตรายงาน
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => handleExport('csv')}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-left transition-colors"
+                                >
+                                    <Download size={14} className="text-blue-500" />
+                                    <span>Export CSV</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleExport('excel')}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-left transition-colors"
+                                >
+                                    <FileSpreadsheet size={14} className="text-emerald-500" />
+                                    <span>Export Excel (.xlsx)</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleExport('pdf')}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-left transition-colors"
+                                >
+                                    <FileText size={14} className="text-rose-500" />
+                                    <span>Export PDF Report</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
                     {user?.role === 'ADMIN' && (
                         <>
                             <button
                                 onClick={() => setIsAutoDiscoveryModalOpen(true)}
-                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg flex items-center space-x-2 hover:bg-emerald-700 transition-colors shadow-sm"
+                                className="h-[38px] px-3.5 bg-emerald-600 text-white rounded-lg flex items-center space-x-1.5 hover:bg-emerald-700 transition-colors shadow-sm text-xs font-semibold shrink-0"
                             >
-                                <Search size={16} />
+                                <Search size={14} />
                                 <span>Scan Network</span>
                             </button>
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
-                                className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center space-x-2 hover:bg-indigo-700 transition-colors shadow-sm"
+                                className="h-[38px] px-3.5 bg-indigo-600 text-white rounded-lg flex items-center space-x-1.5 hover:bg-indigo-700 transition-colors shadow-sm text-xs font-semibold shrink-0"
                             >
-                                <Plus size={16} />
+                                <Plus size={14} />
                                 <span>Add Printers</span>
                             </button>
                             <button
                                 onClick={handleDeleteAll}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg flex items-center space-x-2 hover:bg-red-700 transition-colors shadow-sm"
+                                className="h-[38px] px-3.5 bg-red-600 text-white rounded-lg flex items-center space-x-1.5 hover:bg-red-700 transition-colors shadow-sm text-xs font-semibold shrink-0"
                                 title="ล้างข้อมูลเครื่องพิมพ์ทั้งหมด"
                             >
-                                <Trash2 size={16} />
+                                <Trash2 size={14} />
                                 <span>Clear All</span>
                             </button>
                         </>
                     )}
+
                     <button
                         onClick={() => setIsNotificationsOpen(true)}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg flex items-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm relative"
+                        className="h-[38px] w-[38px] bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-lg flex items-center justify-center transition-colors shadow-sm relative shrink-0"
                         title="View Notifications"
                     >
-                        <Bell size={16} className="text-gray-600 dark:text-gray-300" />
-                        {unreadAlertsCount > 0 && (
-                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white">
-                                {unreadAlertsCount > 99 ? '99+' : unreadAlertsCount}
+                        <Bell size={16} className="text-slate-950 fill-slate-950/20" />
+                        {activeAlertsCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-gray-900">
+                                {activeAlertsCount > 99 ? '99+' : activeAlertsCount}
                             </span>
                         )}
                     </button>
@@ -784,6 +915,8 @@ const PrintersList = () => {
                 </div>
             )}
 
+
+
             {/* Search and Filter Bar */}
             {selectedPrinterId && (
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-100">
@@ -792,7 +925,7 @@ const PrintersList = () => {
                 </div>
             )}
             <div className="flex flex-col lg:flex-row gap-2 xl:gap-3 items-center bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <div className="w-full lg:w-auto flex-1 min-w-[200px] max-w-md relative">
+                <div className="w-full lg:w-[calc((100%-3rem)/4)] relative shrink-0">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Search className="h-5 w-5 text-gray-400" />
                     </div>
@@ -821,7 +954,6 @@ const PrintersList = () => {
                                 setActiveSmartFilterPrinterIds(new Set());
                             } else {
                                 try {
-                                    // Use standard pattern or filter from state
                                     const filter = smartFilters.find(f => f.id.toString() === val);
                                     if (filter) {
                                         setActiveSmartFilterPrinterIds(new Set(filter.printers.map((p: any) => p.id)));
@@ -843,11 +975,8 @@ const PrintersList = () => {
 
                 {/* Groups Filter */}
                 <div className="w-full lg:w-44 relative shrink-0">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                    </div>
                     <select
-                        className="block w-full pl-9 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors sm:text-sm appearance-none"
+                        className="block w-full pl-3 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors sm:text-sm appearance-none"
                         value={groupFilter}
                         onChange={async (e) => {
                             const val = e.target.value;
@@ -879,11 +1008,8 @@ const PrintersList = () => {
 
                 {/* Status */}
                 <div className="w-full lg:w-36 relative shrink-0">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Filter className="h-4 w-4 text-gray-400" />
-                    </div>
                     <select
-                        className="block w-full pl-9 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors sm:text-sm appearance-none"
+                        className="block w-full pl-3 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors sm:text-sm appearance-none"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                     >
@@ -965,7 +1091,7 @@ const PrintersList = () => {
                     <p className="text-gray-500 dark:text-gray-400">ลองเปลี่ยนคำค้นหา หรือเพิ่มเครื่องปริ้นใหม่</p>
                 </div>
             ) : viewMode === 'cards' ? (
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {filteredPrinters.map(printer => (
                         <PrinterCard
                             key={printer.id}
@@ -1029,7 +1155,15 @@ const PrintersList = () => {
                                                 <span className={`h-2 w-2 rounded-full ${printer.status === 'ONLINE' ? 'bg-emerald-500' : printer.status === 'OFFLINE' ? 'bg-slate-400' : 'bg-orange-500'}`} />
                                                 <div className="min-w-0">
                                                     <div className="truncate font-medium text-slate-900 dark:text-slate-100">{printer.hostname || printer.ip_address}</div>
-                                                    <div className="text-xs text-slate-500 dark:text-slate-400">{printer.ip_address} {printer.serial_number ? `| ${printer.serial_number}` : ''}</div>
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
+                                                        <span>{printer.ip_address} {printer.serial_number ? `| ${printer.serial_number}` : ''}</span>
+                                                        {printer.status_message && (
+                                                            <span className="px-1.5 py-0.5 rounded bg-slate-900 dark:bg-black/80 text-emerald-400 border border-slate-700/60 font-mono text-[10px] flex items-center gap-1 shadow-xs" title={`LCD Display: ${printer.status_message}`}>
+                                                                <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
+                                                                {printer.status_message}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -1229,9 +1363,9 @@ const PrintersList = () => {
             )}
 
             {/* History Modal */}
-            {isHistoryModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-4xl border border-slate-200 dark:border-slate-700 flex flex-col h-[80vh]">
+            {isHistoryModalOpen && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsHistoryModalOpen(false)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-4xl border border-slate-200 dark:border-slate-700 flex flex-col h-[80vh]" onClick={(e) => e.stopPropagation()}>
 
                         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/90">
                             <div>
@@ -1328,6 +1462,57 @@ const PrintersList = () => {
                                 </div>
                             ) : historyTab === 'stats' ? (
                                 <>
+                                    {/* AI Predictive Toner Depletion Card */}
+                                    {historyData.toner_prediction && (
+                                        <div className={`p-4 rounded-xl border mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm ${
+                                            historyData.toner_prediction.status === 'CRITICAL'
+                                                ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800'
+                                                : historyData.toner_prediction.status === 'WARNING'
+                                                ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'
+                                                : 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
+                                        }`}>
+                                            <div className="flex items-center space-x-3.5">
+                                                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                                                    historyData.toner_prediction.status === 'CRITICAL'
+                                                        ? 'bg-rose-500 text-white shadow-rose-500/20 shadow-md'
+                                                        : historyData.toner_prediction.status === 'WARNING'
+                                                        ? 'bg-amber-500 text-white shadow-amber-500/20 shadow-md'
+                                                        : 'bg-emerald-500 text-white shadow-emerald-500/20 shadow-md'
+                                                }`}>
+                                                    <span className="text-xl">📊</span>
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                                                            ทำนายการหมดของตลับหมึก (Predictive Toner Analytics)
+                                                        </h4>
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
+                                                            Smart AI
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                                                        อัตราการใช้เฉลี่ย: <span className="font-semibold text-gray-900 dark:text-gray-100">{historyData.toner_prediction.burn_rate_per_day}% ต่อวัน</span> • คาดการณ์หมึกหมด: <span className="font-bold underline decoration-indigo-400">{historyData.toner_prediction.predicted_empty_date}</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-200/60 dark:border-gray-700/60">
+                                                <div className="text-right">
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">เหลือเวลาใช้งานประมาณ</div>
+                                                    <div className={`text-2xl font-black ${
+                                                        historyData.toner_prediction.status === 'CRITICAL'
+                                                            ? 'text-rose-600 dark:text-rose-400'
+                                                            : historyData.toner_prediction.status === 'WARNING'
+                                                            ? 'text-amber-600 dark:text-amber-400'
+                                                            : 'text-emerald-600 dark:text-emerald-400'
+                                                    }`}>
+                                                        {historyData.toner_prediction.days_remaining} <span className="text-sm font-bold">วัน</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Toner and Drum Level Chart */}
                                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
                                         <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 uppercase tracking-wider">ปริมาณหมึกและดรัม (Toner & Drum Level)</h4>
@@ -1630,7 +1815,8 @@ const PrintersList = () => {
                             )}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
 
