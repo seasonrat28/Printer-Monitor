@@ -66,6 +66,7 @@ frontend/dist_electron/
 !stop_all.bat
 !manage.bat
 !install.bat
+!EnterprisePM-Desktop.bat
 push_changes.bat
 push_to_github.bat
 git_status.bat
@@ -92,6 +93,27 @@ debug_*.txt
 migrate_*.py
 test_*.py
 scratch_*.py
+clean_bat_files.py
+analyze_lh.py
+rename_wh.py
+tail_log.py
+
+# Documentation & Internal Agent/Planning Files
+PLAN.md
+Launcher.md
+UPDATE_LOG.md
+DEPLOYMENT_INSTRUCTIONS.md
+
+# Binaries & Local Run files
+cloudflared.exe
+config.yml
+tray_app.pid
+start_hidden.vbs
+
+# Agent tools & IDE settings
 Skill/
 install-godkiller-mcp.bat
+.agents/
+.godkiller-session/
+.vscode/
 
